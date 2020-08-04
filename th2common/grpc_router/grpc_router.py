@@ -14,6 +14,7 @@
 
 import importlib.util
 import json
+from concurrent.futures.thread import ThreadPoolExecutor
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
@@ -51,6 +52,11 @@ class GrpcRouter:
 
         with open(config_file, 'r') as f:
             self.conf = json.load(f)
+
+    def create_server(self):
+        server = grpc.server(ThreadPoolExecutor(max_workers=self.conf['server']['workers']))
+        server.add_insecure_port(f"{self.conf['server']['host']}:{self.conf['server']['port']}")
+        return server
 
     def get_service(self, cls):
         return cls(self)
