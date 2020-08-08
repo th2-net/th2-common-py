@@ -25,8 +25,8 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
-from th2 import infra_pb2 as th2_dot_infra__pb2
-from th2 import event_store_pb2 as th2_dot_event__store__pb2
+from th2common.gen import infra_pb2 as th2_dot_infra__pb2
+from th2common.gen import event_store_pb2 as th2_dot_event__store__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(

@@ -29,7 +29,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import any_pb2 as google_dot_protobuf_dot_any__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 from google.protobuf import wrappers_pb2 as google_dot_protobuf_dot_wrappers__pb2
-from th2 import infra_pb2 as th2_dot_infra__pb2
+from th2common.gen import infra_pb2 as th2_dot_infra__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(

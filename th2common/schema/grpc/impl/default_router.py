@@ -1,6 +1,17 @@
-# Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+# # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -12,17 +23,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import importlib.util
-import json
-from concurrent.futures.thread import ThreadPoolExecutor
-from os import listdir
-from os.path import isfile, join
-from pathlib import Path
-
 import grpc
 
+from th2common.schema.grpc.abstract_router import AbstractGrpcRouter
+from th2common.schema.grpc.configurations import GrpcRouterConfiguration
 
-class GrpcRouter:
+
+class DefaultGrpcRouter(AbstractGrpcRouter):
+
+    def __init__(self, configuration: GrpcRouterConfiguration) -> None:
+        super().__init__(configuration)
+
+    def get_service(self, cls):
+        return cls(self)
+
     class Connection:
 
         stubs = {}
@@ -45,21 +59,6 @@ class GrpcRouter:
             stub = self.stubs[endpoint]
             if stub is not None:
                 return getattr(stub, request_name)(request)
-
-    def __init__(self, config_file):
-        self.strategies = {}
-        self.__load_strategies()
-
-        with open(config_file, 'r') as f:
-            self.conf = json.load(f)
-
-    def create_server(self):
-        server = grpc.server(ThreadPoolExecutor(max_workers=self.conf['server']['workers']))
-        server.add_insecure_port(f"{self.conf['server']['host']}:{self.conf['server']['port']}")
-        return server
-
-    def get_service(self, cls):
-        return cls(self)
 
     def get_connection(self, service_class, stub_class):
         find_service = None
