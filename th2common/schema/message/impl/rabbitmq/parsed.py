@@ -11,6 +11,19 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+#
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 # # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -26,7 +39,7 @@
 from th2common.gen.infra_pb2 import MessageBatch
 from th2common.schema.message.configurations import QueueConfiguration
 from th2common.schema.message.impl.rabbitmq.abstract_router import AbstractRabbitBatchMessageRouter, \
-    AbstractRabbitQueue, AbstractRabbitSender
+    AbstractRabbitQueue, AbstractRabbitSender, AbstractRabbitBatchSubscriber
 from th2common.schema.message.impl.rabbitmq.configuration import RabbitMQConfiguration
 from th2common.schema.message.interfaces import MessageListener, SubscriberMonitor, MessageQueue, MessageSubscriber, \
     MessageSender
@@ -36,6 +49,9 @@ class RabbitParsedBatchSender(AbstractRabbitSender):
 
     def value_to_bytes(self, value: MessageBatch):
         return value.SerializeToString()
+
+class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
+    pass
 
 
 class RabbitParsedBatchQueue(AbstractRabbitQueue):
