@@ -14,10 +14,8 @@ getGitMeta:
       dotenv: meta.env
 
 testName:
-  image: openjdk:11.0.8-jre
   stage: build
   dependencies:
   - getGitMeta
   script:
-  - java -version
   - echo $REVISION
