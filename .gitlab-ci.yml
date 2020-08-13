@@ -11,9 +11,6 @@ getGitMeta:
   stage: meta
   script:
     - echo "REVISION=$(git rev-list --count HEAD)" >> meta.env
-  artifacts:
-    reports:
-      dotenv: meta.env
 
 pypi_publish:
   stage: deploy
