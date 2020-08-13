@@ -2,8 +2,6 @@ image: python:3.8-slim
 
 stages:
   - meta
-  - test
-  - build
   - deploy
 
 
@@ -13,10 +11,10 @@ getGitMeta:
     entrypoint: [""]
   stage: meta
   script:
-    - echo "REVISION=$(git rev-list --count HEAD)" >> meta.env
+    - echo "REVISION=$(git rev-list --count HEAD)" >> th2common/version.txt
   artifacts:
     reports:
-      dotenv: meta.env
+      dotenv: th2common/version.txt
 
 
 before_script:
