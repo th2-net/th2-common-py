@@ -1,6 +1,5 @@
 stages:
   - meta
-  - test
   - build
 
 getGitMeta:
@@ -14,13 +13,7 @@ getGitMeta:
     reports:
       dotenv: meta.env
 
-lint:
-  image: openjdk:11.0.8-jre
-  stage: test
-  script:
-  - java -version
-
-build:
+testName:
   image: openjdk:11.0.8-jre
   stage: build
   dependencies:
