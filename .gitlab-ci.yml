@@ -1,12 +1,19 @@
 image: python:3.8-slim
 
+stages:
+  - meta
+  - test
+  - build
+  - deploy
+
+
 getGitMeta:
   image:
     name: alpine/git:v2.26.2
     entrypoint: [""]
   stage: meta
   script:
-  - echo "REVISION=$(git rev-list --count HEAD)" >> meta.env
+    - echo "REVISION=$(git rev-list --count HEAD)" >> meta.env
   artifacts:
     reports:
       dotenv: meta.env
