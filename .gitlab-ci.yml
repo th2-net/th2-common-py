@@ -11,10 +11,11 @@ getGitMeta:
     entrypoint: [""]
   stage: meta
   script:
-    - echo "REVISION=$(git rev-list --count HEAD)" >> th2common/version.txt
+    - touch meta.env
+    - echo "REVISION=$(git rev-list --count HEAD)" >> meta.env
   artifacts:
     reports:
-      dotenv: th2common/version.txt
+      dotenv: meta.env
 
 
 before_script:
