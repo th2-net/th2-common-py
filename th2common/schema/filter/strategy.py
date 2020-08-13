@@ -13,17 +13,18 @@
 #   limitations under the License.
 
 from abc import ABC, abstractmethod
+from typing import List
 
 from google.protobuf.message import Message
 
-from th2common.schema.message.configurations import RouterFilter
+from th2common.schema.message.configurations import RouterFilter, FieldFilterConfiguration
 from th2common.schema.strategy import Th2BatchMsgFieldExtraction
 
 
 class FilterStrategy(ABC):
 
     @abstractmethod
-    def verify(self, message: Message, router_filter: RouterFilter, router_filters: [RouterFilter]):
+    def verify(self, message: Message, router_filter: RouterFilter = None, router_filters: List[RouterFilter] = None):
         pass
 
 
@@ -32,5 +33,18 @@ class DefaultFilterStrategy(FilterStrategy):
     def __init__(self, extract_strategy=Th2BatchMsgFieldExtraction()) -> None:
         self.extract_strategy = extract_strategy
 
-    def verify(self, message: Message, router_filter: RouterFilter = None, router_filters: list[RouterFilter] = None):
+    def verify(self, message: Message, router_filter: RouterFilter = None, router_filters: List[RouterFilter] = None):
+        if router_filters is None:
+            msg_field_filters = dict(router_filter.get_message())
+            msg_field_filters.update(router_filter.get_metadata())
+            return self.check_values(self.extract_strategy.get_fields(message), msg_field_filters)
+        else:
+            for fields_filter in router_filters:
+                if self.verify(message=message, router_filter=fields_filter):
+                    return True
+            return False
+
+    def check_values(self, message_fields: {str: str}, field_filters: {str: FieldFilterConfiguration}):
         pass
+
+
