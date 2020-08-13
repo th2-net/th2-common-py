@@ -18,6 +18,8 @@ before_script:
 
 pypi_publish:
   stage: deploy
+  dependencies:
+    - getGitMeta
   script:
     - echo $REVISION
     - twine upload --repository-url $PYPI_REPOSITORY_URL --username $PYPI_USER --password $PYPI_PASSWORD dist/*
