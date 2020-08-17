@@ -30,7 +30,7 @@ class Configuration(ABC):
     pass
 
 
-class FilterableConfiguration(Configuration):
+class FilterableConfiguration(Configuration, ABC):
     pass
 
 
@@ -47,7 +47,7 @@ class QueueConfiguration(Configuration):
 
 
 class MessageRouterConfiguration(FilterableConfiguration):
-    def __init__(self, queues) -> None:
+    def __init__(self, queues: dict) -> None:
         self.queues = queues
         self.attributes = dict()
         for queue_alias in queues.keys():
@@ -57,6 +57,17 @@ class MessageRouterConfiguration(FilterableConfiguration):
                     self.attributes[attr] = set()
                 self.attributes[attr].add(queue_alias)
 
+    def get_queue_by_alias(self, queue_alias):
+        return self.queues[queue_alias]
+
+    def get_queues_alias_by_attribute(self, *attributes):
+        result = set()
+        for queue_alias in self.queues.keys():
+            result.add(queue_alias)
+        for attr in attributes:
+            result = result.intersection(self.attributes[attr] if self.attributes.__contains__(attr) else set())
+        return result
+
 
 class FieldFilterConfiguration(Configuration):
 
@@ -65,7 +76,7 @@ class FieldFilterConfiguration(Configuration):
         self.operation = operation
 
 
-class RouterFilter(Configuration):
+class RouterFilter(Configuration, ABC):
 
     @abstractmethod
     def get_metadata(self) -> {str: FieldFilterConfiguration}:
@@ -74,3 +85,16 @@ class RouterFilter(Configuration):
     @abstractmethod
     def get_message(self) -> {str: FieldFilterConfiguration}:
         pass
+
+
+class MqRouterFilterConfiguration(RouterFilter):
+
+    def __init__(self, metadata, message) -> None:
+        self.metadata = metadata
+        self.message = message
+
+    def get_metadata(self) -> {str: FieldFilterConfiguration}:
+        return self.metadata
+
+    def get_message(self) -> {str: FieldFilterConfiguration}:
+        return self.message

@@ -42,6 +42,10 @@ class MessageSender(ABC):
     def send(self, message):
         pass
 
+    @abstractmethod
+    def close(self):
+        pass
+
 
 class MessageSubscriber(ABC):
 
@@ -99,11 +103,20 @@ class MessageRouter(ABC):
         self.rabbit_mq_configuration = rabbit_mq_configuration
 
     @abstractmethod
-    def subscribe(self, callback: MessageListener, queue_alias=None, *queue_attr) -> SubscriberMonitor:
+    def subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
         """
-        RabbitMQ queue by intersection schemas queues attributes or queue_alias
+        RabbitMQ queue by intersection schemas queues queue_alias
         :param callback: listener
         :param queue_alias: queue alias
+        :return: SubscriberMonitor it start listening. Returns None is can not listen this queue
+        """
+        pass
+
+    @abstractmethod
+    def subscribe_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+        """
+        RabbitMQ queue by intersection schemas queues attributes
+        :param callback: listener
         :param queue_attr: queues attributes
         :return: SubscriberMonitor it start listening. Returns None is can not listen this queue
         """
@@ -127,7 +140,11 @@ class MessageRouter(ABC):
         pass
 
     @abstractmethod
-    def send(self, message, *queue_attr):
+    def send(self, message):
+        pass
+
+    @abstractmethod
+    def send_by_attr(self, message, *queue_attr):
         pass
 
     @abstractmethod

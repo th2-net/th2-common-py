@@ -44,7 +44,8 @@ class DefaultFilterStrategy(FilterStrategy):
                     return True
             return False
 
-    def check_values(self, message_fields: {str: str}, field_filters: {str: FieldFilterConfiguration}):
-        pass
+    def check_values(self, message_fields: {str: str}, field_filters: {str: FieldFilterConfiguration}) -> bool:
+
+
 
 
