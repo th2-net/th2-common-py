@@ -17,6 +17,7 @@ from typing import List
 
 from google.protobuf.message import Message
 
+from th2common.gen.infra_pb2 import EQUAL, NOT_EQUAL, EMPTY, NOT_EMPTY
 from th2common.schema.message.configurations import RouterFilter, FieldFilterConfiguration
 from th2common.schema.strategy import Th2BatchMsgFieldExtraction
 
@@ -45,7 +46,24 @@ class DefaultFilterStrategy(FilterStrategy):
             return False
 
     def check_values(self, message_fields: {str: str}, field_filters: {str: FieldFilterConfiguration}) -> bool:
+        for field_name in field_filters.keys():
+            field_filter = field_filters[field_name]
+            msg_field_value = message_fields[field_name]
+            if not self.check_value(msg_field_value, field_filter):
+                return False
+        return True
 
-
-
-
+    def check_value(self, value1, filter_configuration: FieldFilterConfiguration):
+        if len(value1) == 0:
+            return False
+        value2 = filter_configuration.value
+        if filter_configuration.operation == EQUAL:
+            return value1 == value2
+        elif filter_configuration.operation == NOT_EQUAL:
+            return value1 != value2
+        elif filter_configuration.operation == EMPTY:
+            return len(value1) == 0
+        elif filter_configuration.operation == NOT_EMPTY:
+            return len(value1) != 0
+        else:
+            return False
