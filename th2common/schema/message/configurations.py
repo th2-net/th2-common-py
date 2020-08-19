@@ -90,9 +90,11 @@ class RouterFilter(Configuration, ABC):
 
 class MqRouterFilterConfiguration(RouterFilter):
 
-    def __init__(self, metadata, message) -> None:
-        self.metadata = {key: FieldFilterConfiguration(**metadata[key]) for key in metadata.keys()}
-        self.message = {key: FieldFilterConfiguration(**message[key]) for key in message.keys()}
+    def __init__(self, metadata=None, message=None) -> None:
+        if metadata is not None:
+            self.metadata = {key: FieldFilterConfiguration(**metadata[key]) for key in metadata.keys()}
+        if message is not None:
+            self.message = {key: FieldFilterConfiguration(**message[key]) for key in message.keys()}
 
     def get_metadata(self) -> {str: FieldFilterConfiguration}:
         return self.metadata
