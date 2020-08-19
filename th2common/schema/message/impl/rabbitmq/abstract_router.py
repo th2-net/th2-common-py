@@ -204,7 +204,7 @@ class AbstractRabbitQueue(MessageQueue, ABC):
         if not self.queue_configuration.canRead:
             raise RouterError("Queue can not read")
         with self.subscriber_lock:
-            if self.subscriber is None or self.subscriber.isClose():
+            if self.subscriber is None or self.subscriber.is_close():
                 self.subscriber = self.create_subscriber(self.configuration, self.queue_configuration)
             return self.subscriber
 
