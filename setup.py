@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='th2-common',
-    version=f"1.1.41",
+    version=f"1.1.42",
     packages=find_packages(include=['th2common', 'th2common.*']),
     install_requires=[
         'pika==1.1.0',
