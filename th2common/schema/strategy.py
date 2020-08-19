@@ -58,7 +58,17 @@ class AbstractTh2MsgFieldExtraction(FieldExtractionStrategy, ABC):
     DIRECTION_KEY = "direction"
 
     def get_fields(self, message: Message) -> {str: str}:
-        pass
+        th2msg = self.parse_message(message)
+        message_id = th2msg.metadata.id
+
+        message_fields = dict()
+        for field_name in th2msg.fields.keys():
+            message_fields[field_name] = th2msg.fields[field_name].simple_value
+        metadata_msg_fields = {self.SESSION_ALIAS_KEY: message_id.connection_id.session_alias,
+                               self.MESSAGE_TYPE_KEY: th2msg.metadata.message_type,
+                               self.DIRECTION_KEY: message_id.direction.name}
+        message_fields.update(metadata_msg_fields)
+        return message_fields
 
     @abstractmethod
     def parse_message(self, message: Message) -> infra_pb2.Message:
