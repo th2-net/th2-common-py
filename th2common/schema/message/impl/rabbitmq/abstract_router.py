@@ -291,7 +291,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             self.queue_connections.clear()
 
     def send(self, message):
-        self.send(self.get_target_queue_aliases_and_messages_to_send(message))
+        self.send_by_aliases_and_messages_to_send(self.get_target_queue_aliases_and_messages_to_send(message))
 
     def send_by_attr(self, message, *queue_attr):
         queues_aliases_and_messages = self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr)
