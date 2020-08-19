@@ -56,7 +56,7 @@ class AbstractRabbitSender(MessageSender, ABC):
         self.channel.queue_declare(queue=self.send_queue)
 
     def is_close(self) -> bool:
-        return self.connection is None or not self.connection.is_open()
+        return self.connection is None or not self.connection.is_open
 
     def send(self, message):
         if self.channel is None:
@@ -65,7 +65,7 @@ class AbstractRabbitSender(MessageSender, ABC):
                                    body=self.value_to_bytes(message))
 
     def close(self):
-        if self.connection is not None and self.connection.is_open():
+        if self.connection is not None and self.connection.is_open:
             self.connection.close()
 
     @abstractmethod
@@ -118,7 +118,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                         f"routing key='{queue_tag}', queue name='{queue_name}'")
 
     def is_close(self) -> bool:
-        return self.connection is None or not self.connection.is_open()
+        return self.connection is None or not self.connection.is_open
 
     def add_listener(self, message_listener: MessageListener):
         if message_listener is None:
@@ -270,7 +270,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         queue = self.get_message_queue(queue_alias)
         subscriber = queue.get_subscriber()
         subscriber.add_listener(callback)
-        return SubscriberMonitorImpl(subscriber, queue)
+        return SubscriberMonitorImpl(subscriber, queue.subscriber_lock)
 
     def subscribe_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
         queues = self.configuration.get_queues_alias_by_attribute(queue_attr)
