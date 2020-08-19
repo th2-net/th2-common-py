@@ -52,6 +52,7 @@ class MessageRouterConfiguration(FilterableConfiguration):
         self.attributes = dict()
         for queue_alias in queues.keys():
             queue_configuration = QueueConfiguration(**queues[queue_alias])
+            self.queues[queue_alias] = queue_configuration
             for attr in queue_configuration.attributes:
                 if not self.attributes.__contains__(attr):
                     self.attributes[attr] = set()
