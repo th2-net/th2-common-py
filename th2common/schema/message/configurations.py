@@ -41,7 +41,7 @@ class QueueConfiguration(Configuration):
         self.name = name
         self.exchange = exchange
         self.attributes = attributes
-        self.filters = filters
+        self.filters = [MqRouterFilterConfiguration(**filter_schema) for filter_schema in filters]
         self.canRead = canRead
         self.canWrite = canWrite
 
@@ -91,8 +91,8 @@ class RouterFilter(Configuration, ABC):
 class MqRouterFilterConfiguration(RouterFilter):
 
     def __init__(self, metadata, message) -> None:
-        self.metadata = metadata
-        self.message = message
+        self.metadata = {key: FieldFilterConfiguration(**metadata[key]) for key in metadata.keys()}
+        self.message = {key: FieldFilterConfiguration(**message[key]) for key in message.keys()}
 
     def get_metadata(self) -> {str: FieldFilterConfiguration}:
         return self.metadata
