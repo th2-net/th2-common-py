@@ -12,8 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import os
-
 from setuptools import setup, find_packages
 
 setup(
@@ -21,10 +19,9 @@ setup(
     version=f"1.1.49",
     packages=find_packages(include=['th2common', 'th2common.*']),
     install_requires=[
-        'pika==1.1.0',
-        'grpcio==1.27.2',
-        'google-api-core==1.22.0',
-        'PyYAML==5.3.1'
+        'click==7.1.2',
+        'setuptools==49.2.0',
+        'pika==1.1.0'
     ],
     url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-python',
     license='Apache License 2.0',
