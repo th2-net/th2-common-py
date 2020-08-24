@@ -29,6 +29,8 @@ import json
 from abc import ABC, abstractmethod
 from threading import Lock
 
+import click
+
 from th2common.schema.cradle import CradleConfiguration
 from th2common.schema.grpc.abstract_router import GrpcRouter
 from th2common.schema.grpc.configurations import GrpcRouterConfiguration
@@ -160,6 +162,29 @@ class CommonFactory(AbstractFactory):
         self.router_grpc = router_grpc
         self.cradle = cradle
         self.custom = custom
+
+    @staticmethod
+    def calculate_path(path_cmd, path_default) -> str:
+        if path_cmd is None or len(path_cmd) == 0:
+            return path_default
+        return path_cmd
+
+    @staticmethod
+    @click.command()
+    @click.option('--rabbitConfiguration', help='path to json file with RabbitMQ configuration')
+    @click.option('--messageRouterConfiguration', help='path to json file with configuration for MessageRouter')
+    @click.option('--grpcRouterConfiguration', help='path to json file with configuration for GrpcRouter')
+    @click.option('--cradleConfiguration', help='path to json file with configuration for cradle')
+    @click.option('--customConfiguration', help='path to json file with custom configuration')
+    def create_from_arguments(rabbitConfiguration, messageRouterConfiguration, grpcRouterConfiguration,
+                              cradleConfiguration, customConfiguration):
+        return CommonFactory(
+            rabbit_mq=CommonFactory.calculate_path(rabbitConfiguration, CommonFactory.RABBIT_MQ_FILE_NAME),
+            router_mq=CommonFactory.calculate_path(messageRouterConfiguration, CommonFactory.ROUTER_MQ_FILE_NAME),
+            router_grpc=CommonFactory.calculate_path(grpcRouterConfiguration, CommonFactory.ROUTER_GRPC_FILE_NAME),
+            cradle=CommonFactory.calculate_path(cradleConfiguration, CommonFactory.CRADLE_FILE_NAME),
+            custom=CommonFactory.calculate_path(customConfiguration, CommonFactory.CUSTOM_FILE_NAME),
+        )
 
     def _path_to_rabbit_mq_configuration(self) -> str:
         return self.rabbit_mq
