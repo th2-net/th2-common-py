@@ -14,16 +14,17 @@
 
 from . import verifier_pb2_grpc as importStub
 
+
 class VerifierService(object):
 
     def __init__(self, router):
         self.connector = router.get_connection(VerifierService, importStub.VerifierStub)
 
     def createCheckpoint(self, request):
-        return self.connector.create_request("createCheckpoint",request)
+        return self.connector.create_request("createCheckpoint", request)
 
     def submitCheckRule(self, request):
-        return self.connector.create_request("submitCheckRule",request)
+        return self.connector.create_request("submitCheckRule", request)
 
     def submitCheckSequenceRule(self, request):
-        return self.connector.create_request("submitCheckSequenceRule",request)
+        return self.connector.create_request("submitCheckSequenceRule", request)

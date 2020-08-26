@@ -12,22 +12,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from setuptools import setup, find_packages
+from . import simulator_pb2_grpc as importStub
 
-setup(
-    name='th2-common',
-    version=f"1.1.51",
-    packages=find_packages(include=['th2common', 'th2common.*']),
-    install_requires=[
-        'click==7.1.2',
-        'setuptools==49.2.0',
-        'pika==1.1.0'
-    ],
-    url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-python',
-    license='Apache License 2.0',
-    author='TH2-devs',
-    python_requires='>=3.7',
-    author_email='th2-devs@exactprosystems.com',
-    description='TH2-common-python',
-    long_description=open('README.md').read(),
-)
+
+class ServiceSimulatorService(object):
+
+    def __init__(self, router):
+        self.connector = router.get_connection(ServiceSimulatorService, importStub.ServiceSimulatorStub)
+
+    def removeRule(self, request):
+        return self.connector.create_request("removeRule", request)
+
+    def getRulesInfo(self, request):
+        return self.connector.create_request("getRulesInfo", request)
