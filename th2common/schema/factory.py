@@ -165,14 +165,14 @@ class CommonFactory(AbstractFactory):
     @click.option('--grpcRouterConfiguration', help='path to json file with configuration for GrpcRouter')
     @click.option('--cradleConfiguration', help='path to json file with configuration for cradle')
     @click.option('--customConfiguration', help='path to json file with custom configuration')
-    def create_from_arguments(rabbitConfiguration, messageRouterConfiguration, grpcRouterConfiguration,
-                              cradleConfiguration, customConfiguration):
+    def create_from_arguments(rabbitconfiguration, messagerouterconfiguration, grpcrouterconfiguration,
+                              cradleconfiguration, customconfiguration):
         return CommonFactory(
-            rabbit_mq=CommonFactory.calculate_path(rabbitConfiguration, CommonFactory.RABBIT_MQ_FILE_NAME),
-            router_mq=CommonFactory.calculate_path(messageRouterConfiguration, CommonFactory.ROUTER_MQ_FILE_NAME),
-            router_grpc=CommonFactory.calculate_path(grpcRouterConfiguration, CommonFactory.ROUTER_GRPC_FILE_NAME),
-            cradle=CommonFactory.calculate_path(cradleConfiguration, CommonFactory.CRADLE_FILE_NAME),
-            custom=CommonFactory.calculate_path(customConfiguration, CommonFactory.CUSTOM_FILE_NAME),
+            rabbit_mq=CommonFactory.calculate_path(rabbitconfiguration, CommonFactory.RABBIT_MQ_FILE_NAME),
+            router_mq=CommonFactory.calculate_path(messagerouterconfiguration, CommonFactory.ROUTER_MQ_FILE_NAME),
+            router_grpc=CommonFactory.calculate_path(grpcrouterconfiguration, CommonFactory.ROUTER_GRPC_FILE_NAME),
+            cradle=CommonFactory.calculate_path(cradleconfiguration, CommonFactory.CRADLE_FILE_NAME),
+            custom=CommonFactory.calculate_path(customconfiguration, CommonFactory.CUSTOM_FILE_NAME),
         )
 
     def _path_to_rabbit_mq_configuration(self) -> str:
