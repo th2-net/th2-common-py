@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
 class CradleConfiguration:
     def __init__(self, dataCenter: str, host: str, port: int, keyspace: str, username: str, password: str) -> None:
         self.dataCenter = dataCenter

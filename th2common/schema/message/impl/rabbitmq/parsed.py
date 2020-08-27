@@ -31,8 +31,8 @@ class RabbitParsedBatchSender(AbstractRabbitSender):
 class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
 
     def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str, filters: list,
-                 filter_strategy, *queue_tags) -> None:
-        super().__init__(configuration, exchange_name, filters, filter_strategy, *queue_tags)
+                 filter_strategy, prefetch_count=1, *queue_tags) -> None:
+        super().__init__(configuration, exchange_name, filters, filter_strategy, prefetch_count, *queue_tags)
 
     def get_messages(self, batch: MessageBatch) -> list:
         return batch.messages
@@ -66,6 +66,7 @@ class RabbitParsedBatchQueue(AbstractRabbitQueue):
                                                  queue_configuration.exchange,
                                                  queue_configuration.filters,
                                                  DefaultFilterStrategy(),
+                                                 queue_configuration.prefetch_count,
                                                  queue_configuration.name)
         try:
             subscriber.start()
@@ -80,15 +81,15 @@ class RabbitParsedBatchRouter(AbstractRabbitBatchMessageRouter):
     def __init__(self, rabbit_mq_configuration, configuration) -> None:
         super().__init__(rabbit_mq_configuration, configuration)
 
-    def get_messages(self, batch):
+    def _get_messages(self, batch):
         return batch.messages
 
-    def create_batch(self):
+    def _create_batch(self):
         return MessageBatch()
 
-    def add_message(self, batch: MessageBatch, message):
+    def _add_message(self, batch: MessageBatch, message):
         batch.messages.append(message)
 
-    def create_queue(self, configuration: RabbitMQConfiguration,
-                     queue_configuration: QueueConfiguration) -> MessageQueue:
+    def _create_queue(self, configuration: RabbitMQConfiguration,
+                      queue_configuration: QueueConfiguration) -> MessageQueue:
         return RabbitParsedBatchQueue(configuration, queue_configuration)

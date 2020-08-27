@@ -55,7 +55,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
     def get_connection(self, service_class, stub_class):
         find_service = None
         for service in self.configuration.services:
-            if self.configuration.services[service]["service-class"] == service_class.__name__:
+            if self.configuration.services[service]["service-class"].split('.')[-1] == service_class.__name__:
                 find_service = self.configuration.services[service]
                 break
         strategy_name = find_service['strategy']['name']

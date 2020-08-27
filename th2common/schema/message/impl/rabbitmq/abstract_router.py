@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import _thread
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -75,7 +76,8 @@ class AbstractRabbitSender(MessageSender, ABC):
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str, *queue_tags) -> None:
+    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str = None,
+                 prefetch_count=1, *queue_tags) -> None:
         if len(queue_tags) < 1:
             raise Exception("Queue tags must be more than 0")
 
@@ -85,6 +87,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.connection = None
         self.channel = None
 
+        self.prefetch_count = prefetch_count
         self.exchange_name = exchange_name
         self.subscriber_name = configuration.subscriberName
         self.queue_aliases = queue_tags
@@ -108,14 +111,17 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='direct')
 
         for queue_tag in self.queue_aliases:
-            declare = self.channel.queue_declare(queue=f"{self.subscriber_name}.{datetime.now()}",
-                                                 durable=False, exclusive=True, auto_delete=True)
+            declare = self.channel.queue_declare(queue=f"{queue_tag}.{datetime.now()}",
+                                                 durable=True, exclusive=True, auto_delete=True)
             queue_name = declare.method.queue
             self.channel.queue_bind(queue=queue_name, exchange=self.exchange_name, routing_key=queue_tag)
-            self.channel.basic_consume(queue=queue_name, auto_ack=True, on_message_callback=self.handle)
+            self.channel.basic_qos(prefetch_count=self.prefetch_count)
+            self.channel.basic_consume(queue=queue_name, consumer_tag=f"{self.subscriber_name}.{datetime.now()}",
+                                       on_message_callback=self.handle)
 
             logger.info(f"Start listening exchangeName='{self.exchange_name}', "
                         f"routing key='{queue_tag}', queue name='{queue_name}'")
+        _thread.start_new_thread(self.channel.start_consuming, ())
 
     def is_close(self) -> bool:
         return self.connection is None or not self.connection.is_open
@@ -127,6 +133,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.listeners.add(message_listener)
 
     def close(self):
+        self.channel.stop_consuming()
         with self.lock_listeners:
             for listener in self.listeners:
                 listener.on_close()
@@ -148,6 +155,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                         logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except Exception as e:
             logger.error(f"Can not parse value from delivery for: {method.consumer_tag}", e)
+        channel.basic_ack(delivery_tag=method.delivery_tag)
 
     @abstractmethod
     def value_from_bytes(self, body):
@@ -169,9 +177,9 @@ class Metadata:
 
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str,
-                 filters: list, filter_strategy=DefaultFilterStrategy(), *queue_tags) -> None:
-        super().__init__(configuration, exchange_name, *queue_tags)
+    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str, filters: list,
+                 filter_strategy=DefaultFilterStrategy(), prefetch_count=1, *queue_tags) -> None:
+        super().__init__(configuration, exchange_name, prefetch_count, *queue_tags)
         self.filters = filters
         self.filter_strategy = filter_strategy
 
@@ -262,12 +270,12 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def __init__(self, rabbit_mq_configuration, configuration) -> None:
         super().__init__(rabbit_mq_configuration, configuration)
-        self.filter_factory = DefaultFilterFactory()
+        self._filter_factory = DefaultFilterFactory()
         self.queue_connections = dict()
         self.queue_connections_lock = Lock()
 
-    def subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
-        queue = self.get_message_queue(queue_alias)
+    def _subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
+        queue = self._get_message_queue(queue_alias)
         subscriber = queue.get_subscriber()
         subscriber.add_listener(callback)
         return SubscriberMonitorImpl(subscriber, queue.subscriber_lock)
@@ -276,12 +284,18 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         queues = self.configuration.get_queues_alias_by_attribute(queue_attr)
         if len(queues) > 1:
             raise RouterError(f"Wrong size of queues aliases for send. Not more then 1")
-        return None if len(queues) < 1 else self.subscribe_by_alias(callback, queues[0])
+        return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues[0])
 
-    def subscribe_all(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_all_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+        subscribers = []
+        for queue_alias in self.configuration.get_queues_alias_by_attribute(queue_attr):
+            subscribers.append(self._subscribe_by_alias(callback, queue_alias))
+        return None if len(subscribers) == 0 else MultiplySubscribeMonitorImpl(subscribers)
+
+    def subscribe_all(self, callback: MessageListener) -> SubscriberMonitor:
         subscribers = []
         for queue_alias in self.configuration.queues.keys():
-            subscribers.append(self.subscribe_by_alias(callback, queue_alias))
+            subscribers.append(self._subscribe_by_alias(callback, queue_alias))
         return None if len(subscribers) == 0 else MultiplySubscribeMonitorImpl(subscribers)
 
     def unsubscribe_all(self):
@@ -291,68 +305,68 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             self.queue_connections.clear()
 
     def send(self, message):
-        self.send_by_aliases_and_messages_to_send(self.get_target_queue_aliases_and_messages_to_send(message))
+        self._send_by_aliases_and_messages_to_send(self._get_target_queue_aliases_and_messages_to_send(message))
 
     def send_by_attr(self, message, *queue_attr):
         queues_aliases_and_messages = self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr)
         if len(queues_aliases_and_messages) > 1:
             raise RouterError(f"Wrong size of queues aliases for send. Not more than 1")
-        self.send_by_aliases_and_messages_to_send(queues_aliases_and_messages)
+        self._send_by_aliases_and_messages_to_send(queues_aliases_and_messages)
 
     def send_all(self, message, *queue_attr):
-        self.send_by_aliases_and_messages_to_send(
+        self._send_by_aliases_and_messages_to_send(
             self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr))
 
     @abstractmethod
-    def create_queue(self, configuration: RabbitMQConfiguration,
-                     queue_configuration: QueueConfiguration) -> MessageQueue:
+    def _create_queue(self, configuration: RabbitMQConfiguration,
+                      queue_configuration: QueueConfiguration) -> MessageQueue:
         pass
 
     @abstractmethod
-    def get_target_queue_aliases_and_messages_to_send(self, message) -> dict:
+    def _get_target_queue_aliases_and_messages_to_send(self, message) -> dict:
         pass
 
     def get_target_queue_aliases_and_messages_to_send_by_attr(self, message, *queue_attr) -> dict:
-        filtered_aliases = self.get_target_queue_aliases_and_messages_to_send(message)
+        filtered_aliases = self._get_target_queue_aliases_and_messages_to_send(message)
         queue_alias = self.configuration.get_queues_alias_by_attribute(queue_attr)
         filtered_aliases = {alias: filtered_aliases[alias] for alias in filtered_aliases.keys()
                             if queue_alias.__contains__(alias)}
         return filtered_aliases
 
-    def send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
+    def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
         for queue_alias in aliases_and_messages_to_send.keys():
             message = aliases_and_messages_to_send[queue_alias]
-            self.get_message_queue(queue_alias).get_sender().send(message)
+            self._get_message_queue(queue_alias).get_sender().send(message)
 
-    def get_message_queue(self, queue_alias):
+    def _get_message_queue(self, queue_alias):
         with self.queue_connections_lock:
             if not self.queue_connections.__contains__(queue_alias):
-                self.queue_connections[queue_alias] = self.create_queue(self.rabbit_mq_configuration,
-                                                                        self.configuration.get_queue_by_alias(
-                                                                            queue_alias))
+                self.queue_connections[queue_alias] = self._create_queue(self.rabbit_mq_configuration,
+                                                                         self.configuration.get_queue_by_alias(
+                                                                             queue_alias))
             return self.queue_connections[queue_alias]
 
 
 class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
 
-    def get_target_queue_aliases_and_messages_to_send(self, batch) -> dict:
-        message_filter = self.filter_factory.create_filter(self.configuration)
+    def _get_target_queue_aliases_and_messages_to_send(self, batch) -> dict:
+        message_filter = self._filter_factory.create_filter(self.configuration)
         result = dict()
-        for message in self.get_messages(batch):
+        for message in self._get_messages(batch):
             queue_alias = message_filter.check(message)
             if not result.__contains__(queue_alias):
-                result[queue_alias] = self.create_batch()
-            self.add_message(result[queue_alias], message)
+                result[queue_alias] = self._create_batch()
+            self._add_message(result[queue_alias], message)
         return result
 
     @abstractmethod
-    def get_messages(self, batch):
+    def _get_messages(self, batch) -> list:
         pass
 
     @abstractmethod
-    def create_batch(self):
+    def _create_batch(self):
         pass
 
     @abstractmethod
-    def add_message(self, batch: MessageBatch, message):
+    def _add_message(self, batch: MessageBatch, message):
         pass
