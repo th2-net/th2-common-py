@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import logging
 
 from th2common.gen.infra_pb2 import MessageBatch
 from th2common.schema.filter.strategy import DefaultFilterStrategy
@@ -20,6 +21,8 @@ from th2common.schema.message.impl.rabbitmq.abstract_router import AbstractRabbi
 from th2common.schema.message.impl.rabbitmq.configuration import RabbitMQConfiguration
 from th2common.schema.message.interfaces import MessageQueue, MessageSubscriber, \
     MessageSender
+
+logger = logging.getLogger()
 
 
 class RabbitParsedBatchSender(AbstractRabbitSender):
@@ -45,7 +48,9 @@ class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
                         session_alias=metadata.id.connection_id.session_alias)
 
     def value_from_bytes(self, body):
-        return MessageBatch.ParseFromString(body)
+        message_batch = MessageBatch()
+        message_batch.ParseFromString(body)
+        return message_batch
 
 
 class RabbitParsedBatchQueue(AbstractRabbitQueue):

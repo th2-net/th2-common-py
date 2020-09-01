@@ -16,7 +16,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='th2-common',
-    version=f"1.1.53",
+    version=f"1.1.54",
     packages=find_packages(include=['th2common', 'th2common.*']),
     install_requires=[
         'click==7.1.2',
