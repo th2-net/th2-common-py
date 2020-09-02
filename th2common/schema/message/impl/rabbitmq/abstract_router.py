@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import _thread
+import functools
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -133,14 +134,13 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.listeners.add(message_listener)
 
     def close(self):
-        self.channel.stop_consuming()
         with self.lock_listeners:
             for listener in self.listeners:
                 listener.on_close()
             self.listeners.clear()
 
         if self.connection is not None and self.connection.is_open:
-            self.connection.close()
+            self.connection.add_callback_threadsafe(functools.partial(self.connection.close))
 
     def handle(self, channel, method, properties, body):
         try:
