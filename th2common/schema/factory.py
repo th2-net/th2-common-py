@@ -61,13 +61,13 @@ class AbstractFactory(ABC):
     def create_grpc_router(self) -> GrpcRouter:
         return self.grpc_router_class(self._create_grpc_router_configuration())
 
-    def _create_cradle_configuration(self) -> CradleConfiguration:
+    def create_cradle_configuration(self) -> CradleConfiguration:
         file = open(self._path_to_cradle_configuration(), 'r')
         config_json = file.read()
         config_dict = json.loads(config_json)
         return CradleConfiguration(**config_dict)
 
-    def _create_custom_configuration(self) -> dict:
+    def create_custom_configuration(self) -> dict:
         file = open(self._path_to_custom_configuration(), 'r')
         config_json = file.read()
         config_dict = json.loads(config_json)

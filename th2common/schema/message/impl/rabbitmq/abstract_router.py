@@ -112,12 +112,12 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='direct')
 
         for queue_tag in self.queue_aliases:
-            declare = self.channel.queue_declare(queue=f"{queue_tag}.{datetime.now()}",
+            declare = self.channel.queue_declare(queue=f"{self.subscriber_name}:{queue_tag}",
                                                  durable=True, exclusive=True, auto_delete=True)
             queue_name = declare.method.queue
             self.channel.queue_bind(queue=queue_name, exchange=self.exchange_name, routing_key=queue_tag)
             self.channel.basic_qos(prefetch_count=self.prefetch_count)
-            self.channel.basic_consume(queue=queue_name, consumer_tag=f"{self.subscriber_name}.{datetime.now()}",
+            self.channel.basic_consume(queue=queue_name, consumer_tag=queue_tag,
                                        on_message_callback=self.handle)
 
             logger.info(f"Start listening exchangeName='{self.exchange_name}', "
@@ -280,13 +280,13 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         subscriber.add_listener(callback)
         return SubscriberMonitorImpl(subscriber, queue.subscriber_lock)
 
-    def subscribe_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
         queues = self.configuration.get_queues_alias_by_attribute(queue_attr)
         if len(queues) > 1:
             raise RouterError(f"Wrong size of queues aliases for send. Not more then 1")
         return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues[0])
 
-    def subscribe_all_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_all_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
         subscribers = []
         for queue_alias in self.configuration.get_queues_alias_by_attribute(queue_attr):
             subscribers.append(self._subscribe_by_alias(callback, queue_alias))

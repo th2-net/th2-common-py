@@ -103,7 +103,7 @@ class MessageRouter(ABC):
         self.rabbit_mq_configuration = rabbit_mq_configuration
 
     @abstractmethod
-    def subscribe_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_by_attr(self, callback: MessageListener, queue_attr: list) -> SubscriberMonitor:
         """
         RabbitMQ queue by intersection schemas queues attributes
         :param callback: listener
@@ -121,7 +121,7 @@ class MessageRouter(ABC):
         """
 
     @abstractmethod
-    def subscribe_all_by_attr(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_all_by_attr(self, callback: MessageListener, queue_attr: list) -> SubscriberMonitor:
         """
         RabbitMQ queues
         :param callback: listener

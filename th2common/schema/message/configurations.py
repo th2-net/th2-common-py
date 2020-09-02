@@ -51,7 +51,7 @@ class MessageRouterConfiguration(FilterableConfiguration):
     def get_queue_by_alias(self, queue_alias):
         return self.queues[queue_alias]
 
-    def get_queues_alias_by_attribute(self, *attributes):
+    def get_queues_alias_by_attribute(self, attributes: list):
         result = set()
         for queue_alias in self.queues.keys():
             result.add(queue_alias)
