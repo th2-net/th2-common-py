@@ -18,7 +18,6 @@ import _thread
 import functools
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
 from threading import Lock
 
 import pika
