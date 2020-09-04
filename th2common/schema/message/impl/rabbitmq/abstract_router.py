@@ -322,14 +322,11 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         pass
 
     @abstractmethod
-    def _get_target_queue_aliases_and_messages_to_send(self, message) -> dict:
+    def _get_target_queue_aliases_and_messages_to_send(self, message, queue_attr) -> dict:
         pass
 
     def get_target_queue_aliases_and_messages_to_send_by_attr(self, message, queue_attr) -> dict:
-        filtered_aliases = self._get_target_queue_aliases_and_messages_to_send(message)
-        queue_alias = self.configuration.get_queues_alias_by_attribute(queue_attr)
-        filtered_aliases = {alias: filtered_aliases[alias] for alias in filtered_aliases.keys()
-                            if queue_alias.__contains__(alias)}
+        filtered_aliases = self._get_target_queue_aliases_and_messages_to_send(message, queue_attr)
         return filtered_aliases
 
     def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
@@ -348,11 +345,11 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
 class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
 
-    def _get_target_queue_aliases_and_messages_to_send(self, batch) -> dict:
+    def _get_target_queue_aliases_and_messages_to_send(self, batch, queue_attr) -> dict:
         message_filter = self._filter_factory.create_filter(self.configuration)
         result = dict()
         for message in self._get_messages(batch):
-            queue_alias = message_filter.check(message)
+            queue_alias = message_filter.check(message, queue_attr)
             if not result.__contains__(queue_alias):
                 result[queue_alias] = self._create_batch()
             self._add_message(result[queue_alias], message)

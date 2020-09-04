@@ -25,7 +25,7 @@ from th2common.schema.message.configurations import MessageRouterConfiguration
 class Filter(ABC):
 
     @abstractmethod
-    def check(self, message: Message) -> str:
+    def check(self, message: Message, queue_attr: list) -> str:
         pass
 
 
@@ -36,10 +36,10 @@ class MqMsgFilter(Filter):
         self.configuration = configuration
         self.filter_strategy = filter_strategy
 
-    def check(self, message: Message) -> str:
+    def check(self, message: Message, queue_attr: list) -> str:
         queue_alias_result = ""
 
-        for queue_alias in self.configuration.queues.keys():
+        for queue_alias in self.configuration.get_queues_alias_by_attribute(queue_attr):
             queue_config = self.configuration.queues[queue_alias]
 
             filter_result = self.filter_strategy.verify(message=message, router_filters=queue_config.filters)
@@ -63,7 +63,7 @@ class GrpcMsgFilter(Filter):
         self.configuration = configuration
         self.filter_strategy = filter_strategy
 
-    def check(self, message: Message) -> str:
+    def check(self, message: Message, queue_attr: list) -> str:
         endpoint_alias = ""
 
         for fields_filter in self.configuration.filters:
