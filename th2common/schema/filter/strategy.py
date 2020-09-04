@@ -39,10 +39,12 @@ class DefaultFilterStrategy(FilterStrategy):
             msg_field_filters.update(router_filter.get_metadata())
             return self.check_values(self.extract_strategy.get_fields(message), msg_field_filters)
         else:
+            if len(router_filters) == 0:
+                return True
             for fields_filter in router_filters:
-                if not self.verify(message=message, router_filter=fields_filter):
-                    return False
-            return True
+                if self.verify(message=message, router_filter=fields_filter):
+                    return True
+            return False
 
     def check_values(self, message_fields: {str: str}, field_filters: {str: FieldFilterConfiguration}) -> bool:
         for field_name in field_filters.keys():

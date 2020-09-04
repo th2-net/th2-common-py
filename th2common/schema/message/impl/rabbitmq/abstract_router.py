@@ -306,13 +306,13 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def send(self, message):
         self._send_by_aliases_and_messages_to_send(self._get_target_queue_aliases_and_messages_to_send(message))
 
-    def send_by_attr(self, message, *queue_attr):
+    def send_by_attr(self, message, queue_attr):
         queues_aliases_and_messages = self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr)
         if len(queues_aliases_and_messages) > 1:
             raise RouterError(f"Wrong size of queues aliases for send. Not more than 1")
         self._send_by_aliases_and_messages_to_send(queues_aliases_and_messages)
 
-    def send_all(self, message, *queue_attr):
+    def send_all(self, message, queue_attr):
         self._send_by_aliases_and_messages_to_send(
             self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr))
 
@@ -325,7 +325,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def _get_target_queue_aliases_and_messages_to_send(self, message) -> dict:
         pass
 
-    def get_target_queue_aliases_and_messages_to_send_by_attr(self, message, *queue_attr) -> dict:
+    def get_target_queue_aliases_and_messages_to_send_by_attr(self, message, queue_attr) -> dict:
         filtered_aliases = self._get_target_queue_aliases_and_messages_to_send(message)
         queue_alias = self.configuration.get_queues_alias_by_attribute(queue_attr)
         filtered_aliases = {alias: filtered_aliases[alias] for alias in filtered_aliases.keys()

@@ -142,9 +142,9 @@ class MessageRouter(ABC):
         pass
 
     @abstractmethod
-    def send_by_attr(self, message, *queue_attr):
+    def send_by_attr(self, message, queue_attr):
         pass
 
     @abstractmethod
-    def send_all(self, message, *queue_attr):
+    def send_all(self, message, queue_attr):
         pass
