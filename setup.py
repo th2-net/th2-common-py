@@ -16,11 +16,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='th2-common',
-    version=f"1.1.59",
+    version=f"1.1.60",
     packages=find_packages(include=['th2common', 'th2common.*']),
     install_requires=[
-        'setuptools==49.2.0',
-        'pika==1.1.0'
+        'setuptools==50.2.0',
+        'pika==1.1.0',
+        'grpcio==1.31.0',
+        'google-api-core==1.22.2'
     ],
     url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-python',
     license='Apache License 2.0',
