@@ -25,9 +25,10 @@ class FilterableConfiguration(Configuration, ABC):
 
 class QueueConfiguration(Configuration):
 
-    def __init__(self, name: str, exchange: str, attributes: list, filters: list, prefetch_count: int = 1, canRead=True,
-                 canWrite=True) -> None:
+    def __init__(self, name: str, queue: str, exchange: str, attributes: list, filters: list, prefetch_count: int = 1,
+                 canRead=True, canWrite=True) -> None:
         self.name = name
+        self.queue = queue
         self.exchange = exchange
         self.prefetch_count = prefetch_count
         self.attributes = attributes
