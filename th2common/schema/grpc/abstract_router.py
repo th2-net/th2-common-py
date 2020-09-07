@@ -38,6 +38,9 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
 
     def start_server(self, *services) -> grpc.Server:
         server = grpc.server(ThreadPoolExecutor(max_workers=self.configuration.serverConfiguration.workers))
-        server.add_insecure_port(
-            f"{self.configuration.serverConfiguration.host}:{self.configuration.serverConfiguration.port}")
+        if self.configuration.serverConfiguration.host is None:
+            server.add_insecure_port(f'[::]:{self.configuration.serverConfiguration.port}')
+        else:
+            server.add_insecure_port(
+                f'{self.configuration.serverConfiguration.host}:{self.configuration.serverConfiguration.port}')
         return server
