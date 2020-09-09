@@ -12,17 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
 class CommonFactoryError(RuntimeError):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 
 class ConfigurationError(RuntimeError):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
-
-class FilterCheckError(ConfigurationError):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 

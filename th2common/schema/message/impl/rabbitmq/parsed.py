@@ -18,7 +18,7 @@ from th2common.schema.filter.strategy import DefaultFilterStrategy
 from th2common.schema.message.configurations import QueueConfiguration
 from th2common.schema.message.impl.rabbitmq.abstract_router import AbstractRabbitBatchMessageRouter, \
     AbstractRabbitQueue, AbstractRabbitSender, AbstractRabbitBatchSubscriber, Metadata
-from th2common.schema.message.impl.rabbitmq.configuration import RabbitMQConfiguration
+from th2common.schema.message.impl.rabbitmq.configuration import RabbitMQConfiguration, SubscribeTarget
 from th2common.schema.message.interfaces import MessageQueue, MessageSubscriber, \
     MessageSender
 
@@ -33,9 +33,9 @@ class RabbitParsedBatchSender(AbstractRabbitSender):
 
 class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
 
-    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str, filters: list,
-                 filter_strategy, prefetch_count=1, *queue_tags) -> None:
-        super().__init__(configuration, exchange_name, filters, filter_strategy, prefetch_count, *queue_tags)
+    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+                 filter_strategy, *subscribe_targets) -> None:
+        super().__init__(configuration, queue_configuration, filter_strategy, *subscribe_targets)
 
     def get_messages(self, batch: MessageBatch) -> list:
         return batch.messages
@@ -57,28 +57,15 @@ class RabbitParsedBatchQueue(AbstractRabbitQueue):
 
     def create_sender(self, configuration: RabbitMQConfiguration,
                       queue_configuration: QueueConfiguration) -> MessageSender:
-        sender = RabbitParsedBatchSender(configuration, queue_configuration.exchange, queue_configuration.name)
-        try:
-            sender.start()
-        except Exception as e:
-            raise RuntimeError(f"Can not start sender on queue with exchange '{queue_configuration.exchange}' "
-                               f"and name '{queue_configuration.name}'", e)
-        return sender
+        return RabbitParsedBatchSender(configuration, queue_configuration.exchange, queue_configuration.name)
 
     def create_subscriber(self, configuration: RabbitMQConfiguration,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
-        subscriber = RabbitParsedBatchSubscriber(configuration,
-                                                 queue_configuration.exchange,
-                                                 queue_configuration.filters,
-                                                 DefaultFilterStrategy(),
-                                                 queue_configuration.prefetch_count,
-                                                 queue_configuration.name)
-        try:
-            subscriber.start()
-        except Exception as e:
-            raise RuntimeError(f"Can not start subscriber on queue with exchange '{queue_configuration.exchange}' "
-                               f"and name '{queue_configuration.name}'", e)
-        return subscriber
+        subscribe_target = SubscribeTarget(routing_key=queue_configuration.name, queue=queue_configuration.queue)
+        return RabbitParsedBatchSubscriber(configuration,
+                                           queue_configuration,
+                                           DefaultFilterStrategy(),
+                                           subscribe_target)
 
 
 class RabbitParsedBatchRouter(AbstractRabbitBatchMessageRouter):

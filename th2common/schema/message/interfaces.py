@@ -21,7 +21,7 @@ from th2common.schema.message.impl.rabbitmq.configuration import RabbitMQConfigu
 class MessageListener(ABC):
 
     @abstractmethod
-    def handler(self, consumer_tag: str, message):
+    def handler(self, attributes: list, message):
         pass
 
     def on_close(self):

@@ -17,8 +17,9 @@ from typing import List
 
 from google.protobuf.message import Message
 
+from th2common.schema.grpc.configurations import GrpcRawFilterStrategy
 from th2common.schema.message.configurations import RouterFilter, FieldFilterConfiguration
-from th2common.schema.strategy import Th2BatchMsgFieldExtraction
+from th2common.schema.strategy import Th2BatchMsgFieldExtraction, RoutingStrategy
 
 
 class FilterStrategy(ABC):
@@ -68,3 +69,24 @@ class DefaultFilterStrategy(FilterStrategy):
             return len(value1) != 0
         else:
             return False
+
+
+class FilterRoutingStrategy(RoutingStrategy):
+
+    def __init__(self, configuration: GrpcRawFilterStrategy) -> None:
+        self.__filter_strategy = DefaultFilterStrategy()
+        self.__grpc_configuration = configuration
+
+    def get_endpoint(self, message: Message):
+        endpoint: set = self.__filter(message)
+        if len(endpoint) != 1:
+            raise Exception("Wrong size of endpoints for send. Should be equal to 1")
+        return endpoint.__iter__().__next__()
+
+    def __filter(self, message: Message) -> {str}:
+        endpoints = set()
+        for fields_filter in self.__grpc_configuration.filters:
+            if len(fields_filter.message) == 0 and len(fields_filter.metadata) == 0 \
+                    or self.__filter_strategy.verify(message=message, router_filter=fields_filter):
+                endpoints.add(fields_filter.endpoint)
+        return endpoints

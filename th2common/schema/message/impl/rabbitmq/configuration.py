@@ -21,3 +21,22 @@ class RabbitMQConfiguration:
         self.username = username
         self.password = password
         self.subscriberName = subscriberName
+
+
+class SubscribeTarget:
+
+    def __init__(self, routing_key: str, queue: str) -> None:
+        self.__queue = queue
+        self.__routing_key = routing_key
+
+    def set_queue(self, queue: str):
+        self.__queue = queue
+
+    def set_routing_key(self, routing_key: str):
+        self.__routing_key = routing_key
+
+    def get_queue(self):
+        return self.__queue
+
+    def get_routing_key(self):
+        return self.__routing_key

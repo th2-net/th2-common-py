@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2common.schema.message.configurations import Configuration, FilterableConfiguration, RouterFilter, \
+from th2common.schema.message.configurations import Configuration, RouterFilter, \
     FieldFilterConfiguration
 
 
@@ -51,7 +51,7 @@ class GrpcRouterFilterConfiguration(RouterFilter):
         return self.message
 
 
-class GrpcRawFilterStrategy(FilterableConfiguration):
+class GrpcRawFilterStrategy:
 
     def __init__(self, filters) -> None:
         self.filters = list()
@@ -59,7 +59,7 @@ class GrpcRawFilterStrategy(FilterableConfiguration):
             self.filters.append(GrpcRouterFilterConfiguration(**filters[key]))
 
 
-class GrpcRawRobinStrategy(FilterableConfiguration):
+class GrpcRawRobinStrategy:
 
     def __init__(self, endpoints, name) -> None:
         self.endpoints = endpoints

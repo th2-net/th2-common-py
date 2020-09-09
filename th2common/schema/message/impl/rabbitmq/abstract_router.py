@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import _thread
+import datetime
 import functools
 import logging
 from abc import ABC, abstractmethod
@@ -22,10 +23,9 @@ from threading import Lock
 
 import pika
 
-from th2common.gen.infra_pb2 import Direction, MessageBatch
+from th2common.gen.infra_pb2 import Direction, Message
 from th2common.schema.exception import RouterError
-from th2common.schema.filter.factory import DefaultFilterFactory
-from th2common.schema.filter.strategy import DefaultFilterStrategy
+from th2common.schema.filter.strategy import DefaultFilterStrategy, FilterStrategy
 from th2common.schema.message.configurations import QueueConfiguration
 from th2common.schema.message.impl.rabbitmq.configuration import RabbitMQConfiguration
 from th2common.schema.message.interfaces import MessageRouter, MessageListener, SubscriberMonitor, MessageQueue, \
@@ -50,18 +50,19 @@ class AbstractRabbitSender(MessageSender, ABC):
 
     def start(self):
         if self.send_queue is None or self.exchange_name is None:
-            raise Exception("Sender did not init")
-        self.connection = pika.BlockingConnection(self.connection_parameters)
-        self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='direct')
-        self.channel.queue_declare(queue=self.send_queue)
+            raise Exception("Sender can not start. Sender did not init")
+        if self.connection is None:
+            self.connection = pika.BlockingConnection(self.connection_parameters)
+        if self.channel is None:
+            self.channel = self.connection.channel()
+            self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='direct')
 
     def is_close(self) -> bool:
         return self.connection is None or not self.connection.is_open
 
     def send(self, message):
         if self.channel is None:
-            raise Exception("Sender did not init")
+            raise Exception("Can not send. Sender did not started")
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
                                    body=self.value_to_bytes(message))
 
@@ -76,10 +77,10 @@ class AbstractRabbitSender(MessageSender, ABC):
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str = None,
-                 prefetch_count=1, *queue_tags) -> None:
-        if len(queue_tags) < 1:
-            raise Exception("Queue tags must be more than 0")
+    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+                 *subscribe_targets) -> None:
+        if len(subscribe_targets) < 1:
+            raise Exception("Subscribe targets must be more than 0")
 
         self.listeners = set()
         self.lock_listeners = Lock()
@@ -87,10 +88,11 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.connection = None
         self.channel = None
 
-        self.prefetch_count = prefetch_count
-        self.exchange_name = exchange_name
+        self.prefetch_count = queue_configuration.prefetch_count
+        self.exchange_name = queue_configuration.exchange
+        self.attributes = queue_configuration.attributes
         self.subscriber_name = configuration.subscriberName
-        self.queue_aliases = queue_tags
+        self.subscribe_targets = subscribe_targets
 
         credentials = pika.PlainCredentials(configuration.username, configuration.password)
         self.connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vHost,
@@ -99,28 +101,29 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                                                                credentials=credentials)
 
     def start(self):
-        if self.queue_aliases is None or self.exchange_name is None:
+        if self.subscribe_targets is None or self.exchange_name is None:
             raise Exception("Subscriber did not init")
 
         if self.subscriber_name is None:
             self.subscriber_name = "rabbit_mq_subscriber"
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
-        self.connection = pika.BlockingConnection(self.connection_parameters)
-        self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='direct')
+        if self.connection is None:
+            self.connection = pika.BlockingConnection(self.connection_parameters)
 
-        for queue_tag in self.queue_aliases:
-            declare = self.channel.queue_declare(queue=f"{self.subscriber_name}:{queue_tag}",
-                                                 durable=True, exclusive=True, auto_delete=True)
-            queue_name = declare.method.queue
-            self.channel.queue_bind(queue=queue_name, exchange=self.exchange_name, routing_key=queue_tag)
-            self.channel.basic_qos(prefetch_count=self.prefetch_count)
-            self.channel.basic_consume(queue=queue_name, consumer_tag=queue_tag,
-                                       on_message_callback=self.handle)
+        if self.channel is None:
+            self.channel = self.connection.channel()
 
-            logger.info(f"Start listening exchangeName='{self.exchange_name}', "
-                        f"routing key='{queue_tag}', queue name='{queue_name}'")
+            for subscribe_target in self.subscribe_targets:
+                queue = subscribe_target.get_queue()
+                routing_key = subscribe_target.get_routing_key()
+                self.channel.basic_qos(prefetch_count=self.prefetch_count)
+                consumer_tag = f"{self.subscriber_name}.{datetime.datetime.now()}"
+                self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
+                                           on_message_callback=self.handle)
+
+                logger.info(f"Start listening exchangeName='{self.exchange_name}', "
+                            f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
         _thread.start_new_thread(self.channel.start_consuming, ())
 
     def is_close(self) -> bool:
@@ -149,7 +152,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             with self.lock_listeners:
                 for listener in self.listeners:
                     try:
-                        listener.handler(method.consumer_tag, value)
+                        listener.handler(self.attributes, value)
                     except Exception as e:
                         logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except Exception as e:
@@ -176,10 +179,10 @@ class Metadata:
 
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str, filters: list,
-                 filter_strategy=DefaultFilterStrategy(), prefetch_count=1, *queue_tags) -> None:
-        super().__init__(configuration, exchange_name, prefetch_count, *queue_tags)
-        self.filters = filters
+    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+                 filter_strategy=DefaultFilterStrategy(), *subscribe_targets) -> None:
+        super().__init__(configuration, queue_configuration, *subscribe_targets)
+        self.filters = queue_configuration.filters
         self.filter_strategy = filter_strategy
 
     def filter(self, batch) -> bool:
@@ -269,7 +272,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def __init__(self, rabbit_mq_configuration, configuration) -> None:
         super().__init__(rabbit_mq_configuration, configuration)
-        self._filter_factory = DefaultFilterFactory()
+        self._filter_strategy = DefaultFilterStrategy()
         self.queue_connections = dict()
         self.queue_connections_lock = Lock()
 
@@ -277,17 +280,21 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         queue = self._get_message_queue(queue_alias)
         subscriber = queue.get_subscriber()
         subscriber.add_listener(callback)
+        try:
+            subscriber.start()
+        except Exception as e:
+            raise RuntimeError(f"Can not start subscriber", e)
         return SubscriberMonitorImpl(subscriber, queue.subscriber_lock)
 
     def subscribe_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
-        queues = self.configuration.get_queues_alias_by_attribute(queue_attr)
+        queues = self.configuration.find_queues_by_attr(queue_attr)
         if len(queues) > 1:
             raise RouterError(f"Wrong size of queues aliases for send. Not more then 1")
-        return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues[0])
+        return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues.keys()[0])
 
     def subscribe_all_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
         subscribers = []
-        for queue_alias in self.configuration.get_queues_alias_by_attribute(queue_attr):
+        for queue_alias in self.configuration.find_queues_by_attr(queue_attr).keys():
             subscribers.append(self._subscribe_by_alias(callback, queue_alias))
         return None if len(subscribers) == 0 else MultiplySubscribeMonitorImpl(subscribers)
 
@@ -304,17 +311,24 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             self.queue_connections.clear()
 
     def send(self, message):
-        self._send_by_aliases_and_messages_to_send(self._get_target_queue_aliases_and_messages_to_send(message))
+        self._send_by_aliases_and_messages_to_send(self._find_by_filter(self.configuration.queues, message))
 
     def send_by_attr(self, message, queue_attr):
-        queues_aliases_and_messages = self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr)
-        if len(queues_aliases_and_messages) > 1:
-            raise RouterError(f"Wrong size of queues aliases for send. Not more than 1")
-        self._send_by_aliases_and_messages_to_send(queues_aliases_and_messages)
+        filtered_by_attr = self.configuration.find_queues_by_attr(queue_attr)
+        filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
+        if len(filtered_by_attr_and_filter) != 1:
+            raise Exception("Wrong size of queues for send. Should be equal to 1")
+        self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
     def send_all(self, message, queue_attr):
-        self._send_by_aliases_and_messages_to_send(
-            self.get_target_queue_aliases_and_messages_to_send_by_attr(message, queue_attr))
+        filtered_by_attr = self.configuration.find_queues_by_attr(queue_attr)
+        filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
+        if len(filtered_by_attr_and_filter) == 0:
+            raise Exception("Wrong size of queues for send. Can't be equal to 0")
+        self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
+
+    def set_filter_strategy(self, filter_strategy: FilterStrategy):
+        self._filter_strategy = filter_strategy
 
     @abstractmethod
     def _create_queue(self, configuration: RabbitMQConfiguration,
@@ -322,17 +336,18 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         pass
 
     @abstractmethod
-    def _get_target_queue_aliases_and_messages_to_send(self, message, queue_attr) -> dict:
+    def _find_by_filter(self, queues: {str: QueueConfiguration}, msg) -> dict:
         pass
-
-    def get_target_queue_aliases_and_messages_to_send_by_attr(self, message, queue_attr) -> dict:
-        filtered_aliases = self._get_target_queue_aliases_and_messages_to_send(message, queue_attr)
-        return filtered_aliases
 
     def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
         for queue_alias in aliases_and_messages_to_send.keys():
             message = aliases_and_messages_to_send[queue_alias]
-            self._get_message_queue(queue_alias).get_sender().send(message)
+            try:
+                sender = self._get_message_queue(queue_alias).get_sender()
+                sender.start()
+                sender.send(message)
+            except Exception as e:
+                raise RouterError("Can not start sender")
 
     def _get_message_queue(self, queue_alias):
         with self.queue_connections_lock:
@@ -345,15 +360,23 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
 class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
 
-    def _get_target_queue_aliases_and_messages_to_send(self, batch, queue_attr) -> dict:
-        message_filter = self._filter_factory.create_filter(self.configuration)
+    def _find_by_filter(self, queues: {str: QueueConfiguration}, batch) -> dict:
         result = dict()
         for message in self._get_messages(batch):
-            queue_alias = message_filter.check(message, queue_attr)
-            if not result.__contains__(queue_alias):
-                result[queue_alias] = self._create_batch()
-            self._add_message(result[queue_alias], message)
+            for queue_alias in self._filter(queues, message):
+                if not result.__contains__(queue_alias):
+                    result[queue_alias] = self._create_batch()
+                    self._add_message(result[queue_alias], message)
         return result
+
+    def _filter(self, queues: {str: QueueConfiguration}, message: Message) -> {str}:
+        aliases = set()
+        for queue_alias in queues.keys():
+            filters = queues[queue_alias].filters
+
+            if len(filters) == 0 or self.filter_strategy.verify(message, filters):
+                aliases.add(queue_alias)
+        return aliases
 
     @abstractmethod
     def _get_messages(self, batch) -> list:
@@ -364,5 +387,5 @@ class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
         pass
 
     @abstractmethod
-    def _add_message(self, batch: MessageBatch, message):
+    def _add_message(self, batch, message):
         pass

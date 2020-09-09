@@ -19,7 +19,7 @@ from google.protobuf.message import Message
 
 from th2common.gen import infra_pb2
 from th2common.gen.infra_pb2 import Direction
-from th2common.schema.grpc.configurations import GrpcRawRobinStrategy
+from th2common.schema.grpc.configurations import GrpcRawRobinStrategy, GrpcRawFilterStrategy
 
 
 class FieldExtractionStrategy(ABC):
@@ -58,7 +58,14 @@ class Th2BatchMsgFieldExtraction(AbstractTh2MsgFieldExtraction):
         return message
 
 
-class Robin:
+class RoutingStrategy(ABC):
+
+    @abstractmethod
+    def get_endpoint(self, message: Message):
+        pass
+
+
+class RobinRoutingStrategy(RoutingStrategy):
 
     def __init__(self, configuration) -> None:
         self.endpoints = GrpcRawRobinStrategy(**configuration).endpoints
@@ -66,12 +73,7 @@ class Robin:
         self.lock = Lock()
 
     def get_endpoint(self, request):
-        try:
-            self.lock.acquire()
-            if self.index >= len(self.endpoints):
-                self.index = 0
-            result = self.endpoints[self.index]
+        with self.lock:
+            result = self.endpoints[self.index % len(self.endpoints)]
             self.index = self.index + 1
             return result
-        finally:
-            self.lock.release()

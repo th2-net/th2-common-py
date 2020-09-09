@@ -19,10 +19,6 @@ class Configuration(ABC):
     pass
 
 
-class FilterableConfiguration(Configuration, ABC):
-    pass
-
-
 class QueueConfiguration(Configuration):
 
     def __init__(self, name: str, queue: str, exchange: str, attributes: list, filters: list, prefetch_count: int = 1,
@@ -37,27 +33,23 @@ class QueueConfiguration(Configuration):
         self.canWrite = canWrite
 
 
-class MessageRouterConfiguration(FilterableConfiguration):
-    def __init__(self, queues: dict) -> None:
-        self.queues = queues
-        self.attributes = dict()
-        for queue_alias in queues.keys():
-            queue_configuration = QueueConfiguration(**queues[queue_alias])
-            self.queues[queue_alias] = queue_configuration
-            for attr in queue_configuration.attributes:
-                if not self.attributes.__contains__(attr):
-                    self.attributes[attr] = set()
-                self.attributes[attr].add(queue_alias)
+class MessageRouterConfiguration:
+    def __init__(self, queues) -> None:
+        self.queues = {queue_alias: QueueConfiguration(**queues[queue_alias]) for queue_alias in queues.keys()}
 
     def get_queue_by_alias(self, queue_alias):
         return self.queues[queue_alias]
 
-    def get_queues_alias_by_attribute(self, attributes: list):
-        result = set()
+    def find_queues_by_attr(self, attrs: list) -> {str: QueueConfiguration}:
+        result = dict()
         for queue_alias in self.queues.keys():
-            result.add(queue_alias)
-        for attr in attributes:
-            result = result.intersection(self.attributes[attr] if self.attributes.__contains__(attr) else set())
+            ok = True
+            for attr in attrs:
+                if not self.queues[queue_alias].attributes.__contains__(attr):
+                    ok = False
+                    break
+            if ok:
+                result[queue_alias] = self.queues[queue_alias]
         return result
 
 

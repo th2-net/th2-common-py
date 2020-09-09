@@ -88,15 +88,12 @@ class AbstractFactory(ABC):
 
     def _create_message_router_configuration(self) -> MessageRouterConfiguration:
         lock = Lock()
-        try:
-            lock.acquire()
+        with lock:
             if self.message_router_configuration is None:
                 file = open(self._path_to_message_router_configuration(), 'r')
                 config_json = file.read()
                 config_dict = json.loads(config_json)
                 self.message_router_configuration = MessageRouterConfiguration(**config_dict)
-        finally:
-            lock.release()
         return self.message_router_configuration
 
     def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
