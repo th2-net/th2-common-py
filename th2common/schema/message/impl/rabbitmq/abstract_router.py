@@ -290,7 +290,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         queues = self.configuration.find_queues_by_attr(queue_attr)
         if len(queues) > 1:
             raise RouterError(f"Wrong size of queues aliases for send. Not more then 1")
-        return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues.keys()[0])
+        return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues.keys().__iter__().__next__())
 
     def subscribe_all_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
         subscribers = []

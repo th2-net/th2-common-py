@@ -65,7 +65,7 @@ class RoutingStrategy(ABC):
         pass
 
 
-class RobinRoutingStrategy(RoutingStrategy):
+class Robin(RoutingStrategy):
 
     def __init__(self, configuration) -> None:
         self.endpoints = GrpcRawRobinStrategy(**configuration).endpoints
