@@ -90,7 +90,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
-        self.attributes = queue_configuration.attributes
+        self.attributes = tuple(set(queue_configuration.attributes))
         self.subscriber_name = configuration.subscriberName
         self.subscribe_targets = subscribe_targets
 
