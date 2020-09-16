@@ -148,6 +148,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         try:
             value = self.value_from_bytes(body)
             if not self.filter(value):
+                channel.basic_ack(delivery_tag=method.delivery_tag)
                 return
             with self.lock_listeners:
                 for listener in self.listeners:
