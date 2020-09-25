@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from abc import ABC, abstractmethod
 from threading import Lock
 
@@ -61,16 +62,20 @@ class AbstractFactory(ABC):
     def create_grpc_router(self) -> GrpcRouter:
         return self.grpc_router_class(self._create_grpc_router_configuration())
 
+    def read_configuration(self, filepath):
+        with open(filepath, 'r') as file:
+            config_json = file.read()
+            config_json_expanded = os.path.expandvars(config_json)
+            config_dict = json.loads(config_json_expanded)
+
+        return config_dict
+
     def create_cradle_configuration(self) -> CradleConfiguration:
-        file = open(self._path_to_cradle_configuration(), 'r')
-        config_json = file.read()
-        config_dict = json.loads(config_json)
+        config_dict = self.read_configuration(self._path_to_cradle_configuration())
         return CradleConfiguration(**config_dict)
 
     def create_custom_configuration(self) -> dict:
-        file = open(self._path_to_custom_configuration(), 'r')
-        config_json = file.read()
-        config_dict = json.loads(config_json)
+        config_dict = self.read_configuration(self._path_to_custom_configuration())
         return config_dict
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
@@ -78,9 +83,7 @@ class AbstractFactory(ABC):
         try:
             lock.acquire()
             if self.rabbit_mq_configuration is None:
-                file = open(self._path_to_rabbit_mq_configuration(), 'r')
-                config_json = file.read()
-                config_dict = json.loads(config_json)
+                config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration())
                 self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
         finally:
             lock.release()
@@ -90,9 +93,7 @@ class AbstractFactory(ABC):
         lock = Lock()
         with lock:
             if self.message_router_configuration is None:
-                file = open(self._path_to_message_router_configuration(), 'r')
-                config_json = file.read()
-                config_dict = json.loads(config_json)
+                config_dict = self.read_configuration(self._path_to_message_router_configuration())
                 self.message_router_configuration = MessageRouterConfiguration(**config_dict)
         return self.message_router_configuration
 
@@ -101,9 +102,7 @@ class AbstractFactory(ABC):
         try:
             lock.acquire()
             if self.grpc_router_configuration is None:
-                file = open(self._path_to_grpc_router_configuration(), 'r')
-                config_json = file.read()
-                config_dict = json.loads(config_json)
+                config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
                 self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
         finally:
             lock.release()
