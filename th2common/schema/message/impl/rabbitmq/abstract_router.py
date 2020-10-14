@@ -289,21 +289,25 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def subscribe_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
         queues = self.configuration.find_queues_by_attr(queue_attr)
-        if len(queues) > 1:
-            raise RouterError(f"Wrong size of queues aliases for send. Not more then 1")
-        return None if len(queues) < 1 else self._subscribe_by_alias(callback, queues.keys().__iter__().__next__())
+        if len(queues) != 1:
+            raise RouterError(f"Wrong size of queues aliases for subscribe. Should be equal to 1")
+        return self._subscribe_by_alias(callback, queues.keys().__iter__().__next__())
 
     def subscribe_all_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
         subscribers = []
         for queue_alias in self.configuration.find_queues_by_attr(queue_attr).keys():
             subscribers.append(self._subscribe_by_alias(callback, queue_alias))
-        return None if len(subscribers) == 0 else MultiplySubscribeMonitorImpl(subscribers)
+        if len(subscribers) == 0:
+            raise RouterError('Wrong size of queues aliases for subscribeAll. Should not be empty')
+        return MultiplySubscribeMonitorImpl(subscribers)
 
     def subscribe_all(self, callback: MessageListener) -> SubscriberMonitor:
         subscribers = []
         for queue_alias in self.configuration.queues.keys():
             subscribers.append(self._subscribe_by_alias(callback, queue_alias))
-        return None if len(subscribers) == 0 else MultiplySubscribeMonitorImpl(subscribers)
+        if len(subscribers) == 0:
+            raise RouterError('Wrong size of queues aliases for subscribeAll. Should not be empty')
+        return MultiplySubscribeMonitorImpl(subscribers)
 
     def unsubscribe_all(self):
         with self.queue_connections_lock:
