@@ -11,3 +11,13 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.message.configuration.configuration import Configuration
+
+
+class GrpcEndpointConfiguration(Configuration):
+
+    def __init__(self, host, port) -> None:
+        self.host = host
+        self.port = port

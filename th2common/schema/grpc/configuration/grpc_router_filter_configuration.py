@@ -11,3 +11,21 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
+from th2common.schema.message.configuration.router_filter import RouterFilter
+
+
+class GrpcRouterFilterConfiguration(RouterFilter):
+
+    def __init__(self, endpoint: str, metadata, message) -> None:
+        self.metadata = metadata
+        self.message = message
+        self.endpoint = endpoint
+
+    def get_metadata(self) -> {str: FieldFilterConfiguration}:
+        return self.metadata
+
+    def get_message(self) -> {str: FieldFilterConfiguration}:
+        return self.message

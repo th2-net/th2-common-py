@@ -11,3 +11,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+class CradleConfiguration:
+
+    def __init__(self, data_center: str, host: str, port: int, keyspace: str, username: str, password: str) -> None:
+        self.data_center = data_center
+        self.host = host
+        self.port = port
+        self.keyspace = keyspace
+        self.username = username
+        self.password = password

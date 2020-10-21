@@ -11,3 +11,16 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from abc import ABC, abstractmethod
+
+
+class MessageListener(ABC):
+
+    @abstractmethod
+    def handler(self, attributes: tuple, message):
+        pass
+
+    def on_close(self):
+        pass

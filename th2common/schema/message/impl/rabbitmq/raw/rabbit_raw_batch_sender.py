@@ -11,3 +11,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from grpc_common.common_pb2 import RawMessageBatch
+
+from th2common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
+
+
+class RabbitRawBatchSender(AbstractRabbitSender):
+
+    def value_to_bytes(self, value: RawMessageBatch):
+        return value.SerializeToString()

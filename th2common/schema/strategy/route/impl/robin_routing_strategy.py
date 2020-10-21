@@ -11,3 +11,23 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from threading import Lock
+
+from th2common.schema.grpc.configuration.grpc_raw_robin_strategy import GrpcRawRobinStrategy
+from th2common.schema.strategy.route.routing_strategy import RoutingStrategy
+
+
+class RobinRoutingStrategy(RoutingStrategy):
+
+    def __init__(self, configuration) -> None:
+        self.endpoints = GrpcRawRobinStrategy(**configuration).endpoints
+        self.index = 0
+        self.lock = Lock()
+
+    def get_endpoint(self, request):
+        with self.lock:
+            result = self.endpoints[self.index % len(self.endpoints)]
+            self.index = self.index + 1
+            return result

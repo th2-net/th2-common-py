@@ -11,3 +11,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.grpc.configuration.grpc_router_filter_configuration import GrpcRouterFilterConfiguration
+
+
+class GrpcRawFilterStrategy:
+
+    def __init__(self, filters) -> None:
+        self.filters = list()
+        for key in filters.keys():
+            self.filters.append(GrpcRouterFilterConfiguration(**filters[key]))

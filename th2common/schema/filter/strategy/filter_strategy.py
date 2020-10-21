@@ -11,3 +11,18 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from abc import ABC, abstractmethod
+from typing import List
+
+from google.protobuf.message import Message
+
+from th2common.schema.message.configuration.router_filter import RouterFilter
+
+
+class FilterStrategy(ABC):
+
+    @abstractmethod
+    def verify(self, message: Message, router_filter: RouterFilter = None, router_filters: List[RouterFilter] = None):
+        pass

@@ -11,3 +11,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.grpc.configuration.grpc_endpoint_configuration import GrpcEndpointConfiguration
+
+
+class GrpcServerConfiguration(GrpcEndpointConfiguration):
+
+    def __init__(self, host, port, workers) -> None:
+        super().__init__(host, port)
+        self.workers = workers
+

@@ -11,3 +11,20 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from abc import ABC, abstractmethod
+
+from th2common.schema.message.configuration.configuration import Configuration
+from th2common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
+
+
+class RouterFilter(Configuration, ABC):
+
+    @abstractmethod
+    def get_metadata(self) -> {str: FieldFilterConfiguration}:
+        pass
+
+    @abstractmethod
+    def get_message(self) -> {str: FieldFilterConfiguration}:
+        pass

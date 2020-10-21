@@ -11,3 +11,19 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from grpc_common.common_pb2 import EventBatch
+
+from th2common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
+
+
+class EventBatchSubscriber(AbstractRabbitSubscriber):
+
+    def value_from_bytes(self, body):
+        event_batch = EventBatch()
+        event_batch.ParseFromString(body)
+        return event_batch
+
+    def filter(self, value) -> bool:
+        return True

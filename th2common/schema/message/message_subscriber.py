@@ -11,3 +11,27 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from abc import ABC, abstractmethod
+
+from th2common.schema.message.message_listener import MessageListener
+
+
+class MessageSubscriber(ABC):
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def is_close(self) -> bool:
+        pass
+
+    @abstractmethod
+    def add_listener(self, message_listener: MessageListener):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass

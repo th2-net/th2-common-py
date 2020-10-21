@@ -11,3 +11,15 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.grpc.configuration.grpc_server_configuration import GrpcServerConfiguration
+from th2common.schema.message.configuration.configuration import Configuration
+
+
+class GrpcRouterConfiguration(Configuration):
+
+    def __init__(self, services, server=None) -> None:
+        self.services = services
+        if server is not None:
+            self.serverConfiguration = GrpcServerConfiguration(**server)

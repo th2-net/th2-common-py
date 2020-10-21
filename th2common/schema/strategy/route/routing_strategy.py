@@ -11,3 +11,15 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from abc import ABC, abstractmethod
+
+from google.protobuf.message import Message
+
+
+class RoutingStrategy(ABC):
+
+    @abstractmethod
+    def get_endpoint(self, message: Message):
+        pass

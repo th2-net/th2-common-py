@@ -11,3 +11,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.exception.router_error import RouterError
+
+
+class GrpcRouterError(RouterError):
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)

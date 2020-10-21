@@ -11,3 +11,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+class RabbitMQConfiguration:
+
+    def __init__(self, host, vhost, port, username, password, subscriber_name=None) -> None:
+        self.host = host
+        self.vhost = vhost
+        self.port = port
+        self.username = username
+        self.password = password
+        self.subscriber_name = subscriber_name

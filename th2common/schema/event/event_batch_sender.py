@@ -11,3 +11,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+
+from th2common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
+
+
+class EventBatchSender(AbstractRabbitSender):
+
+    def value_to_bytes(self, value):
+        return value.SerializeToString()
