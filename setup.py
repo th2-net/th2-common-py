@@ -14,7 +14,7 @@
 
 import json
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 def get_dependency(dependency_name, dependency_version,
@@ -47,5 +47,6 @@ setup(
         'pika==1.1.0',
         get_dependency(dependency_name='grpc-common', dependency_version='2.1.6')
     ],
-    packages=find_packages(include=['th2common', 'th2common.*']),
+    packages=['', 'th2common'],
+    package_data={'': ['package_info.json']}
 )
