@@ -12,23 +12,40 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import json
+
 from setuptools import setup, find_packages
 
+
+def get_dependency(dependency_name, dependency_version,
+                   dependency_repository='https://nexus.exactpro.com/repository/th2-pypi/packages/'):
+    return f"{dependency_name} @ {dependency_repository}{dependency_name}/{dependency_version}/" \
+           f"{dependency_name.replace('-', '_')}-{dependency_version}.tar.gz"
+
+
+with open('package_info.json', 'r') as file:
+    package_info = json.load(file)
+
+package_name = package_info['package_name'].replace('-', '_')
+package_version = package_info['package_version']
+
+with open('README.md', 'r') as file:
+    long_description = file.read()
+
+
 setup(
-    name='th2-common',
-    version='1.1.69',
-    packages=find_packages(include=['th2common', 'th2common.*']),
-    install_requires=[
-        'setuptools==50.3.0',
-        'pika==1.1.0',
-        'grpcio==1.32.0',
-        'google-api-core==1.22.2'
-    ],
-    url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-python',
-    license='Apache License 2.0',
+    name=package_name,
+    version=package_version,
+    description=package_name,
+    long_description=long_description,
     author='TH2-devs',
-    python_requires='>=3.7',
     author_email='th2-devs@exactprosystems.com',
-    description='TH2-common-python',
-    long_description=open('README.md').read(),
+    url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-p',
+    license='Apache License 2.0',
+    python_requires='>=3.7',
+    install_requires=[
+        'pika==1.1.0',
+        get_dependency(dependency_name='grpc-common', dependency_version='2.1.6')
+    ],
+    packages=find_packages(include=['th2common', 'th2common.*']),
 )

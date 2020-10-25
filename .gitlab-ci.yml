@@ -2,7 +2,7 @@ variables:
   APP_NAME: 'th2-common'
   MAJOR_VERSION: '2'
   MINOR_VERSION: '0'
-  MAINTENANCE_VERSION: '0'
+  MAINTENANCE_VERSION: '1'
   BUILD_ENABLED: 'false'
   DOCKER_PUBLISH_ENABLED: 'false'
   PYPI_PUBLISH_ENABLED: 'true'
@@ -11,3 +11,8 @@ include:
   - project: 'vivarium/th2/pipelines'
     ref: master
     file: '/.gitlab-ci-python.yml'
+
+package_info_writer:
+  stage: meta
+  script:
+    - printf '{"package_name":"%s","package_version":"%s"}' "$APP_NAME" "APP_VERSION" > "package_info.json"
