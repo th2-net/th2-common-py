@@ -45,7 +45,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'pika==1.1.0',
-        get_dependency(dependency_name='grpc-common', dependency_version='2.1.6')
+        get_dependency(dependency_name='grpc-common', dependency_version='2.1.7')
     ],
     packages=[''] + find_packages(include=['th2common', 'th2common.*']),
     package_data={'': ['package_info.json']}
