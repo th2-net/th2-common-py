@@ -19,7 +19,7 @@ from th2common.schema.grpc.configuration.grpc_raw_robin_strategy import GrpcRawR
 from th2common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 
-class RobinRoutingStrategy(RoutingStrategy):
+class Robin(RoutingStrategy):
 
     def __init__(self, configuration) -> None:
         self.endpoints = GrpcRawRobinStrategy(**configuration).endpoints

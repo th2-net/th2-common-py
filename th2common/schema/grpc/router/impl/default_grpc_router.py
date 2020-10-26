@@ -13,11 +13,15 @@
 #   limitations under the License.
 
 
+from importlib import import_module
+from pathlib import Path
+from pkgutil import iter_modules
+
 import grpc
 
 from th2common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
 from th2common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
-import th2common.schema.strategy.route.impl
+import th2common.schema.strategy.route.impl as route
 
 
 class DefaultGrpcRouter(AbstractGrpcRouter):
@@ -44,7 +48,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
                 self.stubs[endpoint_name] = self.stubClass(
                     grpc.insecure_channel(f"{config['host']}:{config['port']}"))
 
-        def create_request(self, request_name, request, timeout):
+        def create_request(self, request_name, request, timeout=None):
             endpoint = self.strategy_obj.get_endpoint(request)
             endpoint_config = self.service['endpoints'][endpoint]
             if endpoint_config is not None:
@@ -67,7 +71,14 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         return self.Connection(find_service, strategy_obj, stub_class)
 
     def __load_strategies(self):
-        for attr in dir(th2common.schema.strategy.route.impl):
-            if not attr.startswith('__'):
-                if dir(getattr(th2common.schema.strategy.route.impl, attr)).__contains__('get_endpoint'):
-                    self.strategies[attr.lower()] = getattr(th2common.schema.strategy.route.impl, attr)
+        package_dir = Path(route.__file__).resolve().parent
+
+        for _, module_name, _ in iter_modules([package_dir]):
+            module = import_module(f'{route.__name__}.{module_name}')
+            for name in dir(module):
+                if not name.startswith('__'):
+                    attr = getattr(module, name)
+                    if dir(attr).__contains__('get_endpoint'):
+                        self.strategies[name.lower()] = attr
+
+        self.strategies.pop('routingstrategy', None)
