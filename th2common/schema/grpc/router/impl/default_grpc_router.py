@@ -48,7 +48,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
                 self.stubs[endpoint_name] = self.stubClass(
                     grpc.insecure_channel(f"{config['host']}:{config['port']}"))
 
-        def create_request(self, request_name, request, timeout=None):
+        def create_request(self, request_name, request, timeout):
             endpoint = self.strategy_obj.get_endpoint(request)
             endpoint_config = self.service['endpoints'][endpoint]
             if endpoint_config is not None:
