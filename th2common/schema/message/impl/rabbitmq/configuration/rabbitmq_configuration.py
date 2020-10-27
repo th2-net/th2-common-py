@@ -15,10 +15,11 @@
 
 class RabbitMQConfiguration:
 
-    def __init__(self, host, vhost, port, username, password, subscriber_name=None) -> None:
+    def __init__(self, host, vHost, port, username, password, exchangeName, subscriberName=None) -> None:
         self.host = host
-        self.vhost = vhost
+        self.vhost = vHost
         self.port = port
         self.username = username
         self.password = password
-        self.subscriber_name = subscriber_name
+        self.subscriber_name = subscriberName
+        self.exchange_name = exchangeName

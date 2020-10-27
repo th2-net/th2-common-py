@@ -15,8 +15,8 @@
 
 class CradleConfiguration:
 
-    def __init__(self, data_center: str, host: str, port: int, keyspace: str, username: str, password: str) -> None:
-        self.data_center = data_center
+    def __init__(self, dataCenter: str, host: str, port: int, keyspace: str, username: str, password: str) -> None:
+        self.data_center = dataCenter
         self.host = host
         self.port = port
         self.keyspace = keyspace
