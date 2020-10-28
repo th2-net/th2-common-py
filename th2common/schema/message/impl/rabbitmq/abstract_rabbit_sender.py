@@ -42,7 +42,6 @@ class AbstractRabbitSender(MessageSender, ABC):
             self.connection = pika.BlockingConnection(self.connection_parameters)
         if self.channel is None:
             self.channel = self.connection.channel()
-            self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='direct')
 
     def is_close(self) -> bool:
         return self.connection is None or not self.connection.is_open
