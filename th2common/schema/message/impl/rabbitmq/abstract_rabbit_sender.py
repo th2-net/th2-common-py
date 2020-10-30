@@ -11,14 +11,16 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
+import logging
 from abc import ABC, abstractmethod
 
 import pika
 
 from th2common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2common.schema.message.message_sender import MessageSender
+
+
+logger = logging.getLogger()
 
 
 class AbstractRabbitSender(MessageSender, ABC):
@@ -51,6 +53,7 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Can not send. Sender did not started')
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
                                    body=self.value_to_bytes(message))
+        logger.info(f"Sent message: {message}. Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
 
     def close(self):
         if self.connection is not None and self.connection.is_open:
