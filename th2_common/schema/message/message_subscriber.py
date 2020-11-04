@@ -12,9 +12,26 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-grpcio==1.33.2
-protobuf==3.13.0
-pika==1.1.0
-twine==3.2.0
---extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+
+from abc import ABC, abstractmethod
+
+from th2_common.schema.message.message_listener import MessageListener
+
+
+class MessageSubscriber(ABC):
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def is_close(self) -> bool:
+        pass
+
+    @abstractmethod
+    def add_listener(self, message_listener: MessageListener):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass

@@ -12,9 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-grpcio==1.33.2
-protobuf==3.13.0
-pika==1.1.0
-twine==3.2.0
---extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+
+from th2_common.schema.grpc.configuration.grpc_router_filter_configuration import GrpcRouterFilterConfiguration
+
+
+class GrpcRawFilterStrategy:
+
+    def __init__(self, filters) -> None:
+        self.filters = list()
+        for key in filters.keys():
+            self.filters.append(GrpcRouterFilterConfiguration(**filters[key]))

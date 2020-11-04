@@ -40,13 +40,13 @@ setup(
     long_description=long_description,
     author='TH2-devs',
     author_email='th2-devs@exactprosystems.com',
-    url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-p',
+    url='https://gitlab.exactpro.com/vivarium/th2/th2-core-open-source/th2-common-py',
     license='Apache License 2.0',
     python_requires='>=3.7',
     install_requires=[
         'pika==1.1.0',
-        get_dependency(dependency_name='grpc-common', dependency_version='2.1.7')
+        get_dependency(dependency_name='th2-grpc-common', dependency_version='2.2.0')
     ],
-    packages=[''] + find_packages(include=['th2common', 'th2common.*']),
+    packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json']}
 )

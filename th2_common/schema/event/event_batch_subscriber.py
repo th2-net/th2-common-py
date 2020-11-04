@@ -12,9 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-grpcio==1.33.2
-protobuf==3.13.0
-pika==1.1.0
-twine==3.2.0
---extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+
+from th2_grpc_common.common_pb2 import EventBatch
+
+from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
+
+
+class EventBatchSubscriber(AbstractRabbitSubscriber):
+
+    def value_from_bytes(self, body):
+        event_batch = EventBatch()
+        event_batch.ParseFromString(body)
+        return event_batch
+
+    def filter(self, value) -> bool:
+        return True

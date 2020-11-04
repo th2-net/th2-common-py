@@ -1,4 +1,4 @@
-# th2-common-python
+# TH2 Common Library (Python)
 
 ## Installing
 Use the following command to configure the required packages:

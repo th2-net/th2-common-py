@@ -12,9 +12,22 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-grpcio==1.33.2
-protobuf==3.13.0
-pika==1.1.0
-twine==3.2.0
---extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+
+from threading import Lock
+
+from th2_common.schema.grpc.configuration.grpc_raw_robin_strategy import GrpcRawRobinStrategy
+from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
+
+
+class Robin(RoutingStrategy):
+
+    def __init__(self, configuration) -> None:
+        self.endpoints = GrpcRawRobinStrategy(**configuration).endpoints
+        self.index = 0
+        self.lock = Lock()
+
+    def get_endpoint(self, request):
+        with self.lock:
+            result = self.endpoints[self.index % len(self.endpoints)]
+            self.index = self.index + 1
+            return result

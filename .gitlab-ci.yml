@@ -1,8 +1,8 @@
 variables:
   APP_NAME: 'th2-common'
   MAJOR_VERSION: '2'
-  MINOR_VERSION: '0'
-  MAINTENANCE_VERSION: '9'
+  MINOR_VERSION: '1'
+  MAINTENANCE_VERSION: '0'
   DOCKER_PUBLISH_ENABLED: 'false'
 
 include:

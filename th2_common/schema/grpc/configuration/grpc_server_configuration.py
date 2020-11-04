@@ -12,9 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-grpcio==1.33.2
-protobuf==3.13.0
-pika==1.1.0
-twine==3.2.0
---extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+
+from th2_common.schema.grpc.configuration.grpc_endpoint_configuration import GrpcEndpointConfiguration
+
+
+class GrpcServerConfiguration(GrpcEndpointConfiguration):
+
+    def __init__(self, host, port, workers) -> None:
+        super().__init__(host, port)
+        self.workers = workers
+

@@ -12,9 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-grpcio==1.33.2
-protobuf==3.13.0
-pika==1.1.0
-twine==3.2.0
---extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+
+import th2_grpc_common.common_pb2
+from google.protobuf.message import Message
+
+from th2_common.schema.strategy.field_extraction.abstract_th2_msg_field_extraction import AbstractTh2MsgFieldExtraction
+
+
+class Th2BatchMsgFieldExtraction(AbstractTh2MsgFieldExtraction):
+
+    def parse_message(self, message: Message) -> th2_grpc_common.common_pb2.Message:
+        return message

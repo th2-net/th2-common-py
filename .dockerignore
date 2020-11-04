@@ -1,5 +1,7 @@
 .idea
 __pycache__
-build
+*.pyc
+*.pyo
+*.pyd
 dist
 *egg-info
