@@ -23,7 +23,6 @@ from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import 
 
 
 class CommonFactory(AbstractCommonFactory):
-
     CONFIG_DEFAULT_PATH = '/var/th2/config/'
 
     RABBIT_MQ_FILE_NAME = 'rabbitMQ.json'
@@ -55,7 +54,7 @@ class CommonFactory(AbstractCommonFactory):
         if parsed_args.__contains__(name_attr):
             return parsed_args.__getattribute__(name_attr)
         else:
-            return path_default
+            return CommonFactory.CONFIG_DEFAULT_PATH + path_default
 
     @staticmethod
     def create_from_arguments(args):

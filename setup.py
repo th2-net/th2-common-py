@@ -32,7 +32,6 @@ package_version = package_info['package_version']
 with open('README.md', 'r') as file:
     long_description = file.read()
 
-
 setup(
     name=package_name,
     version=package_version,
