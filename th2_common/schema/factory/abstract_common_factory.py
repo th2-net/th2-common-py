@@ -14,6 +14,7 @@
 
 
 import json
+import logging
 import os
 from abc import ABC, abstractmethod
 from threading import Lock
@@ -28,6 +29,9 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
+
+
+logger = logging.getLogger()
 
 
 class AbstractCommonFactory(ABC):
@@ -45,29 +49,69 @@ class AbstractCommonFactory(ABC):
         self.event_router_batch_class = event_router_batch_class
         self.grpc_router_class = grpc_router_class
 
+        self.message_router_raw_batch = None
+        self.message_router_parsed_batch = None
+        self.event_router_batch = None
+        self.grpc_router = None
+
     def create_message_router_raw_batch(self) -> MessageRouter:
         """
         Created MessageRouter which work with RawMessageBatch
         """
-        return self.message_router_raw_batch_class(self._create_rabbit_mq_configuration(),
-                                                   self._create_message_router_configuration())
+        self.message_router_raw_batch = self.message_router_raw_batch_class(self._create_rabbit_mq_configuration(),
+                                                                            self._create_message_router_configuration())
+        return self.message_router_raw_batch
 
     def create_message_router_parsed_batch(self) -> MessageRouter:
         """
         Created MessageRouter which work with MessageBatch
         """
-        return self.message_router_parsed_batch_class(self._create_rabbit_mq_configuration(),
-                                                      self._create_message_router_configuration())
+        self.message_router_parsed_batch = self.message_router_parsed_batch_class(
+            self._create_rabbit_mq_configuration(),
+            self._create_message_router_configuration())
+
+        return self.message_router_parsed_batch
 
     def create_event_router_batch(self) -> MessageRouter:
         """
         Created MessageRouter which work with EventBatch
         """
-        return self.event_router_batch_class(self._create_rabbit_mq_configuration(),
-                                             self._create_message_router_configuration())
+        self.event_router_batch = self.event_router_batch_class(self._create_rabbit_mq_configuration(),
+                                                                self._create_message_router_configuration())
+
+        return self.event_router_batch
 
     def create_grpc_router(self) -> GrpcRouter:
-        return self.grpc_router_class(self._create_grpc_router_configuration())
+        self.grpc_router = self.grpc_router_class(self._create_grpc_router_configuration())
+
+        return self.grpc_router
+
+    def close(self):
+        logger.info('Closing Common Factory')
+
+        if self.message_router_raw_batch is not None:
+            try:
+                self.message_router_raw_batch.close()
+            except Exception as e:
+                logger.error('Error during closing Message Router (Message Raw Batch)', e)
+
+        if self.message_router_parsed_batch is not None:
+            try:
+                self.message_router_parsed_batch.close()
+            except Exception as e:
+                logger.error('Error during closing Message Router (Message Parsed Batch)', e)
+
+        if self.event_router_batch is not None:
+            try:
+                self.event_router_batch.close()
+            except Exception as e:
+                logger.error('Error during closing Message Router (Event Batch)', e)
+
+        if self.grpc_router is not None:
+            try:
+                self.grpc_router.close()
+            except Exception as e:
+                logger.error('Error during closing gRPC Router', e)
 
     @staticmethod
     def read_configuration(filepath):

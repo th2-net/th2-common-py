@@ -53,7 +53,8 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Can not send. Sender did not started')
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
                                    body=self.value_to_bytes(message))
-        logger.info(f"Sent message: {message}. Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+        logger.info(f"Sent message:\n{message}"
+                    f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
 
     def close(self):
         if self.connection is not None and self.connection.is_open:
