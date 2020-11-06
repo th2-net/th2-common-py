@@ -91,19 +91,19 @@ class AbstractCommonFactory(ABC):
 
         if self.message_router_raw_batch is not None:
             try:
-                self.message_router_raw_batch.close()
+                self.message_router_raw_batch.unsubscribe_all()
             except Exception as e:
                 logger.error('Error during closing Message Router (Message Raw Batch)', e)
 
         if self.message_router_parsed_batch is not None:
             try:
-                self.message_router_parsed_batch.close()
+                self.message_router_parsed_batch.unsubscribe_all()
             except Exception as e:
                 logger.error('Error during closing Message Router (Message Parsed Batch)', e)
 
         if self.event_router_batch is not None:
             try:
-                self.event_router_batch.close()
+                self.event_router_batch.unsubscribe_all()
             except Exception as e:
                 logger.error('Error during closing Message Router (Event Batch)', e)
 
