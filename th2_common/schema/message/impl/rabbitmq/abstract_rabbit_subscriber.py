@@ -80,7 +80,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
                 logger.info(f"Start listening exchangeName='{self.exchange_name}', "
                             f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
-        _thread.start_new_thread(self.channel.start_consuming, ())
+            _thread.start_new_thread(self.channel.start_consuming, ())
 
     def is_close(self) -> bool:
         return self.connection is None or not self.connection.is_open
