@@ -13,27 +13,23 @@
 #   limitations under the License.
 
 
-import _thread
 import datetime
-import functools
 import logging
+import threading
 from abc import ABC, abstractmethod
 from threading import Lock
-
-import pika
 
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
-
 logger = logging.getLogger()
 
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+    def __init__(self, connection, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
                  *subscribe_targets) -> None:
         if len(subscribe_targets) < 1:
             raise Exception('Subscribe targets must be more than 0')
@@ -41,20 +37,15 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.listeners = set()
         self.lock_listeners = Lock()
 
-        self.connection = None
+        self.connection = connection
         self.channel = None
+
+        self.subscribe_targets = subscribe_targets
+        self.subscriber_name = configuration.subscriber_name
 
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
         self.attributes = tuple(set(queue_configuration.attributes))
-        self.subscriber_name = configuration.subscriber_name
-        self.subscribe_targets = subscribe_targets
-
-        credentials = pika.PlainCredentials(configuration.username, configuration.password)
-        self.connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vhost,
-                                                               host=configuration.host,
-                                                               port=configuration.port,
-                                                               credentials=credentials)
 
     def start(self):
         if self.subscribe_targets is None or self.exchange_name is None:
@@ -63,9 +54,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         if self.subscriber_name is None:
             self.subscriber_name = 'rabbit_mq_subscriber'
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
-
-        if self.connection is None:
-            self.connection = pika.BlockingConnection(self.connection_parameters)
 
         if self.channel is None:
             self.channel = self.connection.channel()
@@ -80,16 +68,11 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
                 logger.info(f"Start listening exchangeName='{self.exchange_name}', "
                             f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
-            _thread.start_new_thread(self.channel.start_consuming, ())
+
+            threading.Thread(target=self.channel.start_consuming).start()
 
     def is_close(self) -> bool:
-        return self.connection is None or not self.connection.is_open
-
-    def add_listener(self, message_listener: MessageListener):
-        if message_listener is None:
-            return
-        with self.lock_listeners:
-            self.listeners.add(message_listener)
+        return self.channel is None or not self.channel.is_open
 
     def close(self):
         with self.lock_listeners:
@@ -97,8 +80,14 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                 listener.on_close()
             self.listeners.clear()
 
-        if self.connection is not None and self.connection.is_open:
-            self.connection.add_callback_threadsafe(functools.partial(self.connection.close))
+        if self.channel is not None and self.channel.is_open:
+            self.channel.close()
+
+    def add_listener(self, message_listener: MessageListener):
+        if message_listener is None:
+            return
+        with self.lock_listeners:
+            self.listeners.add(message_listener)
 
     def handle(self, channel, method, properties, body):
         try:

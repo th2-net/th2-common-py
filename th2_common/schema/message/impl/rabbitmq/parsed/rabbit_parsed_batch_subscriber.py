@@ -23,10 +23,6 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 
 class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
 
-    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
-                 filter_strategy, *subscribe_targets) -> None:
-        super().__init__(configuration, queue_configuration, filter_strategy, *subscribe_targets)
-
     def get_messages(self, batch: MessageBatch) -> list:
         return batch.messages
 

@@ -19,6 +19,8 @@ import os
 from abc import ABC, abstractmethod
 from threading import Lock
 
+import pika
+
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
@@ -30,88 +32,110 @@ from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router i
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
 
-
 logger = logging.getLogger()
 
 
 class AbstractCommonFactory(ABC):
 
     def __init__(self,
-                 message_router_raw_batch_class=RabbitRawBatchRouter,
-                 message_router_parsed_batch_class=RabbitParsedBatchRouter,
-                 event_router_batch_class=EventBatchRouter,
+                 message_parsed_batch_router_class=RabbitParsedBatchRouter,
+                 message_raw_batch_router_class=RabbitRawBatchRouter,
+                 event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter) -> None:
-        self.rabbit_mq_configuration = None
-        self.message_router_configuration = None
-        self.grpc_router_configuration = None
-        self.message_router_raw_batch_class = message_router_raw_batch_class
-        self.message_router_parsed_batch_class = message_router_parsed_batch_class
-        self.event_router_batch_class = event_router_batch_class
+        self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+        self.message_router_configuration = self._create_message_router_configuration()
+        self.grpc_router_configuration = self._create_grpc_router_configuration()
+
+        self.message_parsed_batch_router_class = message_parsed_batch_router_class
+        self.message_raw_batch_router_class = message_raw_batch_router_class
+        self.event_batch_router_class = event_batch_router_class
         self.grpc_router_class = grpc_router_class
 
-        self.message_router_raw_batch = None
-        self.message_router_parsed_batch = None
-        self.event_router_batch = None
-        self.grpc_router = None
+        self._message_parsed_batch_router = None
+        self._message_raw_batch_router = None
+        self._event_batch_router = None
+        self._grpc_router = None
 
-    def create_message_router_raw_batch(self) -> MessageRouter:
-        """
-        Created MessageRouter which work with RawMessageBatch
-        """
-        self.message_router_raw_batch = self.message_router_raw_batch_class(self._create_rabbit_mq_configuration(),
-                                                                            self._create_message_router_configuration())
-        return self.message_router_raw_batch
+        credentials = pika.PlainCredentials(self.rabbit_mq_configuration.username,
+                                            self.rabbit_mq_configuration.password)
+        connection_parameters = pika.ConnectionParameters(virtual_host=self.rabbit_mq_configuration.vhost,
+                                                          host=self.rabbit_mq_configuration.host,
+                                                          port=self.rabbit_mq_configuration.port,
+                                                          credentials=credentials)
+        self.connection = pika.BlockingConnection(connection_parameters)
 
-    def create_message_router_parsed_batch(self) -> MessageRouter:
+    @property
+    def message_parsed_batch_router(self) -> MessageRouter:
         """
         Created MessageRouter which work with MessageBatch
         """
-        self.message_router_parsed_batch = self.message_router_parsed_batch_class(
-            self._create_rabbit_mq_configuration(),
-            self._create_message_router_configuration())
+        if self._message_parsed_batch_router is None:
+            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self.connection,
+                                                                                       self.rabbit_mq_configuration,
+                                                                                       self.message_router_configuration
+                                                                                       )
 
-        return self.message_router_parsed_batch
+        return self._message_parsed_batch_router
 
-    def create_event_router_batch(self) -> MessageRouter:
+    @property
+    def message_raw_batch_router(self) -> MessageRouter:
+        """
+        Created MessageRouter which work with RawMessageBatch
+        """
+        if self._message_raw_batch_router is None:
+            self._message_raw_batch_router = self.message_raw_batch_router_class(self.connection,
+                                                                                 self.rabbit_mq_configuration,
+                                                                                 self.message_router_configuration)
+        return self._message_raw_batch_router
+
+    @property
+    def event_router_batch(self) -> MessageRouter:
         """
         Created MessageRouter which work with EventBatch
         """
-        self.event_router_batch = self.event_router_batch_class(self._create_rabbit_mq_configuration(),
-                                                                self._create_message_router_configuration())
+        if self._event_batch_router is None:
+            self._event_batch_router = self.event_batch_router_class(self.connection,
+                                                                     self.rabbit_mq_configuration,
+                                                                     self.message_router_configuration)
 
-        return self.event_router_batch
+        return self._event_batch_router
 
-    def create_grpc_router(self) -> GrpcRouter:
-        self.grpc_router = self.grpc_router_class(self._create_grpc_router_configuration())
+    @property
+    def grpc_router(self) -> GrpcRouter:
+        if self._grpc_router is None:
+            self._grpc_router = self.grpc_router_class(self.grpc_router_configuration)
 
-        return self.grpc_router
+        return self._grpc_router
 
     def close(self):
         logger.info('Closing Common Factory')
 
-        if self.message_router_raw_batch is not None:
+        if self._message_raw_batch_router is not None:
             try:
-                self.message_router_raw_batch.unsubscribe_all()
-            except Exception as e:
-                logger.error('Error during closing Message Router (Message Raw Batch)', e)
+                self._message_raw_batch_router.close()
+            except Exception:
+                logger.exception('Error during closing Message Router (Message Raw Batch)')
 
-        if self.message_router_parsed_batch is not None:
+        if self._message_parsed_batch_router is not None:
             try:
-                self.message_router_parsed_batch.unsubscribe_all()
-            except Exception as e:
-                logger.error('Error during closing Message Router (Message Parsed Batch)', e)
+                self._message_parsed_batch_router.close()
+            except Exception:
+                logger.exception('Error during closing Message Router (Message Parsed Batch)')
 
-        if self.event_router_batch is not None:
+        if self._event_batch_router is not None:
             try:
-                self.event_router_batch.unsubscribe_all()
-            except Exception as e:
-                logger.error('Error during closing Message Router (Event Batch)', e)
+                self._event_batch_router.close()
+            except Exception:
+                logger.exception('Error during closing Message Router (Event Batch)')
 
-        if self.grpc_router is not None:
+        if self._grpc_router is not None:
             try:
-                self.grpc_router.close()
-            except Exception as e:
-                logger.error('Error during closing gRPC Router', e)
+                self._grpc_router.close()
+            except Exception:
+                logger.exception('Error during closing gRPC Router')
+
+        if self.connection is not None and self.connection.is_open:
+            self.connection.close()
 
     @staticmethod
     def read_configuration(filepath):
@@ -123,18 +147,16 @@ class AbstractCommonFactory(ABC):
         return config_dict
 
     def create_cradle_configuration(self) -> CradleConfiguration:
-        config_dict = self.read_configuration(self._path_to_cradle_configuration())
-        return CradleConfiguration(**config_dict)
+        return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration()))
 
     def create_custom_configuration(self) -> dict:
-        config_dict = self.read_configuration(self._path_to_custom_configuration())
-        return config_dict
+        return self.read_configuration(self._path_to_custom_configuration())
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
         lock = Lock()
         try:
             lock.acquire()
-            if self.rabbit_mq_configuration is None:
+            if not hasattr(self, 'rabbit_mq_configuration'):
                 config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration())
                 self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
         finally:
@@ -144,7 +166,7 @@ class AbstractCommonFactory(ABC):
     def _create_message_router_configuration(self) -> MessageRouterConfiguration:
         lock = Lock()
         with lock:
-            if self.message_router_configuration is None:
+            if not hasattr(self, 'message_router_configuration'):
                 config_dict = self.read_configuration(self._path_to_message_router_configuration())
                 self.message_router_configuration = MessageRouterConfiguration(**config_dict)
         return self.message_router_configuration
@@ -153,7 +175,7 @@ class AbstractCommonFactory(ABC):
         lock = Lock()
         try:
             lock.acquire()
-            if self.grpc_router_configuration is None:
+            if not hasattr(self, 'grpc_router_configuration'):
                 config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
                 self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
         finally:

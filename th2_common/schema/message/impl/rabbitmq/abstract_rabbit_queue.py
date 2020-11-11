@@ -26,8 +26,11 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 class AbstractRabbitQueue(MessageQueue, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration) -> None:
+    def __init__(self, connection,
+                 configuration: RabbitMQConfiguration,
+                 queue_configuration: QueueConfiguration) -> None:
         super().__init__(configuration, queue_configuration)
+        self.connection = connection
         self.subscriber = None
         self.subscriber_lock = Lock()
         self.sender = None
@@ -40,7 +43,7 @@ class AbstractRabbitQueue(MessageQueue, ABC):
             raise RouterError('Queue can not read')
         with self.subscriber_lock:
             if self.subscriber is None or self.subscriber.is_close():
-                self.subscriber = self.create_subscriber(self.configuration, self.queue_configuration)
+                self.subscriber = self.create_subscriber(self.connection, self.configuration, self.queue_configuration)
             return self.subscriber
 
     def get_sender(self) -> MessageSender:
@@ -50,7 +53,7 @@ class AbstractRabbitQueue(MessageQueue, ABC):
             raise RouterError('Queue can not write')
         with self.sender_lock:
             if self.sender is None or self.sender.is_close():
-                self.sender = self.create_sender(self.configuration, self.queue_configuration)
+                self.sender = self.create_sender(self.connection, self.queue_configuration)
             return self.sender
 
     def close(self):
@@ -62,11 +65,12 @@ class AbstractRabbitQueue(MessageQueue, ABC):
                 self.sender.close()
 
     @abstractmethod
-    def create_sender(self, configuration: RabbitMQConfiguration,
+    def create_sender(self, connection,
                       queue_configuration: QueueConfiguration) -> MessageSender:
         pass
 
     @abstractmethod
-    def create_subscriber(self, configuration: RabbitMQConfiguration,
+    def create_subscriber(self, connection,
+                          configuration: RabbitMQConfiguration,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
         pass

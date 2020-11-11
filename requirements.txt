@@ -15,4 +15,4 @@
 pika==1.1.0
 twine==3.2.0
 --extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-grpc-common==2.2.0
+th2-grpc-common==2.2.1

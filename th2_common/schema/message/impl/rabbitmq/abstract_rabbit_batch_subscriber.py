@@ -34,9 +34,9 @@ class Metadata:
 
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+    def __init__(self, connection, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
                  filter_strategy=DefaultFilterStrategy(), *subscribe_targets) -> None:
-        super().__init__(configuration, queue_configuration, *subscribe_targets)
+        super().__init__(connection, configuration, queue_configuration, *subscribe_targets)
         self.filters = queue_configuration.filters
         self.filter_strategy = filter_strategy
 

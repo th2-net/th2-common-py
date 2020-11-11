@@ -14,39 +14,32 @@
 import logging
 from abc import ABC, abstractmethod
 
-import pika
-
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_sender import MessageSender
-
 
 logger = logging.getLogger()
 
 
 class AbstractRabbitSender(MessageSender, ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, exchange_name: str, send_queue: str) -> None:
+    def __init__(self, connection, exchange_name: str, send_queue: str) -> None:
         self.CLOSE_TIMEOUT = 1_000
-        self.connection = None
+        self.connection = connection
         self.channel = None
-        self.send_queue = send_queue
         self.exchange_name = exchange_name
-        credentials = pika.PlainCredentials(configuration.username, configuration.password)
-        self.connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vhost,
-                                                               host=configuration.host,
-                                                               port=configuration.port,
-                                                               credentials=credentials)
+        self.send_queue = send_queue
 
     def start(self):
         if self.send_queue is None or self.exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
-        if self.connection is None:
-            self.connection = pika.BlockingConnection(self.connection_parameters)
         if self.channel is None:
             self.channel = self.connection.channel()
 
     def is_close(self) -> bool:
-        return self.connection is None or not self.connection.is_open
+        return self.channel is None or not self.channel.is_open
+
+    def close(self):
+        if self.channel is not None and self.channel.is_open:
+            self.channel.close()
 
     def send(self, message):
         if self.channel is None:
@@ -55,10 +48,6 @@ class AbstractRabbitSender(MessageSender, ABC):
                                    body=self.value_to_bytes(message))
         logger.info(f"Sent message:\n{message}"
                     f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
-
-    def close(self):
-        if self.connection is not None and self.connection.is_open:
-            self.connection.close()
 
     @abstractmethod
     def value_to_bytes(self, value):

@@ -25,10 +25,6 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
 
     __MESSAGE_TYPE = 'raw'
 
-    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
-                 filter_strategy, *subscribe_targets) -> None:
-        super().__init__(configuration, queue_configuration, filter_strategy, *subscribe_targets)
-
     def get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
 

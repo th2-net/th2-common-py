@@ -32,17 +32,17 @@ class CommonFactory(AbstractCommonFactory):
     CUSTOM_FILE_NAME = 'custom.json'
 
     def __init__(self,
-                 message_router_parsed_batch_class=RabbitParsedBatchRouter,
-                 message_router_raw_batch_class=RabbitRawBatchRouter,
-                 event_router_batch_class=EventBatchRouter,
+                 message_parsed_batch_router_class=RabbitParsedBatchRouter,
+                 message_raw_batch_router_class=RabbitRawBatchRouter,
+                 event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter,
                  rabbit_mq=CONFIG_DEFAULT_PATH + RABBIT_MQ_FILE_NAME,
                  router_mq=CONFIG_DEFAULT_PATH + ROUTER_MQ_FILE_NAME,
                  router_grpc=CONFIG_DEFAULT_PATH + ROUTER_GRPC_FILE_NAME,
                  cradle=CONFIG_DEFAULT_PATH + CRADLE_FILE_NAME,
                  custom=CONFIG_DEFAULT_PATH + CUSTOM_FILE_NAME) -> None:
-        super().__init__(message_router_parsed_batch_class, message_router_raw_batch_class,
-                         event_router_batch_class, grpc_router_class)
+        super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
+                         event_batch_router_class, grpc_router_class)
         self.rabbit_mq = rabbit_mq
         self.router_mq = router_mq
         self.router_grpc = router_grpc
@@ -59,15 +59,15 @@ class CommonFactory(AbstractCommonFactory):
     @staticmethod
     def create_from_arguments(args):
         parser = argparse.ArgumentParser()
-        parser.add_argument('--rabbitConfiguration', action='store',
+        parser.add_argument('--rabbitConfiguration',
                             help='path to json file with RabbitMQ configuration')
-        parser.add_argument('--messageRouterConfiguration', action='store',
+        parser.add_argument('--messageRouterConfiguration',
                             help='path to json file with configuration for MessageRouter')
-        parser.add_argument('--grpcRouterConfiguration', action='store',
+        parser.add_argument('--grpcRouterConfiguration',
                             help='path to json file with configuration for GrpcRouter')
-        parser.add_argument('--cradleConfiguration', action='store',
+        parser.add_argument('--cradleConfiguration',
                             help='path to json file with configuration for cradle')
-        parser.add_argument('--customConfiguration', action='store',
+        parser.add_argument('--customConfiguration',
                             help='path to json file with custom configuration')
         result = parser.parse_args(args)
 

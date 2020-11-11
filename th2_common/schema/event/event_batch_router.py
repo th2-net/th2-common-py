@@ -22,9 +22,9 @@ from th2_common.schema.message.message_queue import MessageQueue
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
 
-    def _create_queue(self, configuration: RabbitMQConfiguration,
+    def _create_queue(self, connection, configuration: RabbitMQConfiguration,
                       queue_configuration: QueueConfiguration) -> MessageQueue:
-        return EventBatchQueue(configuration, queue_configuration)
+        return EventBatchQueue(connection, configuration, queue_configuration)
 
     def _find_by_filter(self, queues: {str: QueueConfiguration}, msg) -> dict:
         return {key: msg for key in queues.keys()}

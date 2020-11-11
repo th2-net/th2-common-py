@@ -25,9 +25,6 @@ from th2_common.schema.message.message_queue import MessageQueue
 
 class RabbitRawBatchRouter(AbstractRabbitBatchMessageRouter):
 
-    def __init__(self, rabbit_mq_configuration, configuration) -> None:
-        super().__init__(rabbit_mq_configuration, configuration)
-
     def _get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
 
@@ -37,6 +34,6 @@ class RabbitRawBatchRouter(AbstractRabbitBatchMessageRouter):
     def _add_message(self, batch: RawMessageBatch, message: RawMessage):
         batch.messages.append(message)
 
-    def _create_queue(self, configuration: RabbitMQConfiguration,
+    def _create_queue(self, connection, configuration: RabbitMQConfiguration,
                       queue_configuration: QueueConfiguration) -> MessageQueue:
-        return RabbitRawBatchQueue(configuration, queue_configuration)
+        return RabbitRawBatchQueue(connection, configuration, queue_configuration)
