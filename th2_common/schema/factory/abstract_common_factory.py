@@ -42,6 +42,7 @@ class AbstractCommonFactory(ABC):
                  message_raw_batch_router_class=RabbitRawBatchRouter,
                  event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter) -> None:
+
         self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
         self.message_router_configuration = self._create_message_router_configuration()
         self.grpc_router_configuration = self._create_grpc_router_configuration()

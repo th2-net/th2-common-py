@@ -32,22 +32,25 @@ class CommonFactory(AbstractCommonFactory):
     CUSTOM_FILE_NAME = 'custom.json'
 
     def __init__(self,
-                 message_parsed_batch_router_class=RabbitParsedBatchRouter,
-                 message_raw_batch_router_class=RabbitRawBatchRouter,
-                 event_batch_router_class=EventBatchRouter,
-                 grpc_router_class=DefaultGrpcRouter,
                  rabbit_mq=CONFIG_DEFAULT_PATH + RABBIT_MQ_FILE_NAME,
                  router_mq=CONFIG_DEFAULT_PATH + ROUTER_MQ_FILE_NAME,
                  router_grpc=CONFIG_DEFAULT_PATH + ROUTER_GRPC_FILE_NAME,
                  cradle=CONFIG_DEFAULT_PATH + CRADLE_FILE_NAME,
-                 custom=CONFIG_DEFAULT_PATH + CUSTOM_FILE_NAME) -> None:
-        super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
-                         event_batch_router_class, grpc_router_class)
+                 custom=CONFIG_DEFAULT_PATH + CUSTOM_FILE_NAME,
+
+                 message_parsed_batch_router_class=RabbitParsedBatchRouter,
+                 message_raw_batch_router_class=RabbitRawBatchRouter,
+                 event_batch_router_class=EventBatchRouter,
+                 grpc_router_class=DefaultGrpcRouter) -> None:
+
         self.rabbit_mq = rabbit_mq
         self.router_mq = router_mq
         self.router_grpc = router_grpc
         self.cradle = cradle
         self.custom = custom
+
+        super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
+                         event_batch_router_class, grpc_router_class)
 
     @staticmethod
     def calculate_path(parsed_args, name_attr, path_default) -> str:
