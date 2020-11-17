@@ -57,6 +57,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is None:
             self.channel = self.connection.channel()
+            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()

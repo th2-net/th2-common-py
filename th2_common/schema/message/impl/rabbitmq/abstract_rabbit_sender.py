@@ -33,12 +33,14 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
             self.channel = self.connection.channel()
+            logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
 
     def close(self):
         if self.channel is not None and self.channel.is_open:
+            logger.info(f"Close channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
             self.channel.close()
 
     def send(self, message):
