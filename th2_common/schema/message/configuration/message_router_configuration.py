@@ -23,7 +23,7 @@ class MessageRouterConfiguration:
     def get_queue_by_alias(self, queue_alias):
         return self.queues[queue_alias]
 
-    def find_queues_by_attr(self, attrs: list) -> {str: QueueConfiguration}:
+    def find_queues_by_attr(self, attrs) -> {str: QueueConfiguration}:
         result = dict()
         for queue_alias in self.queues.keys():
             ok = True
