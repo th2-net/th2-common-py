@@ -57,7 +57,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is None:
             self.channel = self.connection.channel()
-            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
+            logger.info(f'Create channel: {self.channel} for subscriber[{self.exchange_name}]')
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()
@@ -83,6 +83,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is not None and self.channel.is_open:
             self.channel.close()
+            logger.info(f'Close channel: {self.channel} for subscriber[{self.exchange_name}]')
 
     def add_listener(self, message_listener: MessageListener):
         if message_listener is None:

@@ -18,9 +18,18 @@ from th2_common.schema.message.configuration.queue_configuration import QueueCon
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_queue import MessageQueue
+from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
+
+    @property
+    def required_subscribe_attributes(self):
+        return {QueueAttribute.SUBSCRIBE.value, QueueAttribute.EVENT.value}
+
+    @property
+    def required_send_attributes(self):
+        return {QueueAttribute.PUBLISH.value, QueueAttribute.EVENT.value}
 
     def _create_queue(self, connection, configuration: RabbitMQConfiguration,
                       queue_configuration: QueueConfiguration) -> MessageQueue:

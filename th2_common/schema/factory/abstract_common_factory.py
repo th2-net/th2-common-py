@@ -90,7 +90,7 @@ class AbstractCommonFactory(ABC):
         return self._message_raw_batch_router
 
     @property
-    def event_router_batch(self) -> MessageRouter:
+    def event_batch_router(self) -> MessageRouter:
         """
         Created MessageRouter which work with EventBatch
         """

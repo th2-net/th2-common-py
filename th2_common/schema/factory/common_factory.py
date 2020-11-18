@@ -14,6 +14,7 @@
 
 
 import argparse
+import sys
 
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.factory.abstract_common_factory import AbstractCommonFactory
@@ -25,29 +26,33 @@ from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import 
 class CommonFactory(AbstractCommonFactory):
     CONFIG_DEFAULT_PATH = '/var/th2/config/'
 
-    RABBIT_MQ_FILE_NAME = 'rabbitMQ.json'
-    ROUTER_MQ_FILE_NAME = 'mq.json'
-    ROUTER_GRPC_FILE_NAME = 'grpc.json'
-    CRADLE_FILE_NAME = 'cradle.json'
-    CUSTOM_FILE_NAME = 'custom.json'
+    RABBIT_MQ_CONFIG_FILENAME = 'rabbitMQ.json'
+    MQ_ROUTER_CONFIG_FILENAME = 'mq.json'
+    GRPC_ROUTER_CONFIG_FILENAME = 'grpc.json'
+    CRADLE_CONFIG_FILENAME = 'cradle.json'
+    CUSTOM_CONFIG_FILENAME = 'custom.json'
 
     def __init__(self,
-                 rabbit_mq=CONFIG_DEFAULT_PATH + RABBIT_MQ_FILE_NAME,
-                 router_mq=CONFIG_DEFAULT_PATH + ROUTER_MQ_FILE_NAME,
-                 router_grpc=CONFIG_DEFAULT_PATH + ROUTER_GRPC_FILE_NAME,
-                 cradle=CONFIG_DEFAULT_PATH + CRADLE_FILE_NAME,
-                 custom=CONFIG_DEFAULT_PATH + CUSTOM_FILE_NAME,
+                 config_path=None,
+                 rabbit_mq_config_filepath=CONFIG_DEFAULT_PATH + RABBIT_MQ_CONFIG_FILENAME,
+                 mq_router_config_filepath=CONFIG_DEFAULT_PATH + MQ_ROUTER_CONFIG_FILENAME,
+                 grpc_router_config_filepath=CONFIG_DEFAULT_PATH + GRPC_ROUTER_CONFIG_FILENAME,
+                 cradle_config_filepath=CONFIG_DEFAULT_PATH + CRADLE_CONFIG_FILENAME,
+                 custom_config_filepath=CONFIG_DEFAULT_PATH + CUSTOM_CONFIG_FILENAME,
 
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
                  event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter) -> None:
 
-        self.rabbit_mq = rabbit_mq
-        self.router_mq = router_mq
-        self.router_grpc = router_grpc
-        self.cradle = cradle
-        self.custom = custom
+        if config_path is not None:
+            CommonFactory.CONFIG_DEFAULT_PATH = config_path
+
+        self.rabbit_mq_config_filepath = rabbit_mq_config_filepath
+        self.mq_router_config_filepath = mq_router_config_filepath
+        self.grpc_router_config_filepath = grpc_router_config_filepath
+        self.cradle_config_filepath = cradle_config_filepath
+        self.custom_config_filepath = custom_config_filepath
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
                          event_batch_router_class, grpc_router_class)
@@ -60,7 +65,10 @@ class CommonFactory(AbstractCommonFactory):
             return CommonFactory.CONFIG_DEFAULT_PATH + path_default
 
     @staticmethod
-    def create_from_arguments(args):
+    def create_from_arguments(args=None):
+        if args is None:
+            args = sys.argv[1:]
+
         parser = argparse.ArgumentParser()
         parser.add_argument('--rabbitConfiguration',
                             help='path to json file with RabbitMQ configuration')
@@ -75,26 +83,29 @@ class CommonFactory(AbstractCommonFactory):
         result = parser.parse_args(args)
 
         return CommonFactory(
-            rabbit_mq=CommonFactory.calculate_path(result, 'rabbitConfiguration', CommonFactory.RABBIT_MQ_FILE_NAME),
-            router_mq=CommonFactory.calculate_path(result, 'messageRouterConfiguration',
-                                                   CommonFactory.ROUTER_MQ_FILE_NAME),
-            router_grpc=CommonFactory.calculate_path(result, 'grpcRouterConfiguration',
-                                                     CommonFactory.ROUTER_GRPC_FILE_NAME),
-            cradle=CommonFactory.calculate_path(result, 'cradleConfiguration', CommonFactory.CRADLE_FILE_NAME),
-            custom=CommonFactory.calculate_path(result, 'customConfiguration', CommonFactory.CUSTOM_FILE_NAME),
+            rabbit_mq_config_filepath=CommonFactory.calculate_path(result, 'rabbitConfiguration',
+                                                                   CommonFactory.RABBIT_MQ_CONFIG_FILENAME),
+            mq_router_config_filepath=CommonFactory.calculate_path(result, 'messageRouterConfiguration',
+                                                                   CommonFactory.MQ_ROUTER_CONFIG_FILENAME),
+            grpc_router_config_filepath=CommonFactory.calculate_path(result, 'grpcRouterConfiguration',
+                                                                     CommonFactory.GRPC_ROUTER_CONFIG_FILENAME),
+            cradle_config_filepath=CommonFactory.calculate_path(result, 'cradleConfiguration',
+                                                                CommonFactory.CRADLE_CONFIG_FILENAME),
+            custom_config_filepath=CommonFactory.calculate_path(result, 'customConfiguration',
+                                                                CommonFactory.CUSTOM_CONFIG_FILENAME)
         )
 
     def _path_to_rabbit_mq_configuration(self) -> str:
-        return self.rabbit_mq
+        return self.rabbit_mq_config_filepath
 
     def _path_to_message_router_configuration(self) -> str:
-        return self.router_mq
+        return self.mq_router_config_filepath
 
     def _path_to_grpc_router_configuration(self) -> str:
-        return self.router_grpc
+        return self.grpc_router_config_filepath
 
     def _path_to_cradle_configuration(self) -> str:
-        return self.cradle
+        return self.cradle_config_filepath
 
     def _path_to_custom_configuration(self) -> str:
-        return self.custom
+        return self.custom_config_filepath

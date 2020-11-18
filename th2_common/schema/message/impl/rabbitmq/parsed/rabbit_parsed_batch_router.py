@@ -21,9 +21,18 @@ from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_queue im
 from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
     AbstractRabbitBatchMessageRouter
 from th2_common.schema.message.message_queue import MessageQueue
+from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
 class RabbitParsedBatchRouter(AbstractRabbitBatchMessageRouter):
+
+    @property
+    def required_subscribe_attributes(self):
+        return {QueueAttribute.SUBSCRIBE.value, QueueAttribute.PARSED.value}
+
+    @property
+    def required_send_attributes(self):
+        return {QueueAttribute.PUBLISH.value, QueueAttribute.PARSED.value}
 
     def _get_messages(self, batch):
         return batch.messages

@@ -58,6 +58,22 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self.queue_connections = dict()
         self.queue_connections_lock = Lock()
 
+    @property
+    @abstractmethod
+    def required_subscribe_attributes(self):
+        pass
+
+    @property
+    @abstractmethod
+    def required_send_attributes(self):
+        pass
+
+    def add_subscribe_attributes(self, queue_attr):
+        return self.required_subscribe_attributes.union(queue_attr)
+
+    def add_send_attributes(self, queue_attr):
+        return self.required_send_attributes.union(queue_attr)
+
     def _subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
         queue = self._get_message_queue(self.connection, queue_alias)
         subscriber = queue.get_subscriber()
@@ -68,29 +84,23 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             raise RuntimeError('Can not start subscriber', e)
         return SubscriberMonitorImpl(subscriber, queue.subscriber_lock)
 
-    def subscribe_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
-        queues = self.configuration.find_queues_by_attr(queue_attr)
+    def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+        attrs = self.add_subscribe_attributes(queue_attr)
+        queues = self.configuration.find_queues_by_attr(attrs)
         if len(queues) != 1:
             raise RouterError(
-                f'Wrong amount of queues for subscribe_by_attr. '
+                f'Wrong amount of queues for subscribe. '
                 f'Found {len(queues)} queues, but must be only 1. Search was done by {queue_attr} attributes')
         return self._subscribe_by_alias(callback, queues.keys().__iter__().__next__())
 
-    def subscribe_all_by_attr(self, callback: MessageListener, queue_attr) -> SubscriberMonitor:
+    def subscribe_all(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+        attrs = self.add_subscribe_attributes(queue_attr)
         subscribers = []
-        for queue_alias in self.configuration.find_queues_by_attr(queue_attr).keys():
+        for queue_alias in self.configuration.find_queues_by_attr(attrs).keys():
             subscribers.append(self._subscribe_by_alias(callback, queue_alias))
         if len(subscribers) == 0:
             raise RouterError(f'Wrong amount of queues for subscribe_all_by_attr. Must not be empty. '
-                              f'Search was done by {queue_attr} attributes')
-        return MultiplySubscribeMonitorImpl(subscribers)
-
-    def subscribe_all(self, callback: MessageListener) -> SubscriberMonitor:
-        subscribers = []
-        for queue_alias in self.configuration.queues.keys():
-            subscribers.append(self._subscribe_by_alias(callback, queue_alias))
-        if len(subscribers) == 0:
-            raise RouterError(f'Wrong amount of queues for subscribe_all. Must not be empty')
+                              f'Search was done by {attrs} attributes')
         return MultiplySubscribeMonitorImpl(subscribers)
 
     def unsubscribe_all(self):
@@ -102,18 +112,21 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def close(self):
         self.unsubscribe_all()
 
-    def send(self, message):
-        self._send_by_aliases_and_messages_to_send(self._find_by_filter(self.configuration.queues, message))
+    def send(self, message, *queue_attr):
+        if not queue_attr:
+            self._send_by_aliases_and_messages_to_send(self._find_by_filter(self.configuration.queues, message))
+            return
 
-    def send_by_attr(self, message, queue_attr):
-        filtered_by_attr = self.configuration.find_queues_by_attr(queue_attr)
+        attrs = self.add_send_attributes(queue_attr)
+        filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
         if len(filtered_by_attr_and_filter) != 1:
             raise Exception('Wrong amount of queues for send_by_attr. Must be equal to 1')
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
-    def send_all(self, message, queue_attr):
-        filtered_by_attr = self.configuration.find_queues_by_attr(queue_attr)
+    def send_all(self, message, *queue_attr):
+        attrs = self.add_send_attributes(queue_attr)
+        filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
         if len(filtered_by_attr_and_filter) == 0:
             raise Exception('Wrong amount of queues for send_all. Must not be equal to 0')
