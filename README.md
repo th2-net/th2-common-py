@@ -38,7 +38,7 @@ Then you create an instance of imported class, choosing one of the options:
     factory = CommonFactory.create_from_arguments(args)
     ```
 
-After that you can create various `Routers` through `factory` properties:
+After that you can get various `Routers` through `factory` properties:
 ```
 message_parsed_batch_router = factory.message_parsed_batch_router
 message_raw_batch_router = factory.message_raw_batch_router
@@ -51,19 +51,19 @@ event_batch_router = factory.event_batch_router
 
 See [th2-grpc-common](https://github.com/th2-net/th2-grpc-common/blob/master/src/main/proto/th2_grpc_common/common.proto "common.proto") for details.
 
-With `router` created, you can subscribe to queues (specifying callback function) or send data that router works with:
+With `router` created, you can subscribe to pins (specifying callback function) or send data that router works with:
 ```
-router.subscribe(callback)  # subscribe to single queue 
-router.subscribe_all(callback)  # subscribe to all queues
-router.send(message)  # send to single queue
-router.send_all(message)  # send to all queues
+router.subscribe(callback)  # subscribe to only one pin 
+router.subscribe_all(callback)  # subscribe to one or several pins
+router.send(message)  # send to only one pim
+router.send_all(message)  # send to one or several pins
 ```
-You can do these actions provide queue attributes in addition to default ones.
+You can do these actions provide pin attributes in addition to default ones.
 ```
-router.subscribe(callback, attrs...)  # subscribe to single queue
-router.subscribe_all(callback, attrs...)  # subscribe to all queues
-router.send(message, attrs...)  # send to single queue
-router.send_all(message, attrs...)  # send to all queues
+router.subscribe(callback, attrs...)  # subscribe to only one pin
+router.subscribe_all(callback, attrs...)  # subscribe to one or several pins
+router.send(message, attrs...)  # send to only one pin
+router.send_all(message, attrs...)  # send to one or several pins
 ```
 Default attributes are:
 - `message_parsed_batch_router`
