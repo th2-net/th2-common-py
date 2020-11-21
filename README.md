@@ -1,10 +1,10 @@
-# th2 Common Library (Python)
+# th2 common library (Python)
 
 ## Installation
 ```
 pip install th2-common
 ```
-This package can be found on [PyPI](https://pypi.org/project/th2-common/ "th2 Common Library").
+This package can be found on [PyPI](https://pypi.org/project/th2-common/ "th2 common library").
 
 ## Usage
 
