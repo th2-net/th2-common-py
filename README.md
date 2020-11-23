@@ -55,10 +55,10 @@ With `router` created, you can subscribe to pins (specifying callback function) 
 ```
 router.subscribe(callback)  # subscribe to only one pin 
 router.subscribe_all(callback)  # subscribe to one or several pins
-router.send(message)  # send to only one pim
+router.send(message)  # send to only one pin
 router.send_all(message)  # send to one or several pins
 ```
-You can do these actions provide pin attributes in addition to default ones.
+You can do these actions with extra pin attributes in addition to default ones.
 ```
 router.subscribe(callback, attrs...)  # subscribe to only one pin
 router.subscribe_all(callback, attrs...)  # subscribe to one or several pins
