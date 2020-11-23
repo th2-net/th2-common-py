@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import functools
 import logging
 from abc import ABC, abstractmethod
 
@@ -33,21 +34,25 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
             self.channel = self.connection.channel()
-            logger.info(f'Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]')
+            logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
 
     def close(self):
         if self.channel is not None and self.channel.is_open:
+            logger.info(f"Close channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
             self.channel.close()
-            logger.info(f'Close channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]')
 
     def send(self, message):
-        if self.channel is None:
+        cb = functools.partial(self.sending, self.channel, message)
+        self.connection.add_callback_threadsafe(cb)
+
+    def sending(self, channel, message):
+        if channel is None:
             raise Exception('Can not send. Sender did not started')
-        self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
-                                   body=self.value_to_bytes(message))
+        channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
+                              body=self.value_to_bytes(message))
         logger.info(f"Sent message:\n{message}"
                     f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
 
