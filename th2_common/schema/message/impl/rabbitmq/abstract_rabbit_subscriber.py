@@ -14,6 +14,7 @@
 
 
 import datetime
+import functools
 import logging
 import threading
 from abc import ABC, abstractmethod
@@ -57,7 +58,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is None:
             self.channel = self.connection.channel()
-            logger.info(f'Create channel: {self.channel} for subscriber[{self.exchange_name}]')
+            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()
@@ -83,7 +84,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is not None and self.channel.is_open:
             self.channel.close()
-            logger.info(f'Close channel: {self.channel} for subscriber[{self.exchange_name}]')
 
     def add_listener(self, message_listener: MessageListener):
         if message_listener is None:
@@ -105,7 +105,12 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                         logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
-        channel.basic_ack(delivery_tag=method.delivery_tag)
+        cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
+        self.connection.add_callback_threadsafe(cb)
+
+    def acknowledgment(self, channel, delivery_tag):
+        if channel.is_open:
+            channel.basic_ack(delivery_tag)
 
     @abstractmethod
     def value_from_bytes(self, body):
