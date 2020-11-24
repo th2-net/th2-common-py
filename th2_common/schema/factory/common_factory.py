@@ -47,6 +47,11 @@ class CommonFactory(AbstractCommonFactory):
 
         if config_path is not None:
             CommonFactory.CONFIG_DEFAULT_PATH = config_path
+            rabbit_mq_config_filepath = config_path + CommonFactory.RABBIT_MQ_CONFIG_FILENAME
+            mq_router_config_filepath = config_path + CommonFactory.MQ_ROUTER_CONFIG_FILENAME
+            grpc_router_config_filepath = config_path + CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
+            cradle_config_filepath = config_path + CommonFactory.CRADLE_CONFIG_FILENAME
+            custom_config_filepath = config_path + CommonFactory.CUSTOM_CONFIG_FILENAME
 
         self.rabbit_mq_config_filepath = rabbit_mq_config_filepath
         self.mq_router_config_filepath = mq_router_config_filepath
