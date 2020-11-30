@@ -47,6 +47,7 @@ class AbstractRabbitSender(MessageSender, ABC):
     def send(self, message):
         cb = functools.partial(self.sending, self.channel, message)
         self.connection.add_callback_threadsafe(cb)
+        self.connection.process_data_events()
 
     def sending(self, channel, message):
         if channel is None:
