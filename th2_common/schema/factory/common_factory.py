@@ -90,6 +90,10 @@ class CommonFactory(AbstractCommonFactory):
                             help='path to json file with configuration for GrpcRouter')
         parser.add_argument('--cradleConfiguration',
                             help='path to json file with configuration for cradle')
+        parser.add_argument('--namespace',
+                            help='namespace in Kubernetes to find config maps related to the target')
+        parser.add_argument('--box_name',
+                            help='name of the target th2 box placed in the specified namespace in Kubernetes')
         parser.add_argument('--customConfiguration',
                             help='path to json file with custom configuration')
         result = parser.parse_args(args)
@@ -210,7 +214,7 @@ class CommonFactory(AbstractCommonFactory):
                                 break
                 break
 
-        dictionary = CommonFactory.get_dictionary(box_name, v1.list_config_map_for_all_namespaces())
+        dictionary = CommonFactory.__get_dictionary(box_name, v1.list_config_map_for_all_namespaces())
 
         try:
             mkdir(config_dir)
@@ -258,7 +262,7 @@ class CommonFactory(AbstractCommonFactory):
         )
 
     @staticmethod
-    def get_dictionary(box_name, config_maps):
+    def __get_dictionary(box_name, config_maps):
         for config_map in config_maps.to_dict()['items']:
             if config_map['metadata']['name'].startswith(box_name) & config_map['metadata']['name'].endswith(
                     '-dictionary'):
