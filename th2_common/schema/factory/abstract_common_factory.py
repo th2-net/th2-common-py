@@ -31,6 +31,8 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
+from th2_common.schema.metrics.prometheus_configuration import PrometheusConfiguration
+from th2_common.schema.metrics.prometheus_thread import PrometheusThread
 
 logger = logging.getLogger()
 
@@ -63,7 +65,15 @@ class AbstractCommonFactory(ABC):
                                                           host=self.rabbit_mq_configuration.host,
                                                           port=self.rabbit_mq_configuration.port,
                                                           credentials=credentials)
+
         self.connection = pika.BlockingConnection(connection_parameters)
+
+        self.prometheus_config = PrometheusConfiguration()
+        self.prometheus = PrometheusThread(self.prometheus_config.port, self.prometheus_config.host)
+
+    def start_prometheus(self):
+        if self.prometheus_config.enabled is True:
+            self.prometheus.start()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
@@ -137,6 +147,9 @@ class AbstractCommonFactory(ABC):
 
         if self.connection is not None and self.connection.is_open:
             self.connection.close()
+
+        if self.prometheus.stopped is False:
+            self.prometheus.stop()
 
     @staticmethod
     def read_configuration(filepath):

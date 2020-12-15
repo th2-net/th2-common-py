@@ -16,6 +16,8 @@
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from prometheus_client import Counter
+
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
@@ -47,6 +49,10 @@ class MultiplySubscribeMonitorImpl(SubscriberMonitor):
     def unsubscribe(self):
         for monitor in self.subscriber_monitors:
             monitor.unsubscribe()
+
+
+_SEND_COUNTER = Counter('send_counter', 'amount of send(self, message, *queue_attr) method invocations')
+_SEND_ALL_COUNTER = Counter('send_all_counter', 'amount of send_all() method invocations')
 
 
 class AbstractRabbitMessageRouter(MessageRouter, ABC):
@@ -113,6 +119,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self.unsubscribe_all()
 
     def send(self, message, *queue_attr):
+        _SEND_COUNTER.inc()
+
         if not queue_attr:
             self._send_by_aliases_and_messages_to_send(self._find_by_filter(self.configuration.queues, message))
             return
@@ -125,6 +133,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
     def send_all(self, message, *queue_attr):
+        _SEND_ALL_COUNTER.inc()
         attrs = self.add_send_attributes(queue_attr)
         filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)

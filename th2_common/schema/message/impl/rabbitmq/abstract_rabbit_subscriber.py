@@ -20,12 +20,16 @@ import threading
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from prometheus_client import Summary
+
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 logger = logging.getLogger()
+
+_HANDLER_SUMMARY = Summary('handler_summary', 'Summary for handling')
 
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
@@ -97,14 +101,20 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             if not self.filter(value):
                 channel.basic_ack(delivery_tag=method.delivery_tag)
                 return
-            with self.lock_listeners:
-                for listener in self.listeners:
-                    try:
-                        listener.handler(self.attributes, value)
-                    except Exception as e:
-                        logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
+            return
+
+        self.handle_with_listener(value, channel, method)
+
+    @_HANDLER_SUMMARY.time()
+    def handle_with_listener(self, value, channel, method):
+        with self.lock_listeners:
+            for listener in self.listeners:
+                try:
+                    listener.handler(self.attributes, value)
+                except Exception as e:
+                    logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
         self.connection.add_callback_threadsafe(cb)
 

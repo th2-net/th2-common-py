@@ -11,11 +11,27 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import json
 
-pika==1.1.0
-twine==3.2.0
-th2-grpc-common~=2.3.5
 
-kubernetes~=12.0.1
+class PrometheusConfiguration:
+    host = '0.0.0.0'
+    port = 9752
+    enabled = True
 
-prometheus_client==0.9.0
+    # CONFIG_DEFAULT_PATH = '/var/th2/config/'
+    # PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
+    GENERATED_CONFIG_PATH = 'generated_configs/prometheus.json'
+
+    def __init__(self, config_path=GENERATED_CONFIG_PATH):
+
+        with open(config_path, "r") as file:
+            config = json.load(file)
+            self.host = config['host']
+            self.port = config['port']
+            self.enabled = config['enabled']
+
+
+
+
+
