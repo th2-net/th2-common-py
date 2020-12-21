@@ -150,6 +150,9 @@ class CommonFactory(AbstractCommonFactory):
         rabbit_path = config_dir + '/' + CommonFactory.RABBIT_MQ_CONFIG_FILENAME
         dictionary_path = config_dir + '/' + 'dictionary.json'
         prometheus_path = config_dir + '/' + 'prometheus.json'
+        
+        prometheus_host = '0.0.0.0'
+        prometheus_port = 9752
 
         try:
             mkdir(config_dir)
@@ -165,7 +168,7 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_dictionary(box_name, v1.list_config_map_for_all_namespaces(), dictionary_path)
 
         with open(prometheus_path, 'w') as prometheus_file:
-            prometheus_file.write('{"host":"0.0.0.0","port":9752,"enabled":true}')
+            prometheus_file.write('{' + f'"host":"{prometheus_host}","port":{prometheus_port},"enabled":true' + '}')
 
         return CommonFactory(
             rabbit_mq_config_filepath=rabbit_path,
