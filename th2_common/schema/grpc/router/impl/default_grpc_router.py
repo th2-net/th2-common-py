@@ -36,6 +36,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
+        channels = {}
         stubs = {}
 
         def __init__(self, service, strategy_obj, stub_class):
@@ -44,16 +45,17 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             self.stubClass = stub_class
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
-            if endpoint_name not in self.stubs:
-                self.stubs[endpoint_name] = self.stubClass(
-                    grpc.insecure_channel(f"{config['host']}:{config['port']}"))
+            if endpoint_name not in self.channels:
+                self.channels[endpoint_name] = grpc.insecure_channel(f"{config['host']}:{config['port']}")
+
+            self.stubs.setdefault(endpoint_name, {}).update({self.stubClass.__name__: self.channels[endpoint_name]})
 
         def create_request(self, request_name, request, timeout):
             endpoint = self.strategy_obj.get_endpoint(request)
             endpoint_config = self.service['endpoints'][endpoint]
             if endpoint_config is not None:
                 self.__create_stub_if_not_exists(endpoint, endpoint_config)
-            stub = self.stubs[endpoint]
+            stub = self.stubs[endpoint][self.stubClass.__name__]
             if stub is not None:
                 return getattr(stub, request_name)(request, timeout=timeout)
 
