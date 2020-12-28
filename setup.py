@@ -39,7 +39,8 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'pika==1.1.0',
-        'th2-grpc-common~=2.3.5'
+        'th2-grpc-common~=2.3.5',
+        'kubernetes~=12.0.1'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json']}
