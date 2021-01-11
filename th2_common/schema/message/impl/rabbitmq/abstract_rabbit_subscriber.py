@@ -104,7 +104,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                     except Exception as e:
                         logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except Exception as e:
-            logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
+            logger.error(f'Can not parse value from delivery for: {method.consumer_tag}, {e}')
         cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
         self.connection.add_callback_threadsafe(cb)
 
