@@ -17,7 +17,7 @@ import os
 
 class PrometheusConfiguration:
 
-    def __init__(self, host: str, port: int, enabled: bool) -> None:
+    def __init__(self, host="0.0.0.0", port=9752, enabled=True) -> None:
         self.host = host
         self.port = port
         self.enabled = enabled

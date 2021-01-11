@@ -163,6 +163,9 @@ class AbstractCommonFactory(ABC):
     def create_cradle_configuration(self) -> CradleConfiguration:
         return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration()))
 
+    def create_prometheus_configuration(self) -> PrometheusConfiguration:
+        return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+
     def create_custom_configuration(self) -> dict:
         return self.read_configuration(self._path_to_custom_configuration())
 
@@ -195,9 +198,6 @@ class AbstractCommonFactory(ABC):
         finally:
             lock.release()
         return self.grpc_router_configuration
-
-    def create_prometheus_configuration(self) -> PrometheusConfiguration:
-        return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
 
     @abstractmethod
     def _path_to_rabbit_mq_configuration(self) -> str:
