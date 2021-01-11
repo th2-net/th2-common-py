@@ -16,7 +16,6 @@ from prometheus_client import Gauge
 
 
 class CommonMetrics:
-    global liveness, readiness
 
     LIVENESS = Gauge("th2_liveness", "Service liveness")
     READINESS = Gauge("th2_readiness", "Service readiness")

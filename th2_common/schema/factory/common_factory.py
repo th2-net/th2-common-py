@@ -243,7 +243,7 @@ class CommonFactory(AbstractCommonFactory):
             dictionary_file.write(dumps(dictionary))
 
         with open(prometheus_path, 'w') as prometheus_file:
-            prometheus_file.write(dumps(config.__dict__))
+            prometheus_file.write(dumps('{"host":"0.0.0.0","port":9752,"enabled":true}'))
 
         return CommonFactory(
             rabbit_mq_config_filepath=rabbit_path,

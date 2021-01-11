@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import json
+import os
 
 
 class PrometheusConfiguration:
@@ -20,13 +21,14 @@ class PrometheusConfiguration:
     enabled = True
 
     # CONFIG_DEFAULT_PATH = '/var/th2/config/'
-    # PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
-    GENERATED_CONFIG_PATH = 'generated_configs/prometheus.json'
+    PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
+    GENERATED_CONFIG_PATH = os.path.join('generated_configs', PROMETHEUS_CONFIG_FILENAME)
 
     def __init__(self, config_path=GENERATED_CONFIG_PATH):
 
         with open(config_path, "r") as file:
-            config = json.load(file)
+            data = json.load(file)
+            config = json.loads(data)
             self.host = config['host']
             self.port = config['port']
             self.enabled = config['enabled']
