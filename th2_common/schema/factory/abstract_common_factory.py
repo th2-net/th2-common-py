@@ -196,6 +196,9 @@ class AbstractCommonFactory(ABC):
             lock.release()
         return self.grpc_router_configuration
 
+    def create_prometheus_configuration(self) -> PrometheusConfiguration:
+        return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+
     @abstractmethod
     def _path_to_rabbit_mq_configuration(self) -> str:
         pass
@@ -210,6 +213,10 @@ class AbstractCommonFactory(ABC):
 
     @abstractmethod
     def _path_to_cradle_configuration(self) -> str:
+        pass
+
+    @abstractmethod
+    def _path_to_prometheus_configuration(self) -> str:
         pass
 
     @abstractmethod

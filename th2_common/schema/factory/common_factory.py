@@ -23,7 +23,7 @@ from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router i
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from kubernetes import client, config
 from json import loads, dumps
-from os import mkdir, getcwd
+from os import mkdir, getcwd, path
 import logging
 
 logger = logging.getLogger()
@@ -196,7 +196,7 @@ class CommonFactory(AbstractCommonFactory):
                                         cradle['port'] = port['node_port']
                         break
         except KeyError:
-            logger.error(f'cassandra config map\'s data not valid. Some keys are absent.')
+            logger.error('cassandra config map\'s data not valid. Some keys are absent.')
 
         try:
             if 'items' in config_maps_dict:
@@ -214,15 +214,15 @@ class CommonFactory(AbstractCommonFactory):
                                         rabbit['port'] = port['node_port']
                         break
         except KeyError:
-            logger.error(f'rabbit config map\'s data not valid. Some keys are absent.')
+            logger.error('rabbit config map\'s data not valid. Some keys are absent.')
 
         dictionary = CommonFactory._get_dictionary(box_name, v1.list_config_map_for_all_namespaces())
 
         try:
             mkdir(config_dir)
-            logger.info('Directory %s is created at %s' % (config_dir, getcwd()))
+            logger.info(f'Directory {config_dir} is created at {getcwd()}')
         except OSError:
-            logger.info('All configuration in the %s folder are overridden' % (getcwd() + '/' + config_dir))
+            logger.info(f'All configuration in the {path.join(getcwd(), config_dir)} folder are overridden')
 
         with open(grpc_path, 'w') as grpc_file:
             grpc_file.write(dumps(grpc))
@@ -263,7 +263,7 @@ class CommonFactory(AbstractCommonFactory):
                             config_map['metadata']['name'].endswith('-dictionary'):
                         return config_map
             except KeyError:
-                logger.error(f'dictionary config map\'s metadata not valid. Some keys are absent.')
+                logger.error('dictionary config map\'s metadata not valid. Some keys are absent.')
 
     def _path_to_rabbit_mq_configuration(self) -> str:
         return self.rabbit_mq_config_filepath

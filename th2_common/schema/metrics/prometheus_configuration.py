@@ -16,22 +16,11 @@ import os
 
 
 class PrometheusConfiguration:
-    host = '0.0.0.0'
-    port = 9752
-    enabled = True
 
-    # CONFIG_DEFAULT_PATH = '/var/th2/config/'
-    PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
-    GENERATED_CONFIG_PATH = os.path.join('generated_configs', PROMETHEUS_CONFIG_FILENAME)
-
-    def __init__(self, config_path=GENERATED_CONFIG_PATH):
-
-        with open(config_path, "r") as file:
-            data = json.load(file)
-            config = json.loads(data)
-            self.host = config['host']
-            self.port = config['port']
-            self.enabled = config['enabled']
+    def __init__(self, host: str, port: int, enabled: bool) -> None:
+        self.host = host
+        self.port = port
+        self.enabled = enabled
 
 
 
