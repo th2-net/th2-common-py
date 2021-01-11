@@ -36,27 +36,27 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
-        channels = {}
-        stubs = {}
-
-        def __init__(self, service, strategy_obj, stub_class):
+        def __init__(self, service, strategy_obj, stub_class, channels):
             self.service = service
             self.strategy_obj = strategy_obj
             self.stubClass = stub_class
+            self.channels = channels
+            self.stubs = {}
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
-            if endpoint_name not in self.channels:
-                self.channels[endpoint_name] = grpc.insecure_channel(f"{config['host']}:{config['port']}")
+            socket = f"{config['host']}:{config['port']}"
+            if socket not in self.channels:
+                self.channels[socket] = grpc.insecure_channel(socket)
 
-            self.stubs.setdefault(endpoint_name, {})\
-                .update({self.stubClass.__name__: self.stubClass(self.channels[endpoint_name])})
+            if endpoint_name not in self.stubs:
+                self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
 
         def create_request(self, request_name, request, timeout):
             endpoint = self.strategy_obj.get_endpoint(request)
             endpoint_config = self.service['endpoints'][endpoint]
             if endpoint_config is not None:
                 self.__create_stub_if_not_exists(endpoint, endpoint_config)
-            stub = self.stubs[endpoint][self.stubClass.__name__]
+            stub = self.stubs[endpoint]
             if stub is not None:
                 return getattr(stub, request_name)(request, timeout=timeout)
 
@@ -71,7 +71,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         if strategy_class is None:
             return None
         strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class)
+        return self.Connection(find_service, strategy_obj, stub_class, self.channels)
 
     def __load_strategies(self):
         package_dir = Path(route.__file__).resolve().parent

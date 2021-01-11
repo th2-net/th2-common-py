@@ -27,6 +27,7 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
     def __init__(self, configuration: GrpcRouterConfiguration) -> None:
         self.configuration = configuration
         self.servers = []
+        self.channels = {}
 
     def start_server(self, *services) -> grpc.Server:
         server = grpc.server(ThreadPoolExecutor(max_workers=self.configuration.serverConfiguration.workers))
@@ -44,3 +45,6 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
     def close(self, grace=None):
         for server in self.servers:
             server.stop(grace)
+
+        for channel in self.channels.values():
+            channel.close()
