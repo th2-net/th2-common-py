@@ -15,6 +15,8 @@ import functools
 import logging
 from abc import ABC, abstractmethod
 
+from prometheus_client import Counter
+
 from th2_common.schema.message.message_sender import MessageSender
 
 logger = logging.getLogger()
@@ -44,7 +46,28 @@ class AbstractRabbitSender(MessageSender, ABC):
             logger.info(f"Close channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
             self.channel.close()
 
+    @abstractmethod
+    def get_delivery_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def get_content_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def extract_count_from(self, message):
+        pass
+
     def send(self, message):
+
+        if message is None:
+            raise ValueError('Value for send can not be null')
+
+        counter = self.get_delivery_counter()
+        counter.inc()
+        content_counter = self.get_content_counter()
+        content_counter.inc(self.extract_count_from(message))
+
         cb = functools.partial(self.sending, self.channel, message)
         self.connection.add_callback_threadsafe(cb)
         self.connection.process_data_events()
