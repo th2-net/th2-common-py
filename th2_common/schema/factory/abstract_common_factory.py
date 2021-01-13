@@ -67,8 +67,12 @@ class AbstractCommonFactory(ABC):
         self.connection = pika.BlockingConnection(connection_parameters)
 
         self._notifier = threading.Event()
-        while not self._notifier.wait(30):
-            self.connection.process_data_events()
+
+        def notify(notifier, timeout):
+            while not notifier.wait(timeout):
+                self.connection.process_data_events()
+
+        threading.Thread(target=notify, args=(self._notifier, 30)).start()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
