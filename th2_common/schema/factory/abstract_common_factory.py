@@ -16,6 +16,7 @@
 import json
 import logging
 import os
+import threading
 from abc import ABC, abstractmethod
 from threading import Lock
 
@@ -64,6 +65,10 @@ class AbstractCommonFactory(ABC):
                                                           port=self.rabbit_mq_configuration.port,
                                                           credentials=credentials)
         self.connection = pika.BlockingConnection(connection_parameters)
+
+        self._notifier = threading.Event()
+        while not self._notifier.wait(30):
+            self.connection.process_data_events()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
@@ -134,6 +139,8 @@ class AbstractCommonFactory(ABC):
                 self._grpc_router.close()
             except Exception:
                 logger.exception('Error during closing gRPC Router')
+
+        self._notifier.set()
 
         if self.connection is not None and self.connection.is_open:
             self.connection.close()
