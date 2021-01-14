@@ -27,6 +27,8 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
+from time import time
+
 logger = logging.getLogger()
 
 
@@ -49,6 +51,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
         self.attributes = tuple(set(queue_configuration.attributes))
+
+        self.process_timer = self.get_processing_timer()
 
     def start(self):
         if self.subscribe_targets is None or self.exchange_name is None:
@@ -109,8 +113,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
     def extract_count_from(self, message):
         pass
 
-    process_timer = get_processing_timer()
-
     def handle(self, channel, method, properties, body):
         try:
             value = self.value_from_bytes(body)
@@ -130,9 +132,12 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
             return
 
+        start_time = time()
         self.handle_with_listener(value, channel, method)
+        end_time = time()
 
-    @process_timer.time()
+        self.process_timer = start_time - end_time
+
     def handle_with_listener(self, value, channel, method):
         with self.lock_listeners:
             for listener in self.listeners:
