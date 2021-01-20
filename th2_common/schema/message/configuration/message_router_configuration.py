@@ -17,7 +17,7 @@ from th2_common.schema.message.configuration.queue_configuration import QueueCon
 
 
 class MessageRouterConfiguration:
-    def __init__(self, queues) -> None:
+    def __init__(self, queues: dict) -> None:
         self.queues = {queue_alias: QueueConfiguration(**queues[queue_alias]) for queue_alias in queues.keys()}
 
     def get_queue_by_alias(self, queue_alias):
