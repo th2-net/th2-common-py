@@ -11,8 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
+from prometheus_client import Counter, Gauge
 from th2_grpc_common.common_pb2 import MessageBatch
 
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
@@ -22,6 +21,24 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 
 
 class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
+    INCOMING_PARSED_MSG_BATCH_QUANTITY = Counter('th2_mq_incoming_parsed_msg_batch_quantity',
+                                                 'Quantity of incoming parsed message batches')
+    INCOMING_PARSED_MSG_QUANTITY = Counter('th2_mq_incoming_parsed_msg_quantity',
+                                           'Quantity of incoming parsed messages')
+    PARSED_MSG_PROCESSING_TIME = Gauge('th2_mq_parsed_msg_processing_time',
+                                       'Time of processing parsed messages')
+
+    def get_delivery_counter(self) -> Counter:
+        return self.INCOMING_PARSED_MSG_BATCH_QUANTITY
+
+    def get_content_counter(self) -> Counter:
+        return self.INCOMING_PARSED_MSG_QUANTITY
+
+    def get_processing_timer(self) -> Gauge:
+        return self.PARSED_MSG_PROCESSING_TIME
+
+    def extract_count_from(self, message: MessageBatch):
+        return len(self.get_messages(message))
 
     def get_messages(self, batch: MessageBatch) -> list:
         return batch.messages

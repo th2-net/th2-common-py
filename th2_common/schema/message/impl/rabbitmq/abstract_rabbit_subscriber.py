@@ -20,10 +20,14 @@ import threading
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from prometheus_client import Gauge, Counter
+
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
+
+from time import time
 
 logger = logging.getLogger()
 
@@ -91,20 +95,56 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         with self.lock_listeners:
             self.listeners.add(message_listener)
 
+    @abstractmethod
+    def get_delivery_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def get_content_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def get_processing_timer(self) -> Gauge:
+        pass
+
+    @abstractmethod
+    def extract_count_from(self, message):
+        pass
+
     def handle(self, channel, method, properties, body):
+        process_timer = self.get_processing_timer()
+        start_time = time()
+
         try:
             value = self.value_from_bytes(body)
+
+            if value is None:
+                raise ValueError('Received value is null')
+
+            counter = self.get_delivery_counter()
+            counter.inc()
+            content_counter = self.get_content_counter()
+            content_counter.inc(self.extract_count_from(value))
+
             if not self.filter(value):
                 channel.basic_ack(delivery_tag=method.delivery_tag)
                 return
-            with self.lock_listeners:
-                for listener in self.listeners:
-                    try:
-                        listener.handler(self.attributes, value)
-                    except Exception as e:
-                        logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
+            return
+
+        self.handle_with_listener(value, channel, method)
+
+        end_time = time()
+        process_timer.set(end_time - start_time)
+
+    def handle_with_listener(self, value, channel, method):
+        with self.lock_listeners:
+            for listener in self.listeners:
+                try:
+                    listener.handler(self.attributes, value)
+                except Exception as e:
+                    logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
         self.connection.add_callback_threadsafe(cb)
 

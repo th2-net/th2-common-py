@@ -11,11 +11,18 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import json
+import os
 
-pika==1.1.0
-twine==3.2.0
-th2-grpc-common~=2.3.5
 
-kubernetes~=12.0.1
+class PrometheusConfiguration:
 
-prometheus_client==0.9.0
+    def __init__(self, host="0.0.0.0", port=9752, enabled=True) -> None:
+        self.host = host
+        self.port = port
+        self.enabled = enabled
+
+
+
+
+

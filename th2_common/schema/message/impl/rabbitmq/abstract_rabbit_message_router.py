@@ -16,6 +16,8 @@
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from prometheus_client import Counter
+
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
@@ -121,7 +123,9 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
         if len(filtered_by_attr_and_filter) != 1:
-            raise Exception('Wrong amount of queues for send_by_attr. Must be equal to 1')
+            raise Exception(f'Wrong amount of queues for send. Must be equal to 1. '
+                            f'Found {len(filtered_by_attr_and_filter)} queues, but must be only 1. '
+                            f'Search was done by {attrs} attributes')
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
     def send_all(self, message, *queue_attr):
@@ -129,7 +133,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
         if len(filtered_by_attr_and_filter) == 0:
-            raise Exception('Wrong amount of queues for send_all. Must not be equal to 0')
+            raise Exception(f'Wrong amount of queues for send_all. Must not be equal to 0. '
+                            f'Search was done by {attrs} attributes')
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
     def set_filter_strategy(self, filter_strategy: FilterStrategy):

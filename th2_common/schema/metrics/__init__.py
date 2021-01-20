@@ -11,11 +11,3 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-pika==1.1.0
-twine==3.2.0
-th2-grpc-common~=2.3.5
-
-kubernetes~=12.0.1
-
-prometheus_client==0.9.0

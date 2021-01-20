@@ -12,10 +12,29 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-pika==1.1.0
-twine==3.2.0
-th2-grpc-common~=2.3.5
+from prometheus_client import Gauge
 
-kubernetes~=12.0.1
 
-prometheus_client==0.9.0
+class CommonMetrics:
+
+    LIVENESS = Gauge("th2_liveness", "Service liveness")
+    READINESS = Gauge("th2_readiness", "Service readiness")
+
+    RABBITMQ_READINESS = True
+    GRPC_READINESS = True
+    ALL_READINESS = [RABBITMQ_READINESS, GRPC_READINESS]
+
+    def check_common_readiness(self):
+        for readiness_parameter in self.ALL_READINESS:
+            if not readiness_parameter:
+                return False
+        return True
+
+
+
+
+
+
+
+
+
