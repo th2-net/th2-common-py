@@ -24,6 +24,8 @@ from th2_common.schema.message.configuration.queue_configuration import QueueCon
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
+from google.protobuf.message import DecodeError
+
 
 logger = logging.getLogger()
 
@@ -103,6 +105,11 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                         listener.handler(self.attributes, value)
                     except Exception as e:
                         logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
+        except DecodeError as e:
+            logger.exception(f"Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n"
+                             f"  body: {body}\n"
+                             f"  self: {self}\n"
+                             )
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}, {e}')
         cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
@@ -111,6 +118,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
     def acknowledgment(self, channel, delivery_tag):
         if channel.is_open:
             channel.basic_ack(delivery_tag)
+        else:
+            logger.error("Try acknowledgment but channel is closed")
 
     @abstractmethod
     def value_from_bytes(self, body):
