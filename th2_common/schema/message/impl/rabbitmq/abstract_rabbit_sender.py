@@ -50,12 +50,15 @@ class AbstractRabbitSender(MessageSender, ABC):
         self.connection.process_data_events()
 
     def sending(self, channel, message):
-        if channel is None:
-            raise Exception('Can not send. Sender did not started')
-        channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
-                              body=self.value_to_bytes(message))
-        logger.info(f"Sent message:\n{message}"
-                    f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+        try:
+            channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
+                                  body=self.value_to_bytes(message))
+            logger.info(f"Sent message:\n{message}"
+                        f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+        except Exception:
+            if channel is None:
+                raise Exception('Can not send. Sender did not started')
+            raise
 
     @abstractmethod
     def value_to_bytes(self, value):
