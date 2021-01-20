@@ -11,14 +11,29 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
+from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import RawMessageBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
 
 
 class RabbitRawBatchSender(AbstractRabbitSender):
+    OUTGOING_RAW_MSG_BATCH_QUANTITY = Counter('th2_mq_outgoing_raw_msg_batch_quantity',
+                                              'Quantity of outgoing raw message batches')
+    OUTGOING_RAW_MSG_QUANTITY = Counter('th2_mq_outgoing_raw_msg_quantity',
+                                        'Quantity of outgoing raw messages')
+
+    def get_delivery_counter(self) -> Counter:
+        return self.OUTGOING_RAW_MSG_BATCH_QUANTITY
+
+    def get_content_counter(self) -> Counter:
+        return self.OUTGOING_RAW_MSG_QUANTITY
+
+    def extract_count_from(self, message: RawMessageBatch):
+        return len(self.get_messages(message))
+
+    def get_messages(self, batch: RawMessageBatch) -> list:
+        return batch.messages
 
     def value_to_bytes(self, value: RawMessageBatch):
         return value.SerializeToString()

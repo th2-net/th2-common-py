@@ -150,7 +150,7 @@ class CommonFactory(AbstractCommonFactory):
         rabbit_path = config_dir + '/' + CommonFactory.RABBIT_MQ_CONFIG_FILENAME
         dictionary_path = config_dir + '/' + 'dictionary.json'
         prometheus_path = config_dir + '/' + 'prometheus.json'
-        
+
         prometheus_host = '0.0.0.0'
         prometheus_port = 9752
 

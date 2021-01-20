@@ -32,6 +32,8 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
+from th2_common.schema.metrics.prometheus_configuration import PrometheusConfiguration
+from th2_common.schema.metrics.prometheus_thread import PrometheusThread
 
 logger = logging.getLogger()
 
@@ -64,8 +66,12 @@ class AbstractCommonFactory(ABC):
                                                           host=self.rabbit_mq_configuration.host,
                                                           port=self.rabbit_mq_configuration.port,
                                                           credentials=credentials)
+
         self.connection = pika.BlockingConnection(connection_parameters)
 
+        self.prometheus_config = PrometheusConfiguration()
+        self.prometheus = PrometheusThread(self.prometheus_config.port, self.prometheus_config.host)
+        
         self._notifier = threading.Event()
 
         def notify(notifier, timeout):
@@ -73,6 +79,10 @@ class AbstractCommonFactory(ABC):
                 self.connection.process_data_events()
 
         threading.Thread(target=notify, args=(self._notifier, 30)).start()
+
+    def start_prometheus(self):
+        if self.prometheus_config.enabled is True:
+            self.prometheus.start()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
@@ -151,6 +161,9 @@ class AbstractCommonFactory(ABC):
         if self.connection is not None and self.connection.is_open:
             self.connection.close()
 
+        if self.prometheus.stopped is False:
+            self.prometheus.stop()
+
     @staticmethod
     def read_configuration(filepath):
         with open(filepath, 'r') as file:
@@ -162,6 +175,9 @@ class AbstractCommonFactory(ABC):
 
     def create_cradle_configuration(self) -> CradleConfiguration:
         return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration()))
+
+    def create_prometheus_configuration(self) -> PrometheusConfiguration:
+        return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
 
     def create_custom_configuration(self) -> dict:
         return self.read_configuration(self._path_to_custom_configuration())
@@ -209,6 +225,10 @@ class AbstractCommonFactory(ABC):
 
     @abstractmethod
     def _path_to_cradle_configuration(self) -> str:
+        pass
+
+    @abstractmethod
+    def _path_to_prometheus_configuration(self) -> str:
         pass
 
     @abstractmethod
