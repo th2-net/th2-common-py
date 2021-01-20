@@ -51,10 +51,6 @@ class MultiplySubscribeMonitorImpl(SubscriberMonitor):
             monitor.unsubscribe()
 
 
-_SEND_COUNTER = Counter('send_counter', 'amount of send(self, message, *queue_attr) method invocations')
-_SEND_ALL_COUNTER = Counter('send_all_counter', 'amount of send_all() method invocations')
-
-
 class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def __init__(self, connection, rabbit_mq_configuration, configuration) -> None:
@@ -119,8 +115,6 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self.unsubscribe_all()
 
     def send(self, message, *queue_attr):
-        _SEND_COUNTER.inc()
-
         if not queue_attr:
             self._send_by_aliases_and_messages_to_send(self._find_by_filter(self.configuration.queues, message))
             return
@@ -129,16 +123,18 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
         if len(filtered_by_attr_and_filter) != 1:
-            raise Exception('Wrong amount of queues for send_by_attr. Must be equal to 1')
+            raise Exception(f'Wrong amount of queues for send. Must be equal to 1. '
+                            f'Found {len(filtered_by_attr_and_filter)} queues, but must be only 1. '
+                            f'Search was done by {attrs} attributes')
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
     def send_all(self, message, *queue_attr):
-        _SEND_ALL_COUNTER.inc()
         attrs = self.add_send_attributes(queue_attr)
         filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
         if len(filtered_by_attr_and_filter) == 0:
-            raise Exception('Wrong amount of queues for send_all. Must not be equal to 0')
+            raise Exception(f'Wrong amount of queues for send_all. Must not be equal to 0. '
+                            f'Search was done by {attrs} attributes')
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
     def set_filter_strategy(self, filter_strategy: FilterStrategy):

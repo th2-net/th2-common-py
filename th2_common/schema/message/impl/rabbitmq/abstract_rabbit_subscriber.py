@@ -52,8 +52,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.exchange_name = queue_configuration.exchange
         self.attributes = tuple(set(queue_configuration.attributes))
 
-        self.process_timer = self.get_processing_timer()
-
     def start(self):
         if self.subscribe_targets is None or self.exchange_name is None:
             raise Exception('Subscriber did not init')
@@ -114,6 +112,9 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         pass
 
     def handle(self, channel, method, properties, body):
+        process_timer = self.get_processing_timer()
+        start_time = time()
+
         try:
             value = self.value_from_bytes(body)
 
@@ -132,11 +133,10 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
             return
 
-        start_time = time()
         self.handle_with_listener(value, channel, method)
-        end_time = time()
 
-        self.process_timer = start_time - end_time
+        end_time = time()
+        process_timer.set(end_time - start_time)
 
     def handle_with_listener(self, value, channel, method):
         with self.lock_listeners:
