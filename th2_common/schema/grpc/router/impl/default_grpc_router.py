@@ -19,6 +19,7 @@ from pkgutil import iter_modules
 
 import grpc
 
+from th2_common.schema.exception.grpc_router_error import GrpcRouterError
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
 import th2_common.schema.strategy.route.impl as route
@@ -59,10 +60,14 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     def get_connection(self, service_class, stub_class):
         find_service = None
-        for service in self.configuration.services:
-            if self.configuration.services[service]['service-class'].split('.')[-1] == service_class.__name__:
-                find_service = self.configuration.services[service]
-                break
+        if self.configuration.services:
+            for service in self.configuration.services:
+                if self.configuration.services[service]['service-class'].split('.')[-1] == service_class.__name__:
+                    find_service = self.configuration.services[service]
+                    break
+        else:
+            raise GrpcRouterError("Services list are empty in 'grpc.json'. Check your links")
+
         strategy_name = find_service['strategy']['name']
         strategy_class = self.strategies[strategy_name]
         if strategy_class is None:
