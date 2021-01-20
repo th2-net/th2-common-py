@@ -36,17 +36,20 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
-        stubs = {}
-
-        def __init__(self, service, strategy_obj, stub_class):
+        def __init__(self, service, strategy_obj, stub_class, channels):
             self.service = service
             self.strategy_obj = strategy_obj
             self.stubClass = stub_class
+            self.channels = channels
+            self.stubs = {}
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
+            socket = f"{config['host']}:{config['port']}"
+            if socket not in self.channels:
+                self.channels[socket] = grpc.insecure_channel(socket)
+
             if endpoint_name not in self.stubs:
-                self.stubs[endpoint_name] = self.stubClass(
-                    grpc.insecure_channel(f"{config['host']}:{config['port']}"))
+                self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
 
         def create_request(self, request_name, request, timeout):
             endpoint = self.strategy_obj.get_endpoint(request)
@@ -68,7 +71,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         if strategy_class is None:
             return None
         strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class)
+        return self.Connection(find_service, strategy_obj, stub_class, self.channels)
 
     def __load_strategies(self):
         package_dir = Path(route.__file__).resolve().parent

@@ -16,6 +16,7 @@
 import json
 import logging
 import os
+import threading
 from abc import ABC, abstractmethod
 from threading import Lock
 
@@ -70,6 +71,14 @@ class AbstractCommonFactory(ABC):
 
         self.prometheus_config = PrometheusConfiguration()
         self.prometheus = PrometheusThread(self.prometheus_config.port, self.prometheus_config.host)
+        
+        self._notifier = threading.Event()
+
+        def notify(notifier, timeout):
+            while not notifier.wait(timeout):
+                self.connection.process_data_events()
+
+        threading.Thread(target=notify, args=(self._notifier, 30)).start()
 
     def start_prometheus(self):
         if self.prometheus_config.enabled is True:
@@ -144,6 +153,8 @@ class AbstractCommonFactory(ABC):
                 self._grpc_router.close()
             except Exception:
                 logger.exception('Error during closing gRPC Router')
+
+        self._notifier.set()
 
         if self.connection is not None and self.connection.is_open:
             self.connection.close()
