@@ -106,9 +106,9 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                     except Exception as e:
                         logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
         except DecodeError as e:
-            logger.exception(f"Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n"
-                             f"  body: {body}\n"
-                             f"  self: {self}\n"
+            logger.exception(f'Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n'
+                             f'  body: {body}\n'
+                             f'  self: {self}\n'
                              )
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}, {e}')
@@ -119,7 +119,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         if channel.is_open:
             channel.basic_ack(delivery_tag)
         else:
-            logger.error("Try acknowledgment but channel is closed")
+            logger.error('Message acknowledgment failed due to the channel being closed')
 
     @abstractmethod
     def value_from_bytes(self, body):

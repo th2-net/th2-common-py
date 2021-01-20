@@ -99,7 +99,7 @@ class AbstractCommonFactory(ABC):
         return self._message_raw_batch_router
 
     @property
-    def event_batch_router(self) -> EventBatchRouter:
+    def event_batch_router(self) -> MessageRouter:
         """
         Created MessageRouter which work with EventBatch
         """
@@ -115,7 +115,6 @@ class AbstractCommonFactory(ABC):
         if self._grpc_router is None:
             if self.grpc_router_configuration is None:
                 self.grpc_router_configuration = self._create_grpc_router_configuration()
-                # print(self.grpc_router_configuration)
             self._grpc_router = self.grpc_router_class(self.grpc_router_configuration)
 
         return self._grpc_router
