@@ -27,7 +27,7 @@ class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
         result = dict()
         for message in self._get_messages(batch):
             for queue_alias in self._filter(queues, message):
-                if not result.__contains__(queue_alias):
+                if queue_alias not in result:
                     result[queue_alias] = self._create_batch()
                     self._add_message(result[queue_alias], message)
         return result

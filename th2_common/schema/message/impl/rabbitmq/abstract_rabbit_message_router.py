@@ -77,8 +77,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         return self.required_send_attributes.union(queue_attr)
 
     def _subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
-        queue = self._get_message_queue(self.connection, queue_alias)
-        subscriber = queue.get_subscriber()
+        queue: MessageQueue = self._get_message_queue(self.connection, queue_alias)
+        subscriber: MessageSubscriber = queue.get_subscriber()
         subscriber.add_listener(callback)
         try:
             subscriber.start()
@@ -150,8 +150,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         pass
 
     def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
-        for queue_alias in aliases_and_messages_to_send.keys():
-            message = aliases_and_messages_to_send[queue_alias]
+        for queue_alias, message in aliases_and_messages_to_send.items():
             try:
                 sender = self._get_message_queue(self.connection, queue_alias).get_sender()
                 sender.start()
@@ -159,9 +158,9 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             except Exception as e:
                 raise RouterError('Can not start sender', e)
 
-    def _get_message_queue(self, connection, queue_alias):
+    def _get_message_queue(self, connection, queue_alias) -> MessageQueue:
         with self.queue_connections_lock:
-            if not self.queue_connections.__contains__(queue_alias):
+            if queue_alias not in self.queue_connections:
                 self.queue_connections[queue_alias] = self._create_queue(connection, self.rabbit_mq_configuration,
                                                                          self.configuration.get_queue_by_alias(
                                                                              queue_alias))

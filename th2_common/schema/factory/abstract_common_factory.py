@@ -48,7 +48,7 @@ class AbstractCommonFactory(ABC):
 
         self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
         self.message_router_configuration = self._create_message_router_configuration()
-        self.grpc_router_configuration = self._create_grpc_router_configuration()
+        self.grpc_router_configuration = None
 
         self.message_parsed_batch_router_class = message_parsed_batch_router_class
         self.message_raw_batch_router_class = message_raw_batch_router_class
@@ -123,6 +123,8 @@ class AbstractCommonFactory(ABC):
     @property
     def grpc_router(self) -> GrpcRouter:
         if self._grpc_router is None:
+            if self.grpc_router_configuration is None:
+                self.grpc_router_configuration = self._create_grpc_router_configuration()
             self._grpc_router = self.grpc_router_class(self.grpc_router_configuration)
 
         return self._grpc_router
@@ -203,9 +205,8 @@ class AbstractCommonFactory(ABC):
         lock = Lock()
         try:
             lock.acquire()
-            if not hasattr(self, 'grpc_router_configuration'):
-                config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
-                self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
+            config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
+            self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
         finally:
             lock.release()
         return self.grpc_router_configuration
