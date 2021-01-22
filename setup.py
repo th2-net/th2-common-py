@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ setup(
     install_requires=[
         'pika==1.1.0',
         'th2-grpc-common~=2.3.5',
-        'kubernetes~=12.0.1'
+        'kubernetes~=12.0.1',
+        'prometheus_client~=0.9.0'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json']}
