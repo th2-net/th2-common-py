@@ -67,18 +67,18 @@ class AbstractCommonFactory(ABC):
                                                           port=self.rabbit_mq_configuration.port,
                                                           credentials=credentials)
 
-        self.connection = pika.BlockingConnection(connection_parameters)
+        self.connection = pika.SelectConnection(connection_parameters)
+        threading.Thread(target=self.__start_connection).start()
 
         self.prometheus_config = PrometheusConfiguration()
         self.prometheus = PrometheusThread(self.prometheus_config.port, self.prometheus_config.host)
-        
-        self._notifier = threading.Event()
 
-        def notify(notifier, timeout):
-            while not notifier.wait(timeout):
-                self.connection.process_data_events()
-
-        threading.Thread(target=notify, args=(self._notifier, 30)).start()
+    def __start_connection(self):
+        try:
+            logger.info("Start loop SelectConnection")
+            self.connection.ioloop.start()
+        except Exception:
+            logger.exception("Failed starting loop SelectConnection")
 
     def start_prometheus(self):
         if self.prometheus_config.enabled is True:
@@ -155,8 +155,6 @@ class AbstractCommonFactory(ABC):
                 self._grpc_router.close()
             except Exception:
                 logger.exception('Error during closing gRPC Router')
-
-        self._notifier.set()
 
         if self.connection is not None and self.connection.is_open:
             self.connection.close()

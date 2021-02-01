@@ -11,25 +11,20 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
 import datetime
-import functools
 import logging
 import threading
+import time
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from google.protobuf.message import DecodeError
 from prometheus_client import Gauge, Counter
 
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
-from google.protobuf.message import DecodeError
-
-
-from time import time
 
 logger = logging.getLogger()
 
@@ -46,6 +41,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.connection = connection
         self.channel = None
+        self.__lock_closed_channel = threading.Lock()
+        self.__lock_closed_channel.acquire()
 
         self.subscribe_targets = subscribe_targets
         self.subscriber_name = configuration.subscriber_name
@@ -63,21 +60,28 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
         if self.channel is None:
-            self.channel = self.connection.channel()
-            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
+            for x in range(5):
+                try:
+                    self.channel = self.connection.channel(on_open_callback=self.__on_channel_open)
+                    break
+                except Exception:
+                    time.sleep(5)
 
-            for subscribe_target in self.subscribe_targets:
-                queue = subscribe_target.get_queue()
-                routing_key = subscribe_target.get_routing_key()
-                self.channel.basic_qos(prefetch_count=self.prefetch_count)
-                consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
-                self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
-                                           on_message_callback=self.handle)
+            with self.__lock_closed_channel:
+                for subscribe_target in self.subscribe_targets:
+                    queue = subscribe_target.get_queue()
+                    routing_key = subscribe_target.get_routing_key()
+                    self.channel.basic_qos(prefetch_count=self.prefetch_count)
+                    consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
+                    self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
+                                               on_message_callback=self.handle)
 
-                logger.info(f"Start listening exchangeName='{self.exchange_name}', "
-                            f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
+                    logger.info(f"Start listening exchangeName='{self.exchange_name}', "
+                                f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
 
-            threading.Thread(target=self.channel.start_consuming).start()
+    def __on_channel_open(self):
+        self.__lock_closed_channel.release()
+        logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
@@ -115,7 +119,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
     def handle(self, channel, method, properties, body):
         process_timer = self.get_processing_timer()
-        start_time = time()
+        start_time = time.time()
 
         try:
             value = self.value_from_bytes(body)
@@ -142,7 +146,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.handle_with_listener(value, channel, method)
 
-        end_time = time()
+        end_time = time.time()
         process_timer.set(end_time - start_time)
 
     def handle_with_listener(self, value, channel, method):
@@ -152,12 +156,9 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                     listener.handler(self.attributes, value)
                 except Exception as e:
                     logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
-        cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
-        self.connection.add_callback_threadsafe(cb)
 
-    def acknowledgment(self, channel, delivery_tag):
         if channel.is_open:
-            channel.basic_ack(delivery_tag)
+            channel.basic_ack(method.delivery_tag)
         else:
             logger.error('Message acknowledgment failed due to the channel being closed')
 
