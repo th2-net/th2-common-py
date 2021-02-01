@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import logging
-import threading
 import time
 from abc import ABC, abstractmethod
 
@@ -32,23 +31,17 @@ class AbstractRabbitSender(MessageSender, ABC):
         self.exchange_name = exchange_name
         self.send_queue = send_queue
 
-        self.__lock_closed_channel = threading.Lock()
-        self.__lock_closed_channel.acquire()
-
     def start(self):
         if self.send_queue is None or self.exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
             for x in range(5):
-                try:
-                    self.channel = self.connection.channel(on_open_callback=self.__on_channel_open)
-                    break
-                except Exception:
+                if not self.connection.is_open:
                     time.sleep(5)
-
-    def __on_channel_open(self):
-        self.__lock_closed_channel.release()
-        logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
+                else:
+                    self.channel = self.connection.channel()
+                    logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
+                    break
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
@@ -80,16 +73,19 @@ class AbstractRabbitSender(MessageSender, ABC):
         content_counter = self.get_content_counter()
         content_counter.inc(self.extract_count_from(message))
 
-        with self.__lock_closed_channel:
-            try:
-                self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
-                                           body=self.value_to_bytes(message))
-                logger.info(f"Sent message:\n{message}"
-                            f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
-            except Exception:
-                if self.channel is None:
-                    raise Exception('Can not send. Sender did not started')
-                raise
+        for x in range(5):
+            if not self.channel.is_open:
+                time.sleep(5)
+
+        try:
+            self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
+                                       body=self.value_to_bytes(message))
+            logger.info(f"Sent message:\n{message}"
+                        f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+        except Exception:
+            if self.channel is None:
+                raise Exception('Can not send. Sender did not started')
+            raise
 
     @abstractmethod
     def value_to_bytes(self, value):

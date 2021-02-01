@@ -13,7 +13,6 @@
 #   limitations under the License.
 import datetime
 import logging
-import threading
 import time
 from abc import ABC, abstractmethod
 from threading import Lock
@@ -41,8 +40,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.connection = connection
         self.channel = None
-        self.__lock_closed_channel = threading.Lock()
-        self.__lock_closed_channel.acquire()
 
         self.subscribe_targets = subscribe_targets
         self.subscriber_name = configuration.subscriber_name
@@ -61,27 +58,27 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is None:
             for x in range(5):
-                try:
-                    self.channel = self.connection.channel(on_open_callback=self.__on_channel_open)
+                if not self.connection.is_open:
+                    time.sleep(5)
+                else:
+                    self.channel = self.connection.channel()
+                    logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
                     break
-                except Exception:
+
+            for x in range(5):
+                if not self.channel.is_open:
                     time.sleep(5)
 
-            with self.__lock_closed_channel:
-                for subscribe_target in self.subscribe_targets:
-                    queue = subscribe_target.get_queue()
-                    routing_key = subscribe_target.get_routing_key()
-                    self.channel.basic_qos(prefetch_count=self.prefetch_count)
-                    consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
-                    self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
-                                               on_message_callback=self.handle)
+            for subscribe_target in self.subscribe_targets:
+                queue = subscribe_target.get_queue()
+                routing_key = subscribe_target.get_routing_key()
+                self.channel.basic_qos(prefetch_count=self.prefetch_count)
+                consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
+                self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
+                                           on_message_callback=self.handle)
 
-                    logger.info(f"Start listening exchangeName='{self.exchange_name}', "
-                                f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
-
-    def __on_channel_open(self):
-        self.__lock_closed_channel.release()
-        logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
+                logger.info(f"Start listening exchangeName='{self.exchange_name}', "
+                            f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
