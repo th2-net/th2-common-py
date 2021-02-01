@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 
 from prometheus_client import Counter
 
+from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.message_sender import MessageSender
 
 logger = logging.getLogger()
@@ -35,13 +36,14 @@ class AbstractRabbitSender(MessageSender, ABC):
         if self.send_queue is None or self.exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
-            for x in range(5):
-                if not self.connection.is_open:
+            self.channel = self.connection.channel()
+            CHANNEL_OPEN_TIMEOUT = 50
+            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
+                if not self.channel.is_open:
                     time.sleep(5)
-                else:
-                    self.channel = self.connection.channel()
-                    logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
-                    break
+            if not self.channel.is_open:
+                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
+            logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open

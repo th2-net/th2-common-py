@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import threading
+import time
 from abc import ABC, abstractmethod
 from threading import Lock
 
@@ -24,6 +25,7 @@ import pika
 
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
+from th2_common.schema.exception.common_factory_error import CommonFactoryError
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
@@ -66,9 +68,14 @@ class AbstractCommonFactory(ABC):
                                                           host=self.rabbit_mq_configuration.host,
                                                           port=self.rabbit_mq_configuration.port,
                                                           credentials=credentials)
-
+        CONNECTION_OPEN_TIMEOUT = 50
         self.connection = pika.SelectConnection(connection_parameters)
         threading.Thread(target=self.__start_connection).start()
+        for x in range(int(CONNECTION_OPEN_TIMEOUT / 5)):
+            if not self.connection.is_open:
+                time.sleep(5)
+        if not self.connection.is_open:
+            raise CommonFactoryError(f"The connection has not been opened for {CONNECTION_OPEN_TIMEOUT} seconds")
 
         self.prometheus_config = PrometheusConfiguration()
         self.prometheus = PrometheusThread(self.prometheus_config.port, self.prometheus_config.host)

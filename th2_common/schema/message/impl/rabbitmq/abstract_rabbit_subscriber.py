@@ -20,6 +20,7 @@ from threading import Lock
 from google.protobuf.message import DecodeError
 from prometheus_client import Gauge, Counter
 
+from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
@@ -57,17 +58,14 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
         if self.channel is None:
-            for x in range(5):
-                if not self.connection.is_open:
-                    time.sleep(5)
-                else:
-                    self.channel = self.connection.channel()
-                    logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
-                    break
-
-            for x in range(5):
+            self.channel = self.connection.channel()
+            CHANNEL_OPEN_TIMEOUT = 50
+            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
                 if not self.channel.is_open:
                     time.sleep(5)
+            if not self.channel.is_open:
+                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
+            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()
