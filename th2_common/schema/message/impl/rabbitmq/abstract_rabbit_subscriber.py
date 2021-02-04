@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 import datetime
 import logging
 import time
@@ -113,10 +114,10 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         pass
 
     def handle(self, channel, method, properties, body):
-        process_timer = self.get_processing_timer()
-        start_time = time.time()
-
         try:
+            process_timer = self.get_processing_timer()
+            start_time = time.time()
+
             value = self.value_from_bytes(body)
 
             if value is None:
@@ -128,21 +129,27 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             content_counter.inc(self.extract_count_from(value))
 
             if not self.filter(value):
-                channel.basic_ack(delivery_tag=method.delivery_tag)
                 return
+
+            self.handle_with_listener(value, channel, method)
+
+            end_time = time.time()
+            process_timer.set(end_time - start_time)
+
         except DecodeError as e:
-            logger.exception(f'Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n'
-                             f'  body: {body}\n'
-                             f'  self: {self}\n')
+            logger.exception(
+                f'Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n'
+                f'  body: {body}\n'
+                f'  self: {self}\n')
             return
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
             return
-
-        self.handle_with_listener(value, channel, method)
-
-        end_time = time.time()
-        process_timer.set(end_time - start_time)
+        finally:
+            if channel.is_open:
+                channel.basic_ack(method.delivery_tag)
+            else:
+                logger.error('Message acknowledgment failed due to the channel being closed')
 
     def handle_with_listener(self, value, channel, method):
         with self.lock_listeners:
@@ -151,11 +158,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                     listener.handler(self.attributes, value)
                 except Exception as e:
                     logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
-
-        if channel.is_open:
-            channel.basic_ack(method.delivery_tag)
-        else:
-            logger.error('Message acknowledgment failed due to the channel being closed')
 
     @abstractmethod
     def value_from_bytes(self, body):
