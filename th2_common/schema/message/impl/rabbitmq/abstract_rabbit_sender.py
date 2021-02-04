@@ -75,10 +75,6 @@ class AbstractRabbitSender(MessageSender, ABC):
         content_counter = self.get_content_counter()
         content_counter.inc(self.extract_count_from(message))
 
-        for x in range(5):
-            if not self.channel.is_open:
-                time.sleep(5)
-
         try:
             self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
                                        body=self.value_to_bytes(message))
