@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 from threading import Lock
 
 from google.protobuf.message import DecodeError
-from prometheus_client import Gauge, Counter
+from prometheus_client import Histogram, Counter
 
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
@@ -106,7 +106,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         pass
 
     @abstractmethod
-    def get_processing_timer(self) -> Gauge:
+    def get_processing_timer(self) -> Histogram:
         pass
 
     @abstractmethod
@@ -134,7 +134,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.handle_with_listener(value, channel, method)
 
             end_time = time.time()
-            process_timer.set(end_time - start_time)
+            process_timer.observe(end_time - start_time)
 
         except DecodeError as e:
             logger.exception(
