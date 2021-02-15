@@ -114,27 +114,25 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         pass
 
     def handle(self, channel, method, properties, body):
+        process_timer = self.get_processing_timer()
+        start_time = time.time()
+
         try:
-            process_timer = self.get_processing_timer()
-            start_time = time.time()
+            values = self.value_from_bytes(body)
 
-            value = self.value_from_bytes(body)
+            for value in values:
+                if value is None:
+                    raise ValueError('Received value is null')
 
-            if value is None:
-                raise ValueError('Received value is null')
+                counter = self.get_delivery_counter()
+                counter.inc()
+                content_counter = self.get_content_counter()
+                content_counter.inc(self.extract_count_from(value))
 
-            counter = self.get_delivery_counter()
-            counter.inc()
-            content_counter = self.get_content_counter()
-            content_counter.inc(self.extract_count_from(value))
+                if not self.filter(value):
+                    return
 
-            if not self.filter(value):
-                return
-
-            self.handle_with_listener(value, channel, method)
-
-            end_time = time.time()
-            process_timer.observe(end_time - start_time)
+                self.handle_with_listener(value, channel, method)
 
         except DecodeError as e:
             logger.exception(
@@ -146,6 +144,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
             return
         finally:
+            process_timer.observe(time.time() - start_time)
             if channel.is_open:
                 channel.basic_ack(method.delivery_tag)
             else:

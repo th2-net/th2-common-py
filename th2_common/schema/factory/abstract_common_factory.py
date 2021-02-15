@@ -45,6 +45,7 @@ class AbstractCommonFactory(ABC):
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
+                 message_group_batch_router_class=RabbitMessageGroupBatchRouter,
                  event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter) -> None:
 
@@ -54,11 +55,13 @@ class AbstractCommonFactory(ABC):
 
         self.message_parsed_batch_router_class = message_parsed_batch_router_class
         self.message_raw_batch_router_class = message_raw_batch_router_class
+        self.message_group_batch_router_class = message_group_batch_router_class
         self.event_batch_router_class = event_batch_router_class
         self.grpc_router_class = grpc_router_class
 
         self._message_parsed_batch_router = None
         self._message_raw_batch_router = None
+        self._message_group_batch_router = None
         self._event_batch_router = None
         self._grpc_router = None
 
@@ -116,6 +119,18 @@ class AbstractCommonFactory(ABC):
         return self._message_raw_batch_router
 
     @property
+    def message_group_batch_router(self) -> MessageRouter:
+        """
+        Created MessageRouter which work with MessageGroupBatch
+        """
+        if self._message_group_batch_router is None:
+            self._message_group_batch_router = self.message_group_batch_router_class(self.connection,
+                                                                                     self.rabbit_mq_configuration,
+                                                                                     self.message_router_configuration)
+
+        return self._message_group_batch_router
+
+    @property
     def event_batch_router(self) -> MessageRouter:
         """
         Created MessageRouter which work with EventBatch
@@ -150,6 +165,12 @@ class AbstractCommonFactory(ABC):
                 self._message_parsed_batch_router.close()
             except Exception:
                 logger.exception('Error during closing Message Router (Message Parsed Batch)')
+
+        if self._message_group_batch_router is not None:
+            try:
+                self._message_group_batch_router.close()
+            except Exception:
+                logger.exception('Error during closing Message Router (Message Group Batch)')
 
         if self._event_batch_router is not None:
             try:

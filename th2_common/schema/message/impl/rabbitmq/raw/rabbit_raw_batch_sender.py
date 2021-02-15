@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 from prometheus_client import Counter
-from th2_grpc_common.common_pb2 import RawMessageBatch
+from th2_grpc_common.common_pb2 import RawMessageBatch, AnyMessage, MessageGroup, MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
 
@@ -36,4 +36,7 @@ class RabbitRawBatchSender(AbstractRabbitSender):
         return batch.messages
 
     def value_to_bytes(self, value: RawMessageBatch):
+        messages = [AnyMessage(raw_message=msg) for msg in value.messages]
+        groups = MessageGroup(messages=messages)
+        value = MessageGroupBatch(groups=groups)
         return value.SerializeToString()

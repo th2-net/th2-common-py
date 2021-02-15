@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -28,12 +28,12 @@ class RabbitParsedBatchQueue(AbstractRabbitQueue):
 
     def create_sender(self, connection,
                       queue_configuration: QueueConfiguration) -> MessageSender:
-        return RabbitParsedBatchSender(connection, queue_configuration.exchange, queue_configuration.name)
+        return RabbitParsedBatchSender(connection, queue_configuration.exchange, queue_configuration.routing_key)
 
     def create_subscriber(self, connection,
                           configuration: RabbitMQConfiguration,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
-        subscribe_target = SubscribeTarget(routing_key=queue_configuration.name, queue=queue_configuration.queue)
+        subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
         return RabbitParsedBatchSubscriber(connection,
                                            configuration,
                                            queue_configuration,

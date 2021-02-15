@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 from prometheus_client import Counter, Histogram
-from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage
+from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage, MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
@@ -46,9 +46,18 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
         return batch.messages
 
     def value_from_bytes(self, body):
-        message_batch = RawMessageBatch()
-        message_batch.ParseFromString(body)
-        return message_batch
+        message_group_batch = MessageGroupBatch()
+        message_group_batch.ParseFromString(body)
+
+        message_batches = []
+        for message_group in message_group_batch.groups:
+            messages = []
+            for any_message in message_group.messages:
+                any_message.HasField('raw_message')
+                messages.append(RawMessage(any_message.message))
+            message_batches.append(RawMessageBatch(messages=messages))
+
+        return message_batches
 
     def extract_metadata(self, message: RawMessage) -> Metadata:
         metadata = message.metadata

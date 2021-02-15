@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,11 +25,11 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 
 class Metadata:
 
-    def __init__(self, sequence, message_type: str, session_alias: str, direction: Direction) -> None:
+    def __init__(self, sequence, message_type: str, direction: Direction, session_alias: str) -> None:
         self.sequence = sequence
         self.message_type = message_type
-        self.session_alias = session_alias
         self.direction = direction
+        self.session_alias = session_alias
 
 
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
