@@ -20,6 +20,8 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_sender import \
     RabbitMessageGroupBatchSender
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_subscriber import \
+    RabbitMessageGroupBatchSubscriber
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
