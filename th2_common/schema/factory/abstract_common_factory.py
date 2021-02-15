@@ -31,6 +31,8 @@ from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
+    RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
