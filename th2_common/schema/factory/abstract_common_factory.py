@@ -68,7 +68,7 @@ class AbstractCommonFactory(ABC):
                                                           host=self.rabbit_mq_configuration.host,
                                                           port=self.rabbit_mq_configuration.port,
                                                           credentials=credentials)
-        CONNECTION_OPEN_TIMEOUT = 50
+        CONNECTION_OPEN_TIMEOUT = 60
         self.connection = pika.SelectConnection(connection_parameters)
         threading.Thread(target=self.__start_connection).start()
         for x in range(int(CONNECTION_OPEN_TIMEOUT / 5)):
@@ -79,6 +79,8 @@ class AbstractCommonFactory(ABC):
 
         self.prometheus_config = PrometheusConfiguration()
         self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
+        if self.prometheus_config.enabled is True:
+            self.prometheus.run()
 
     def __start_connection(self):
         try:
@@ -86,10 +88,6 @@ class AbstractCommonFactory(ABC):
             self.connection.ioloop.start()
         except Exception:
             logger.exception("Failed starting loop SelectConnection")
-
-    def start_prometheus(self):
-        if self.prometheus_config.enabled is True:
-            self.prometheus.run()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
