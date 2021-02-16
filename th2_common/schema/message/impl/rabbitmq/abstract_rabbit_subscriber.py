@@ -60,13 +60,13 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is None:
             self.channel = self.connection.channel()
-            CHANNEL_OPEN_TIMEOUT = 50
+            CHANNEL_OPEN_TIMEOUT = 120
             for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
                 if not self.channel.is_open:
                     time.sleep(5)
             if not self.channel.is_open:
                 raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
-            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
+            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}, {self.subscriber_name}]")
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()

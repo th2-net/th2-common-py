@@ -37,7 +37,7 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
             self.channel = self.connection.channel()
-            CHANNEL_OPEN_TIMEOUT = 50
+            CHANNEL_OPEN_TIMEOUT = 120
             for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
                 if not self.channel.is_open:
                     time.sleep(5)
