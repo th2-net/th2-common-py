@@ -37,13 +37,13 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
             self.channel = self.connection.channel()
-            CHANNEL_OPEN_TIMEOUT = 120
+            CHANNEL_OPEN_TIMEOUT = 60
             for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
                 if not self.channel.is_open:
                     time.sleep(5)
             if not self.channel.is_open:
                 raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
-            logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
+            logger.info(f"Open channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
