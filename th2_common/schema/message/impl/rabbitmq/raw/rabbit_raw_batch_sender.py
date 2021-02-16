@@ -35,8 +35,9 @@ class RabbitRawBatchSender(AbstractRabbitSender):
     def get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
 
-    def value_to_bytes(self, value: RawMessageBatch):
+    @staticmethod
+    def value_to_bytes(value: RawMessageBatch):
         messages = [AnyMessage(raw_message=msg) for msg in value.messages]
-        groups = MessageGroup(messages=messages)
-        value = MessageGroupBatch(groups=groups)
+        group = MessageGroup(messages=messages)
+        value = MessageGroupBatch(groups=[group])
         return value.SerializeToString()

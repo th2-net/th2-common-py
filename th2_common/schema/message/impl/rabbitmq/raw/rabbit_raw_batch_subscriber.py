@@ -45,7 +45,8 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
     def get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
 
-    def value_from_bytes(self, body):
+    @staticmethod
+    def value_from_bytes(body):
         message_group_batch = MessageGroupBatch()
         message_group_batch.ParseFromString(body)
 
@@ -54,7 +55,7 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
             messages = []
             for any_message in message_group.messages:
                 any_message.HasField('raw_message')
-                messages.append(RawMessage(any_message.message))
+                messages.append(any_message.raw_message)
             message_batches.append(RawMessageBatch(messages=messages))
 
         return message_batches

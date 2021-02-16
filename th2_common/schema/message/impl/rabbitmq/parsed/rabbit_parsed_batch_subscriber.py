@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 from prometheus_client import Counter, Histogram
-from th2_grpc_common.common_pb2 import MessageBatch, MessageGroupBatch, Message
+from th2_grpc_common.common_pb2 import MessageBatch, MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
@@ -50,7 +50,8 @@ class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
                         sequence=metadata.id.sequence,
                         session_alias=metadata.id.connection_id.session_alias)
 
-    def value_from_bytes(self, body):
+    @staticmethod
+    def value_from_bytes(body):
         message_group_batch = MessageGroupBatch()
         message_group_batch.ParseFromString(body)
 
@@ -59,7 +60,7 @@ class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
             messages = []
             for any_message in message_group.messages:
                 any_message.HasField('message')
-                messages.append(Message(any_message.message))
+                messages.append(any_message.message)
             message_batches.append(MessageBatch(messages=messages))
 
         return message_batches
