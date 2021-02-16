@@ -15,7 +15,7 @@
 
 class SubscribeTarget:
 
-    def __init__(self, routing_key: str, queue: str) -> None:
+    def __init__(self, queue: str, routing_key: str) -> None:
         self.__queue = queue
         self.__routing_key = routing_key
 
