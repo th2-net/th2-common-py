@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ import json
 
 from setuptools import setup, find_packages
 
-
 with open('package_info.json', 'r') as file:
     package_info = json.load(file)
 
@@ -25,6 +24,9 @@ package_version = package_info['package_version']
 
 with open('README.md', 'r') as file:
     long_description = file.read()
+
+with open('requirements.txt', 'r') as file:
+    requirements = [l.strip() for l in file.readlines() if not l.startswith('#') and l != '\n']
 
 setup(
     name=package_name,
@@ -37,12 +39,7 @@ setup(
     url='https://github.com/th2-net/th2-common-py',
     license='Apache License 2.0',
     python_requires='>=3.7',
-    install_requires=[
-        'pika==1.2.0',
-        'th2-grpc-common~=2.3.5',
-        'kubernetes~=12.0.1',
-        'prometheus_client~=0.9.0'
-    ],
-    packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
-    package_data={'': ['package_info.json']}
+    install_requires=requirements,
+    packages=find_packages(include=['th2_common', 'th2_common.*']),
+    include_package_data=True,
 )
