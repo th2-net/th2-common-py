@@ -11,12 +11,13 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-import functools
 import logging
+import time
 from abc import ABC, abstractmethod
 
 from prometheus_client import Counter
 
+from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.message_sender import MessageSender
 
 logger = logging.getLogger()
@@ -36,6 +37,12 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
             self.channel = self.connection.channel()
+            CHANNEL_OPEN_TIMEOUT = 60
+            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
+                if not self.channel.is_open:
+                    time.sleep(5)
+            if not self.channel.is_open:
+                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
             logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
 
     def is_close(self) -> bool:
@@ -68,18 +75,13 @@ class AbstractRabbitSender(MessageSender, ABC):
         content_counter = self.get_content_counter()
         content_counter.inc(self.extract_count_from(message))
 
-        cb = functools.partial(self.sending, self.channel, message)
-        self.connection.add_callback_threadsafe(cb)
-        self.connection.process_data_events()
-
-    def sending(self, channel, message):
         try:
-            channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
-                                  body=self.value_to_bytes(message))
+            self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
+                                       body=self.value_to_bytes(message))
             logger.info(f"Sent message:\n{message}"
                         f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
         except Exception:
-            if channel is None:
+            if self.channel is None:
                 raise Exception('Can not send. Sender did not started')
             raise
 
