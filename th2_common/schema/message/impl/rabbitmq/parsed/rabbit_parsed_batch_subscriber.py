@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import MessageBatch, MessageGroupBatch
 

@@ -17,13 +17,14 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from threading import Lock
+from typing import Optional
 
 from google.protobuf.message import DecodeError
+from pika.channel import Channel
 from prometheus_client import Histogram, Counter
 
-from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
@@ -32,7 +33,7 @@ logger = logging.getLogger()
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
-    def __init__(self, connection, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+    def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
                  *subscribe_targets) -> None:
         if len(subscribe_targets) < 1:
             raise Exception('Subscribe targets must be more than 0')
@@ -40,11 +41,12 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.listeners = set()
         self.lock_listeners = Lock()
 
-        self.connection = connection
-        self.channel = None
+        self.connection_manager: ConnectionManager = connection_manager
+        self.channel: Optional[Channel] = None
+        self.channel_is_open = True
 
         self.subscribe_targets = subscribe_targets
-        self.subscriber_name = configuration.subscriber_name
+        self.subscriber_name = connection_manager.configuration.subscriber_name
 
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
@@ -53,31 +55,41 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
     def start(self):
         if self.subscribe_targets is None or self.exchange_name is None:
             raise Exception('Subscriber did not init')
+        self.check_and_open_channel()
 
+    def subscribe_to_targets(self):
         if self.subscriber_name is None:
             self.subscriber_name = 'rabbit_mq_subscriber'
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
-        if self.channel is None:
-            self.channel = self.connection.channel()
-            CHANNEL_OPEN_TIMEOUT = 120
-            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
-                if not self.channel.is_open:
-                    time.sleep(5)
-            if not self.channel.is_open:
-                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
-            logger.info(f"Open channel: {self.channel} for subscriber[{self.exchange_name}, {self.subscriber_name}]")
+        for subscribe_target in self.subscribe_targets:
+            queue = subscribe_target.get_queue()
+            routing_key = subscribe_target.get_routing_key()
+            self.channel.basic_qos(prefetch_count=self.prefetch_count)
+            consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
+            self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
+                                       on_message_callback=self.handle)
 
-            for subscribe_target in self.subscribe_targets:
-                queue = subscribe_target.get_queue()
-                routing_key = subscribe_target.get_routing_key()
-                self.channel.basic_qos(prefetch_count=self.prefetch_count)
-                consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
-                self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
-                                           on_message_callback=self.handle)
+            logger.info(f"Start listening exchangeName='{self.exchange_name}', "
+                        f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
 
-                logger.info(f"Start listening exchangeName='{self.exchange_name}', "
-                            f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
+    def check_and_open_channel(self):
+        self.connection_manager.wait_connection_readiness()
+        if self.channel is None or not self.channel.is_open:
+            self.channel = self.connection_manager.connection.channel()
+            self.channel.add_on_close_callback(self.channel_close_callback)
+        self.wait_channel_readiness()
+        self.subscribe_to_targets()
+
+    def channel_close_callback(self, channel, reason):
+        logger.info(f"Channel '{channel}' is close, reason: {reason}")
+        if self.channel_is_open:
+            self.connection_manager.reopen_connection()
+            self.check_and_open_channel()
+
+    def wait_channel_readiness(self):
+        while not self.channel.is_open:
+            time.sleep(ConnectionManager.CHANNEL_READINESS_TIMEOUT)
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
@@ -90,6 +102,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is not None and self.channel.is_open:
             self.channel.close()
+            self.channel_is_open = False
+            logger.info(f"Close channel: {self.channel} for subscriber[{self.exchange_name}]")
 
     def add_listener(self, message_listener: MessageListener):
         if message_listener is None:
@@ -116,8 +130,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
     def handle(self, channel, method, properties, body):
         process_timer = self.get_processing_timer()
         start_time = time.time()
-
         try:
+
             values = self.value_from_bytes(body)
 
             for value in values:
