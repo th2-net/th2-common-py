@@ -1,10 +1,12 @@
+import logging
 import threading
 import time
 
 import pika
 
-from th2_common import logger
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+
+logger = logging.getLogger()
 
 
 class ConnectionManager:
