@@ -21,10 +21,10 @@ class ConnectionManager:
                                                                  credentials=self.__credentials)
 
         self.publish_connection = self.__create_connection()
-        logger.info(f'Create connection for publish: {self.publish_connection}')
+        logger.info(f'Create connection for publish')
 
         self.subscribe_connection = self.__create_connection()
-        logger.info(f'Create connection for subscribe: {self.subscribe_connection}')
+        logger.info(f'Create connection for subscribe')
 
     def __create_connection(self):
         connection_open_timeout = 60
@@ -39,10 +39,9 @@ class ConnectionManager:
     @staticmethod
     def __start_connection(connection):
         try:
-            logger.info(f'Start loop SelectConnection for {connection}')
             connection.ioloop.start()
         except Exception:
-            logger.exception(f'Failed starting loop SelectConnection for {connection}')
+            logger.exception(f'Failed starting loop SelectConnection')
 
     def close(self):
         if self.publish_connection is not None and self.publish_connection.is_open:

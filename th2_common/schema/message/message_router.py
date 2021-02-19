@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from abc import ABC, abstractmethod
 
 from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration

@@ -11,14 +11,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
 from th2_common.schema.event.event_batch_sender import EventBatchSender
 from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_queue import AbstractRabbitQueue
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
@@ -29,8 +27,7 @@ class EventBatchQueue(AbstractRabbitQueue):
                       queue_configuration: QueueConfiguration) -> MessageSender:
         return EventBatchSender(connection, queue_configuration.exchange, queue_configuration.name)
 
-    def create_subscriber(self, connection,
-                          configuration: RabbitMQConfiguration,
+    def create_subscriber(self, connection_manager: ConnectionManager,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
         subscribe_target = SubscribeTarget(routing_key=queue_configuration.name, queue=queue_configuration.queue)
-        return EventBatchSubscriber(connection, configuration, queue_configuration, subscribe_target)
+        return EventBatchSubscriber(connection_manager, queue_configuration, subscribe_target)
