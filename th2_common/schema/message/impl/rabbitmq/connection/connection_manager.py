@@ -35,6 +35,7 @@ class ConnectionManager:
                 time.sleep(5)
         if not connection.is_open:
             raise ConnectionError(f'The connection has not been opened for {connection_open_timeout} seconds')
+        return connection
 
     @staticmethod
     def __start_connection(connection):
