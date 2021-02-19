@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from prometheus_client import Counter
 
 from th2_common.schema.exception.router_error import RouterError
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_sender import MessageSender
 
 logger = logging.getLogger()
@@ -25,9 +26,8 @@ logger = logging.getLogger()
 
 class AbstractRabbitSender(MessageSender, ABC):
 
-    def __init__(self, connection, exchange_name: str, send_queue: str) -> None:
-        self.CLOSE_TIMEOUT = 1_000
-        self.connection = connection
+    def __init__(self, connection_manager: ConnectionManager, exchange_name: str, send_queue: str) -> None:
+        self.connection_manager = connection_manager
         self.channel = None
         self.exchange_name = exchange_name
         self.send_queue = send_queue
@@ -36,14 +36,14 @@ class AbstractRabbitSender(MessageSender, ABC):
         if self.send_queue is None or self.exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
-            self.channel = self.connection.channel()
-            CHANNEL_OPEN_TIMEOUT = 60
-            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
+            self.channel = self.connection_manager.publish_connection.channel()
+            channel_open_timeout = 60
+            for x in range(int(channel_open_timeout / 5)):
                 if not self.channel.is_open:
                     time.sleep(5)
             if not self.channel.is_open:
-                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
-            logger.info(f"Create channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
+                raise RouterError(f"The channel has not been opened for {channel_open_timeout} seconds")
+            logger.info(f"Open channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open

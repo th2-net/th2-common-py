@@ -12,9 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
 from importlib.metadata import version
 
-logger = logging.getLogger()
-
-logger.info(version('th2_common'))
+print(f"Use th2-common=={version('th2_common')}")

@@ -23,7 +23,7 @@ from prometheus_client import Histogram, Counter
 
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
@@ -32,7 +32,7 @@ logger = logging.getLogger()
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
-    def __init__(self, connection, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+    def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
                  *subscribe_targets) -> None:
         if len(subscribe_targets) < 1:
             raise Exception('Subscribe targets must be more than 0')
@@ -40,11 +40,11 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.listeners = set()
         self.lock_listeners = Lock()
 
-        self.connection = connection
+        self.connection_manager = connection_manager
         self.channel = None
 
         self.subscribe_targets = subscribe_targets
-        self.subscriber_name = configuration.subscriber_name
+        self.subscriber_name = connection_manager.configuration.subscriber_name
 
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
@@ -59,14 +59,14 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
         if self.channel is None:
-            self.channel = self.connection.channel()
-            CHANNEL_OPEN_TIMEOUT = 50
-            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
+            self.channel = self.connection_manager.subscribe_connection.channel()
+            channel_open_timeout = 50
+            for x in range(int(channel_open_timeout / 5)):
                 if not self.channel.is_open:
                     time.sleep(5)
             if not self.channel.is_open:
-                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
-            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
+                raise RouterError(f"The channel has not been opened for {channel_open_timeout} seconds")
+            logger.info(f"Open channel: {self.channel} for subscriber[{self.exchange_name}]")
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()

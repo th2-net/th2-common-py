@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,18 +14,21 @@
 
 
 from abc import ABC, abstractmethod
+from threading import Lock
 
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 
 class MessageQueue(ABC):
 
-    def __init__(self, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration) -> None:
-        self.configuration = configuration
+    def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration) -> None:
+        self.connection_manager = connection_manager
         self.queue_configuration = queue_configuration
+        self.subscriber_lock = Lock()
+        self.sender_lock = Lock()
 
     @abstractmethod
     def get_subscriber(self) -> MessageSubscriber:

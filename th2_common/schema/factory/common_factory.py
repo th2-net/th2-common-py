@@ -14,17 +14,18 @@
 
 
 import argparse
+import logging
 import sys
+from json import loads, dumps
+from os import mkdir, getcwd
+
+from kubernetes import client, config
 
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.factory.abstract_common_factory import AbstractCommonFactory
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
-from kubernetes import client, config
-from json import loads, dumps
-from os import mkdir, getcwd
-import logging
 
 logger = logging.getLogger()
 

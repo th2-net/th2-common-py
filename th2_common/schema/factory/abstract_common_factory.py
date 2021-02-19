@@ -16,21 +16,17 @@
 import json
 import logging
 import os
-import threading
-import time
 from abc import ABC, abstractmethod
 from threading import Lock
 
-import pika
-
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
-from th2_common.schema.exception.common_factory_error import CommonFactoryError
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
@@ -62,32 +58,12 @@ class AbstractCommonFactory(ABC):
         self._event_batch_router = None
         self._grpc_router = None
 
-        credentials = pika.PlainCredentials(self.rabbit_mq_configuration.username,
-                                            self.rabbit_mq_configuration.password)
-        connection_parameters = pika.ConnectionParameters(virtual_host=self.rabbit_mq_configuration.vhost,
-                                                          host=self.rabbit_mq_configuration.host,
-                                                          port=self.rabbit_mq_configuration.port,
-                                                          credentials=credentials)
-        CONNECTION_OPEN_TIMEOUT = 60
-        self.connection = pika.SelectConnection(connection_parameters)
-        threading.Thread(target=self.__start_connection).start()
-        for x in range(int(CONNECTION_OPEN_TIMEOUT / 5)):
-            if not self.connection.is_open:
-                time.sleep(5)
-        if not self.connection.is_open:
-            raise CommonFactoryError(f"The connection has not been opened for {CONNECTION_OPEN_TIMEOUT} seconds")
+        self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 
         self.prometheus_config = PrometheusConfiguration()
         self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
         if self.prometheus_config.enabled is True:
             self.prometheus.run()
-
-    def __start_connection(self):
-        try:
-            logger.info("Start loop SelectConnection")
-            self.connection.ioloop.start()
-        except Exception:
-            logger.exception("Failed starting loop SelectConnection")
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
@@ -95,8 +71,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with MessageBatch
         """
         if self._message_parsed_batch_router is None:
-            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self.connection,
-                                                                                       self.rabbit_mq_configuration,
+            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self._connection_manager,
                                                                                        self.message_router_configuration
                                                                                        )
 
@@ -108,8 +83,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with RawMessageBatch
         """
         if self._message_raw_batch_router is None:
-            self._message_raw_batch_router = self.message_raw_batch_router_class(self.connection,
-                                                                                 self.rabbit_mq_configuration,
+            self._message_raw_batch_router = self.message_raw_batch_router_class(self._connection_manager,
                                                                                  self.message_router_configuration)
         return self._message_raw_batch_router
 
@@ -119,8 +93,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with EventBatch
         """
         if self._event_batch_router is None:
-            self._event_batch_router = self.event_batch_router_class(self.connection,
-                                                                     self.rabbit_mq_configuration,
+            self._event_batch_router = self.event_batch_router_class(self._connection_manager,
                                                                      self.message_router_configuration)
 
         return self._event_batch_router
@@ -161,8 +134,8 @@ class AbstractCommonFactory(ABC):
             except Exception:
                 logger.exception('Error during closing gRPC Router')
 
-        if self.connection is not None and self.connection.is_open:
-            self.connection.close()
+        if self._connection_manager is not None:
+            self._connection_manager.close()
 
         if self.prometheus.stopped is False:
             self.prometheus.stop()

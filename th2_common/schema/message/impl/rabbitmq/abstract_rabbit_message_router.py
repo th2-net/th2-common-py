@@ -16,13 +16,11 @@
 from abc import ABC, abstractmethod
 from threading import Lock
 
-from prometheus_client import Counter
-
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_queue import MessageQueue
 from th2_common.schema.message.message_router import MessageRouter
@@ -53,9 +51,8 @@ class MultiplySubscribeMonitorImpl(SubscriberMonitor):
 
 class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
-    def __init__(self, connection, rabbit_mq_configuration, configuration) -> None:
-        super().__init__(rabbit_mq_configuration, configuration)
-        self.connection = connection
+    def __init__(self, connection_manager, configuration) -> None:
+        super().__init__(connection_manager, configuration)
         self._filter_strategy = DefaultFilterStrategy()
         self.queue_connections = dict()
         self.queue_connections_lock = Lock()
@@ -77,7 +74,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         return self.required_send_attributes.union(queue_attr)
 
     def _subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
-        queue: MessageQueue = self._get_message_queue(self.connection, queue_alias)
+        queue: MessageQueue = self._get_message_queue(queue_alias)
         subscriber: MessageSubscriber = queue.get_subscriber()
         subscriber.add_listener(callback)
         try:
@@ -141,7 +138,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self._filter_strategy = filter_strategy
 
     @abstractmethod
-    def _create_queue(self, connection, configuration: RabbitMQConfiguration,
+    def _create_queue(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration) -> MessageQueue:
         pass
 
@@ -152,16 +149,16 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
         for queue_alias, message in aliases_and_messages_to_send.items():
             try:
-                sender = self._get_message_queue(self.connection, queue_alias).get_sender()
+                sender = self._get_message_queue(queue_alias).get_sender()
                 sender.start()
                 sender.send(message)
             except Exception as e:
                 raise RouterError('Can not start sender', e)
 
-    def _get_message_queue(self, connection, queue_alias) -> MessageQueue:
+    def _get_message_queue(self, queue_alias) -> MessageQueue:
         with self.queue_connections_lock:
             if queue_alias not in self.queue_connections:
-                self.queue_connections[queue_alias] = self._create_queue(connection, self.rabbit_mq_configuration,
+                self.queue_connections[queue_alias] = self._create_queue(self.connection_manager,
                                                                          self.configuration.get_queue_by_alias(
                                                                              queue_alias))
             return self.queue_connections[queue_alias]
