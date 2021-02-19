@@ -15,6 +15,7 @@
 import logging
 import time
 from abc import ABC, abstractmethod
+from threading import Lock
 
 from prometheus_client import Counter
 
@@ -32,6 +33,7 @@ class AbstractRabbitSender(MessageSender, ABC):
         self.channel = None
         self.exchange_name = exchange_name
         self.send_queue = send_queue
+        self.__lock = Lock()
 
     def start(self):
         if self.send_queue is None or self.exchange_name is None:
@@ -67,24 +69,24 @@ class AbstractRabbitSender(MessageSender, ABC):
         pass
 
     def send(self, message):
-
         if message is None:
             raise ValueError('Value for send can not be null')
 
-        counter = self.get_delivery_counter()
-        counter.inc()
-        content_counter = self.get_content_counter()
-        content_counter.inc(self.extract_count_from(message))
+        with self.__lock:
+            counter = self.get_delivery_counter()
+            counter.inc()
+            content_counter = self.get_content_counter()
+            content_counter.inc(self.extract_count_from(message))
 
-        try:
-            self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
-                                       body=self.value_to_bytes(message))
-            logger.info(f"Sent message:\n{message}"
-                        f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
-        except Exception:
-            if self.channel is None:
-                raise Exception('Can not send. Sender did not started')
-            raise
+            try:
+                self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
+                                           body=self.value_to_bytes(message))
+                logger.info(f"Sent message:\n{message}"
+                            f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+            except Exception:
+                if self.channel is None:
+                    raise Exception('Can not send. Sender did not started')
+                raise
 
     @abstractmethod
     def value_to_bytes(self, value):
