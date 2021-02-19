@@ -151,8 +151,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                 sender = self._get_message_queue(queue_alias).get_sender()
                 sender.start()
                 sender.send(message)
-            except Exception as e:
-                raise RouterError('Can not start sender', e)
+            except Exception:
+                raise RouterError('Can not start sender')
 
     def _get_message_queue(self, queue_alias) -> MessageQueue:
         with self.queue_connections_lock:

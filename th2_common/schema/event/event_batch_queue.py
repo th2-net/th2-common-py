@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 from th2_common.schema.event.event_batch_sender import EventBatchSender
 from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
@@ -23,9 +24,9 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 class EventBatchQueue(AbstractRabbitQueue):
 
-    def create_sender(self, connection,
+    def create_sender(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration) -> MessageSender:
-        return EventBatchSender(connection, queue_configuration.exchange, queue_configuration.name)
+        return EventBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.name)
 
     def create_subscriber(self, connection_manager: ConnectionManager,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
