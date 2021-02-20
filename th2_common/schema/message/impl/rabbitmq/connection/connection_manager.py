@@ -19,33 +19,42 @@ class ConnectionManager:
                                                                  host=config.host,
                                                                  port=config.port,
                                                                  credentials=self.__credentials)
+        self.connection = None
+        self.__connection_thread = None
+        self.connection_lock = threading.Lock()
+        self.open_connection()
 
-        self.publish_connection = self.__create_connection()
-        logger.info(f'Create connection for publish')
+        self.reconnect_attempts = 10
 
-        self.subscribe_connection = self.__create_connection()
-        logger.info(f'Create connection for subscribe')
+    def open_connection(self):
+        with self.connection_lock:
+            connection_open_timeout = 60
+            self.connection = pika.SelectConnection(self.__connection_parameters)
+            self.__connection_thread = threading.Thread(target=self.__run_connection_thread)
+            self.__connection_thread.start()
+            for x in range(int(connection_open_timeout / 5)):
+                if not self.connection.is_open:
+                    time.sleep(5)
+            if not self.connection.is_open:
+                raise ConnectionError(f'The connection has not been opened for {connection_open_timeout} seconds')
+            logger.info(f'Connection is open')
 
-    def __create_connection(self):
-        connection_open_timeout = 60
-        connection = pika.SelectConnection(self.__connection_parameters)
-        threading.Thread(target=self.__start_connection, args=(connection,)).start()
-        for x in range(int(connection_open_timeout / 5)):
-            if not connection.is_open:
-                time.sleep(5)
-        if not connection.is_open:
-            raise ConnectionError(f'The connection has not been opened for {connection_open_timeout} seconds')
-        return connection
+    def close_connection(self):
+        with self.connection_lock:
+            connection_close_timeout = 60
+            self.connection.close()
+            self.__connection_thread.join(connection_close_timeout)
+            logger.info(f'Connection is close')
 
-    @staticmethod
-    def __start_connection(connection):
+    def reopen_connection(self):
+        self.close_connection()
+        self.open_connection()
+
+    def __run_connection_thread(self):
         try:
-            connection.ioloop.start()
+            self.connection.ioloop.start()
         except Exception:
             logger.exception(f'Failed starting loop SelectConnection')
 
     def close(self):
-        if self.publish_connection is not None and self.publish_connection.is_open:
-            self.publish_connection.close()
-        if self.subscribe_connection is not None and self.subscribe_connection.is_open:
-            self.subscribe_connection.close()
+        self.close_connection()

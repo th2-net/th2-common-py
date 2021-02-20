@@ -59,7 +59,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
         if self.channel is None:
-            self.channel = self.connection_manager.subscribe_connection.channel()
+            self.channel = self.connection_manager.connection.channel()
             channel_open_timeout = 50
             for x in range(int(channel_open_timeout / 5)):
                 if not self.channel.is_open:

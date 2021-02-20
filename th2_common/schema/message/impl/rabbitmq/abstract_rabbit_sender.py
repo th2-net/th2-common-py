@@ -17,6 +17,7 @@ import time
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from pika.exceptions import ConnectionWrongStateError
 from prometheus_client import Counter
 
 from th2_common.schema.exception.router_error import RouterError
@@ -39,7 +40,7 @@ class AbstractRabbitSender(MessageSender, ABC):
         if self.send_queue is None or self.exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
         if self.channel is None:
-            self.channel = self.connection_manager.publish_connection.channel()
+            self.channel = self.connection_manager.connection.channel()
             channel_open_timeout = 60
             for x in range(int(channel_open_timeout / 5)):
                 if not self.channel.is_open:
@@ -73,16 +74,22 @@ class AbstractRabbitSender(MessageSender, ABC):
             raise ValueError('Value for send can not be null')
 
         with self.__lock:
-            counter = self.get_delivery_counter()
-            counter.inc()
-            content_counter = self.get_content_counter()
-            content_counter.inc(self.extract_count_from(message))
-
             try:
-                self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
-                                           body=self.value_to_bytes(message))
-                logger.info(f"Sent message:\n{message}"
-                            f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+                for x in self.connection_manager.reconnect_attempts:
+                    try:
+                        self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
+                                                   body=self.value_to_bytes(message))
+
+                        counter = self.get_delivery_counter()
+                        counter.inc()
+                        content_counter = self.get_content_counter()
+                        content_counter.inc(self.extract_count_from(message))
+
+                        logger.info(f"Sent message:\n{message}"
+                                    f"Exchange: '{self.exchange_name}', routing key: '{self.send_queue}'")
+                        break
+                    except ConnectionWrongStateError:
+                        self.connection_manager.reopen_connection()
             except Exception:
                 if self.channel is None:
                     raise Exception('Can not send. Sender did not started')
