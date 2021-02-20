@@ -75,7 +75,7 @@ class AbstractRabbitSender(MessageSender, ABC):
 
         with self.__lock:
             try:
-                for x in self.connection_manager.reconnect_attempts:
+                for x in range(self.connection_manager.reconnect_attempts):
                     try:
                         self.channel.basic_publish(exchange=self.exchange_name, routing_key=self.send_queue,
                                                    body=self.value_to_bytes(message))
