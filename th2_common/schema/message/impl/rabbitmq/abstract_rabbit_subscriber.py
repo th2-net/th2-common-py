@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,24 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 import datetime
-import functools
 import logging
-import threading
+import time
 from abc import ABC, abstractmethod
 from threading import Lock
 
-from prometheus_client import Gauge, Counter
+from google.protobuf.message import DecodeError
+from prometheus_client import Histogram, Counter
 
+from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
-from google.protobuf.message import DecodeError
-
-
-from time import time
 
 logger = logging.getLogger()
 
@@ -64,7 +60,13 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is None:
             self.channel = self.connection.channel()
-            logger.info(f"Create channel: {self.channel} for subscriber[{self.exchange_name}]")
+            CHANNEL_OPEN_TIMEOUT = 120
+            for x in range(int(CHANNEL_OPEN_TIMEOUT / 5)):
+                if not self.channel.is_open:
+                    time.sleep(5)
+            if not self.channel.is_open:
+                raise RouterError(f"The channel has not been opened for {CHANNEL_OPEN_TIMEOUT} seconds")
+            logger.info(f"Open channel: {self.channel} for subscriber[{self.exchange_name}, {self.subscriber_name}]")
 
             for subscribe_target in self.subscribe_targets:
                 queue = subscribe_target.get_queue()
@@ -76,8 +78,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
                 logger.info(f"Start listening exchangeName='{self.exchange_name}', "
                             f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
-
-            threading.Thread(target=self.channel.start_consuming).start()
 
     def is_close(self) -> bool:
         return self.channel is None or not self.channel.is_open
@@ -106,7 +106,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         pass
 
     @abstractmethod
-    def get_processing_timer(self) -> Gauge:
+    def get_processing_timer(self) -> Histogram:
         pass
 
     @abstractmethod
@@ -115,35 +115,40 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
     def handle(self, channel, method, properties, body):
         process_timer = self.get_processing_timer()
-        start_time = time()
+        start_time = time.time()
 
         try:
-            value = self.value_from_bytes(body)
+            values = self.value_from_bytes(body)
 
-            if value is None:
-                raise ValueError('Received value is null')
+            for value in values:
+                if value is None:
+                    raise ValueError('Received value is null')
 
-            counter = self.get_delivery_counter()
-            counter.inc()
-            content_counter = self.get_content_counter()
-            content_counter.inc(self.extract_count_from(value))
+                counter = self.get_delivery_counter()
+                counter.inc()
+                content_counter = self.get_content_counter()
+                content_counter.inc(self.extract_count_from(value))
 
-            if not self.filter(value):
-                channel.basic_ack(delivery_tag=method.delivery_tag)
-                return
+                if not self.filter(value):
+                    return
+
+                self.handle_with_listener(value, channel, method)
+
         except DecodeError as e:
-            logger.exception(f'Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n'
-                             f'  body: {body}\n'
-                             f'  self: {self}\n')
+            logger.exception(
+                f'Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n'
+                f'  body: {body}\n'
+                f'  self: {self}\n')
             return
         except Exception as e:
             logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
             return
-
-        self.handle_with_listener(value, channel, method)
-
-        end_time = time()
-        process_timer.set(end_time - start_time)
+        finally:
+            process_timer.observe(time.time() - start_time)
+            if channel.is_open:
+                channel.basic_ack(method.delivery_tag)
+            else:
+                logger.error('Message acknowledgment failed due to the channel being closed')
 
     def handle_with_listener(self, value, channel, method):
         with self.lock_listeners:
@@ -152,14 +157,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                     listener.handler(self.attributes, value)
                 except Exception as e:
                     logger.warning(f"Message listener from class '{type(listener)}' threw exception {e}")
-        cb = functools.partial(self.acknowledgment, channel, method.delivery_tag)
-        self.connection.add_callback_threadsafe(cb)
-
-    def acknowledgment(self, channel, delivery_tag):
-        if channel.is_open:
-            channel.basic_ack(delivery_tag)
-        else:
-            logger.error('Message acknowledgment failed due to the channel being closed')
 
     @abstractmethod
     def value_from_bytes(self, body):

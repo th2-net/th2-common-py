@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ class QueueConfiguration(Configuration):
 
     def __init__(self, name: str, queue: str, exchange: str, attributes: list, filters: list,
                  prefetch_count: int = 1000, can_read=True, can_write=True) -> None:
-        self.name = name
+        self.routing_key = name
         self.queue = queue
         self.exchange = exchange
         self.prefetch_count = prefetch_count

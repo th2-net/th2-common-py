@@ -14,17 +14,20 @@
 
 
 import argparse
+import logging
 import sys
+from json import loads, dumps
+from os import mkdir, getcwd
+
+from kubernetes import client, config
 
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.factory.abstract_common_factory import AbstractCommonFactory
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
+    RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
-from kubernetes import client, config
-from json import loads, dumps
-from os import mkdir, getcwd
-import logging
 
 logger = logging.getLogger()
 
@@ -51,6 +54,7 @@ class CommonFactory(AbstractCommonFactory):
 
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
+                 message_group_batch_router_class=RabbitMessageGroupBatchRouter,
                  event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter) -> None:
 
@@ -71,7 +75,7 @@ class CommonFactory(AbstractCommonFactory):
         self.custom_config_filepath = custom_config_filepath
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
-                         event_batch_router_class, grpc_router_class)
+                         message_group_batch_router_class, event_batch_router_class, grpc_router_class)
 
     @staticmethod
     def calculate_path(parsed_args, name_attr, path_default) -> str:

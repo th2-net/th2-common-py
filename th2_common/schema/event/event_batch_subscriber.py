@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -11,10 +11,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-from prometheus_client import Counter, Gauge
+
+from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
+from th2_common.schema.metrics.common_metrics import CommonMetrics
 
 
 class EventBatchSubscriber(AbstractRabbitSubscriber):
@@ -22,8 +24,9 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
                                             'Quantity of incoming event batches')
     INCOMING_EVENT_QUANTITY = Counter('th2_mq_incoming_event_quantity',
                                       'Quantity of incoming events')
-    EVENT_PROCESSING_TIME = Gauge('th2_mq_event_processing_time',
-                                  'Time of processing events')
+    EVENT_PROCESSING_TIME = Histogram('th2_mq_event_processing_time',
+                                      'Time of processing events',
+                                      buckets=CommonMetrics.DEFAULT_BUCKETS)
 
     def get_delivery_counter(self) -> Counter:
         return self.INCOMING_EVENT_BATCH_QUANTITY
@@ -31,7 +34,7 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
     def get_content_counter(self) -> Counter:
         return self.INCOMING_EVENT_QUANTITY
 
-    def get_processing_timer(self) -> Gauge:
+    def get_processing_timer(self) -> Histogram:
         return self.EVENT_PROCESSING_TIME
 
     def extract_count_from(self, message: EventBatch):
@@ -43,7 +46,7 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
     def value_from_bytes(self, body):
         event_batch = EventBatch()
         event_batch.ParseFromString(body)
-        return event_batch
+        return [event_batch]
 
     def filter(self, value) -> bool:
         return True

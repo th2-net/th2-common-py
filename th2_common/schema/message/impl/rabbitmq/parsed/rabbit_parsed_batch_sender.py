@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -11,8 +11,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 from prometheus_client import Counter
-from th2_grpc_common.common_pb2 import MessageBatch
+from th2_grpc_common.common_pb2 import MessageBatch, MessageGroupBatch, MessageGroup, AnyMessage
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
 
@@ -35,5 +36,9 @@ class RabbitParsedBatchSender(AbstractRabbitSender):
     def get_messages(self, batch: MessageBatch) -> list:
         return batch.messages
 
-    def value_to_bytes(self, value: MessageBatch):
-        return value.SerializeToString()
+    @staticmethod
+    def value_to_bytes(batch: MessageBatch):
+        messages = [AnyMessage(message=msg) for msg in batch.messages]
+        group = MessageGroup(messages=messages)
+        group_batch = MessageGroupBatch(groups=[group])
+        return group_batch.SerializeToString()
