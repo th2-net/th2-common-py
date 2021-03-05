@@ -1,8 +1,10 @@
 import logging
 import threading
 import time
+from typing import Optional, Dict
 
 import pika
+from pika.channel import Channel
 
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 
@@ -10,6 +12,9 @@ logger = logging.getLogger()
 
 
 class ConnectionManager:
+    CONNECTION_READINESS_TIMEOUT = 5
+    CHANNEL_READINESS_TIMEOUT = 5
+    CONNECTION_CLOSE_TIMEOUT = 60
 
     def __init__(self, config: RabbitMQConfiguration) -> None:
         self.configuration: RabbitMQConfiguration = config
@@ -19,36 +24,37 @@ class ConnectionManager:
                                                                  host=config.host,
                                                                  port=config.port,
                                                                  credentials=self.__credentials)
-        self.connection = None
+        self.connection: Optional[pika.SelectConnection] = None
+        self.connection_is_open = False
         self.__connection_thread = None
         self.connection_lock = threading.Lock()
         self.open_connection()
 
-        self.reconnect_attempts = 10
+        self.__channels: Dict[str, Channel] = {}
 
     def open_connection(self):
         with self.connection_lock:
-            connection_open_timeout = 60
             self.connection = pika.SelectConnection(self.__connection_parameters)
+            self.connection.add_on_close_callback(self.connection_close_callback)
             self.__connection_thread = threading.Thread(target=self.__run_connection_thread)
             self.__connection_thread.start()
-            for x in range(int(connection_open_timeout / 5)):
-                if not self.connection.is_open:
-                    time.sleep(5)
-            if not self.connection.is_open:
-                raise ConnectionError(f'The connection has not been opened for {connection_open_timeout} seconds')
-            logger.info(f'Connection is open')
+            self.wait_connection_readiness()
+            self.connection_is_open = True
+            logging.info(f'Connection is open')
 
     def close_connection(self):
         with self.connection_lock:
-            connection_close_timeout = 60
             self.connection.close()
-            self.__connection_thread.join(connection_close_timeout)
+            self.__connection_thread.join(ConnectionManager.CONNECTION_CLOSE_TIMEOUT)
             logger.info(f'Connection is close')
 
     def reopen_connection(self):
         self.close_connection()
         self.open_connection()
+
+    def connection_close_callback(self):
+        if self.connection_is_open:
+            self.reopen_connection()
 
     def __run_connection_thread(self):
         try:
@@ -57,4 +63,10 @@ class ConnectionManager:
             logger.exception(f'Failed starting loop SelectConnection')
 
     def close(self):
+        with self.connection_lock:
+            self.connection_is_open = False
         self.close_connection()
+
+    def wait_connection_readiness(self):
+        while not self.connection.is_open:
+            time.sleep(ConnectionManager.CONNECTION_READINESS_TIMEOUT)
