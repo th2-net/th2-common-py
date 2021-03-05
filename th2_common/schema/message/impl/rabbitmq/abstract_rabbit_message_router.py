@@ -111,10 +111,6 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self.unsubscribe_all()
 
     def send(self, message, *queue_attr):
-        if not queue_attr:
-            self._send_by_aliases_and_messages_to_send(self._find_by_filter(self.configuration.queues, message))
-            return
-
         attrs = self.add_send_attributes(queue_attr)
         filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
         filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)

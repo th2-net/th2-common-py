@@ -31,7 +31,7 @@ class AbstractRabbitSender(MessageSender, ABC):
     def __init__(self, connection_manager: ConnectionManager, exchange_name: str, send_queue: str) -> None:
         self.connection_manager: ConnectionManager = connection_manager
         self.channel: Optional[Channel] = None
-        self.channel_is_open = False
+        self.channel_is_open = True
         self.exchange_name: str = exchange_name
         self.send_queue: str = send_queue
 
@@ -39,7 +39,6 @@ class AbstractRabbitSender(MessageSender, ABC):
         if self.send_queue is None or self.exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
         self.check_and_open_channel()
-        self.channel_is_open = True
 
     def check_and_open_channel(self):
         self.connection_manager.wait_connection_readiness()
@@ -51,6 +50,7 @@ class AbstractRabbitSender(MessageSender, ABC):
     def channel_close_callback(self, channel, reason):
         logger.info(f"Channel '{channel}' is close, reason: {reason}")
         if self.channel_is_open:
+            self.connection_manager.reopen_connection()
             self.check_and_open_channel()
 
     def wait_channel_readiness(self):

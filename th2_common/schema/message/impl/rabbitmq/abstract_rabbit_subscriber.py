@@ -43,7 +43,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.connection_manager: ConnectionManager = connection_manager
         self.channel: Optional[Channel] = None
-        self.channel_is_open = False
+        self.channel_is_open = True
 
         self.subscribe_targets = subscribe_targets
         self.subscriber_name = connection_manager.configuration.subscriber_name
@@ -56,7 +56,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         if self.subscribe_targets is None or self.exchange_name is None:
             raise Exception('Subscriber did not init')
         self.check_and_open_channel()
-        self.channel_is_open = True
 
     def subscribe_to_targets(self):
         if self.subscriber_name is None:
@@ -85,6 +84,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
     def channel_close_callback(self, channel, reason):
         logger.info(f"Channel '{channel}' is close, reason: {reason}")
         if self.channel_is_open:
+            self.connection_manager.reopen_connection()
             self.check_and_open_channel()
 
     def wait_channel_readiness(self):
