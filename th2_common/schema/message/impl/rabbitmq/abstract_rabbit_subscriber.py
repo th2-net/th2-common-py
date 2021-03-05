@@ -82,7 +82,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.wait_channel_readiness()
         self.subscribe_to_targets()
 
-    def channel_close_callback(self):
+    def channel_close_callback(self, channel, reason):
+        logger.info(f"Channel '{channel}' is close, reason: {reason}")
         if self.channel_is_open:
             self.check_and_open_channel()
 
