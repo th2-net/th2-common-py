@@ -160,13 +160,10 @@ class AbstractCommonFactory(ABC):
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
         lock = Lock()
-        try:
-            lock.acquire()
+        with lock:
             if not hasattr(self, 'rabbit_mq_configuration'):
                 config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration())
                 self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
-        finally:
-            lock.release()
         return self.rabbit_mq_configuration
 
     def _create_message_router_configuration(self) -> MessageRouterConfiguration:
@@ -179,12 +176,9 @@ class AbstractCommonFactory(ABC):
 
     def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
         lock = Lock()
-        try:
-            lock.acquire()
+        with lock:
             config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
             self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
-        finally:
-            lock.release()
         return self.grpc_router_configuration
 
     @abstractmethod
