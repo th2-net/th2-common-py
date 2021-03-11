@@ -12,6 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 
-print(f"Use th2-common=={version('th2_common')}")
+try:
+    print(f"Use th2-common=={version('th2_common')}")
+except PackageNotFoundError:
+    print(f"th2-common lib not found")

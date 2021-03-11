@@ -29,6 +29,8 @@ from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRo
 from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
+    RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
@@ -98,8 +100,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with MessageGroupBatch
         """
         if self._message_group_batch_router is None:
-            self._message_group_batch_router = self.message_group_batch_router_class(self.connection,
-                                                                                     self.rabbit_mq_configuration,
+            self._message_group_batch_router = self.message_group_batch_router_class(self._connection_manager,
                                                                                      self.message_router_configuration)
 
         return self._message_group_batch_router

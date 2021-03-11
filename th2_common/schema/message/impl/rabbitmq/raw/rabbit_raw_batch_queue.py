@@ -25,9 +25,9 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 class RabbitRawBatchQueue(AbstractRabbitQueue):
 
-    def create_sender(self, connection,
+    def create_sender(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration) -> MessageSender:
-        return RabbitRawBatchSender(connection, queue_configuration.exchange, queue_configuration.routing_key)
+        return RabbitRawBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.routing_key)
 
     def create_subscriber(self, connection_manager: ConnectionManager,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
