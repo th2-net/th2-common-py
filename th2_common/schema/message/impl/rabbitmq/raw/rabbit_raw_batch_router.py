@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,11 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage
 
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_queue import RabbitRawBatchQueue
 from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
     AbstractRabbitBatchMessageRouter
@@ -43,6 +42,6 @@ class RabbitRawBatchRouter(AbstractRabbitBatchMessageRouter):
     def _add_message(self, batch: RawMessageBatch, message: RawMessage):
         batch.messages.append(message)
 
-    def _create_queue(self, connection, configuration: RabbitMQConfiguration,
+    def _create_queue(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration) -> MessageQueue:
-        return RabbitRawBatchQueue(connection, configuration, queue_configuration)
+        return RabbitRawBatchQueue(connection_manager, queue_configuration)

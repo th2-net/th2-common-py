@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from abc import ABC, abstractmethod
 
 from th2_grpc_common.common_pb2 import Direction
@@ -20,7 +19,7 @@ from th2_grpc_common.common_pb2 import Direction
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 
 
 class Metadata:
@@ -34,9 +33,9 @@ class Metadata:
 
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
-    def __init__(self, connection, configuration: RabbitMQConfiguration, queue_configuration: QueueConfiguration,
+    def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
                  filter_strategy=DefaultFilterStrategy(), *subscribe_targets) -> None:
-        super().__init__(connection, configuration, queue_configuration, *subscribe_targets)
+        super().__init__(connection_manager, queue_configuration, *subscribe_targets)
         self.filters = queue_configuration.filters
         self.filter_strategy = filter_strategy
 

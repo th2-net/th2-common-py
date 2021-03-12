@@ -16,7 +16,6 @@ import json
 
 from setuptools import setup, find_packages
 
-
 with open('package_info.json', 'r') as file:
     package_info = json.load(file)
 
@@ -38,8 +37,8 @@ setup(
     license='Apache License 2.0',
     python_requires='>=3.7',
     install_requires=[
-        'pika==1.1.0',
-        'th2-grpc-common~=2.3.5',
+        'pika==1.2.0',
+        'th2-grpc-common~=2.3.6',
         'kubernetes~=12.0.1',
         'prometheus_client~=0.9.0'
     ],

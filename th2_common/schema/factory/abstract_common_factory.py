@@ -16,11 +16,8 @@
 import json
 import logging
 import os
-import threading
 from abc import ABC, abstractmethod
 from threading import Lock
-
-import pika
 
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
@@ -29,11 +26,12 @@ from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
 from th2_common.schema.metrics.prometheus_configuration import PrometheusConfiguration
-from th2_common.schema.metrics.prometheus_thread import PrometheusThread
+from th2_common.schema.metrics.prometheus_server import PrometheusServer
 
 logger = logging.getLogger()
 
@@ -60,29 +58,12 @@ class AbstractCommonFactory(ABC):
         self._event_batch_router = None
         self._grpc_router = None
 
-        credentials = pika.PlainCredentials(self.rabbit_mq_configuration.username,
-                                            self.rabbit_mq_configuration.password)
-        connection_parameters = pika.ConnectionParameters(virtual_host=self.rabbit_mq_configuration.vhost,
-                                                          host=self.rabbit_mq_configuration.host,
-                                                          port=self.rabbit_mq_configuration.port,
-                                                          credentials=credentials)
-
-        self.connection = pika.BlockingConnection(connection_parameters)
+        self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 
         self.prometheus_config = PrometheusConfiguration()
-        self.prometheus = PrometheusThread(self.prometheus_config.port, self.prometheus_config.host)
-        
-        self._notifier = threading.Event()
-
-        def notify(notifier, timeout):
-            while not notifier.wait(timeout):
-                self.connection.process_data_events()
-
-        threading.Thread(target=notify, args=(self._notifier, 30)).start()
-
-    def start_prometheus(self):
+        self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
         if self.prometheus_config.enabled is True:
-            self.prometheus.start()
+            self.prometheus.run()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
@@ -90,8 +71,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with MessageBatch
         """
         if self._message_parsed_batch_router is None:
-            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self.connection,
-                                                                                       self.rabbit_mq_configuration,
+            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self._connection_manager,
                                                                                        self.message_router_configuration
                                                                                        )
 
@@ -103,8 +83,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with RawMessageBatch
         """
         if self._message_raw_batch_router is None:
-            self._message_raw_batch_router = self.message_raw_batch_router_class(self.connection,
-                                                                                 self.rabbit_mq_configuration,
+            self._message_raw_batch_router = self.message_raw_batch_router_class(self._connection_manager,
                                                                                  self.message_router_configuration)
         return self._message_raw_batch_router
 
@@ -114,8 +93,7 @@ class AbstractCommonFactory(ABC):
         Created MessageRouter which work with EventBatch
         """
         if self._event_batch_router is None:
-            self._event_batch_router = self.event_batch_router_class(self.connection,
-                                                                     self.rabbit_mq_configuration,
+            self._event_batch_router = self.event_batch_router_class(self._connection_manager,
                                                                      self.message_router_configuration)
 
         return self._event_batch_router
@@ -156,10 +134,8 @@ class AbstractCommonFactory(ABC):
             except Exception:
                 logger.exception('Error during closing gRPC Router')
 
-        self._notifier.set()
-
-        if self.connection is not None and self.connection.is_open:
-            self.connection.close()
+        if self._connection_manager is not None:
+            self._connection_manager.close()
 
         if self.prometheus.stopped is False:
             self.prometheus.stop()
@@ -184,13 +160,10 @@ class AbstractCommonFactory(ABC):
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
         lock = Lock()
-        try:
-            lock.acquire()
+        with lock:
             if not hasattr(self, 'rabbit_mq_configuration'):
                 config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration())
                 self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
-        finally:
-            lock.release()
         return self.rabbit_mq_configuration
 
     def _create_message_router_configuration(self) -> MessageRouterConfiguration:
@@ -203,12 +176,9 @@ class AbstractCommonFactory(ABC):
 
     def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
         lock = Lock()
-        try:
-            lock.acquire()
+        with lock:
             config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
             self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
-        finally:
-            lock.release()
         return self.grpc_router_configuration
 
     @abstractmethod
