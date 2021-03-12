@@ -16,8 +16,8 @@
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_queue import AbstractRabbitQueue
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_sender import \
     RabbitMessageGroupBatchSender
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_subscriber import \
@@ -28,14 +28,15 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 class RabbitMessageGroupBatchQueue(AbstractRabbitQueue):
 
-    def create_sender(self, connection, queue_configuration: QueueConfiguration) -> MessageSender:
-        return RabbitMessageGroupBatchSender(connection, queue_configuration.exchange, queue_configuration.routing_key)
+    def create_sender(self, connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration) -> MessageSender:
+        return RabbitMessageGroupBatchSender(connection_manager, queue_configuration.exchange,
+                                             queue_configuration.routing_key)
 
-    def create_subscriber(self, connection, configuration: RabbitMQConfiguration,
+    def create_subscriber(self, connection_manager: ConnectionManager,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
         subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
-        return RabbitMessageGroupBatchSubscriber(connection,
-                                                 configuration,
+        return RabbitMessageGroupBatchSubscriber(connection_manager,
                                                  queue_configuration,
                                                  DefaultFilterStrategy(),
                                                  subscribe_target)

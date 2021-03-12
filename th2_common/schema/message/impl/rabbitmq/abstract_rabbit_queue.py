@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,13 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from abc import ABC, abstractmethod
-from threading import Lock
 
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
+from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_queue import MessageQueue
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
@@ -26,34 +24,29 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 
 class AbstractRabbitQueue(MessageQueue, ABC):
 
-    def __init__(self, connection,
-                 configuration: RabbitMQConfiguration,
-                 queue_configuration: QueueConfiguration) -> None:
-        super().__init__(configuration, queue_configuration)
-        self.connection = connection
+    def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration) -> None:
+        super().__init__(connection_manager, queue_configuration)
         self.subscriber = None
-        self.subscriber_lock = Lock()
         self.sender = None
-        self.sender_lock = Lock()
 
     def get_subscriber(self) -> MessageSubscriber:
-        if self.configuration is None or self.queue_configuration is None:
+        if self.connection_manager is None or self.queue_configuration is None:
             raise RouterError('Queue not yet init')
         if not self.queue_configuration.can_read:
             raise RouterError('Queue can not read')
         with self.subscriber_lock:
             if self.subscriber is None or self.subscriber.is_close():
-                self.subscriber = self.create_subscriber(self.connection, self.configuration, self.queue_configuration)
+                self.subscriber = self.create_subscriber(self.connection_manager, self.queue_configuration)
             return self.subscriber
 
     def get_sender(self) -> MessageSender:
-        if self.configuration is None or self.queue_configuration is None:
+        if self.connection_manager is None or self.queue_configuration is None:
             raise RouterError('Queue not yet init')
         if not self.queue_configuration.can_write:
             raise RouterError('Queue can not write')
         with self.sender_lock:
             if self.sender is None or self.sender.is_close():
-                self.sender = self.create_sender(self.connection, self.queue_configuration)
+                self.sender = self.create_sender(self.connection_manager, self.queue_configuration)
             return self.sender
 
     def close(self):
@@ -65,12 +58,11 @@ class AbstractRabbitQueue(MessageQueue, ABC):
                 self.sender.close()
 
     @abstractmethod
-    def create_sender(self, connection,
+    def create_sender(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration) -> MessageSender:
         pass
 
     @abstractmethod
-    def create_subscriber(self, connection,
-                          configuration: RabbitMQConfiguration,
+    def create_subscriber(self, connection_manager: ConnectionManager,
                           queue_configuration: QueueConfiguration) -> MessageSubscriber:
         pass
