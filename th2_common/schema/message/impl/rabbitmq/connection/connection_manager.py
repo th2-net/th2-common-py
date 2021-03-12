@@ -26,7 +26,6 @@ class ConnectionManager:
                                                                  credentials=self.__credentials)
         self.connection: Optional[pika.SelectConnection] = None
         self.connection_is_open = False
-        self.__connection_thread: Optional[threading.Thread] = None
         self.connection_lock = threading.Lock()
         self.open_connection()
 
@@ -36,8 +35,7 @@ class ConnectionManager:
         with self.connection_lock:
             self.connection = pika.SelectConnection(self.__connection_parameters)
             self.connection.add_on_close_callback(self.connection_close_callback)
-            self.__connection_thread = threading.Thread(target=self.__run_connection_thread)
-            self.__connection_thread.start()
+            threading.Thread(target=self.__run_connection_thread).start()
             self.wait_connection_readiness()
             self.connection_is_open = True
             logging.info(f'Connection is open')
@@ -45,6 +43,7 @@ class ConnectionManager:
     def close_connection(self):
         with self.connection_lock:
             if self.connection.is_open:
+                self.connection.ioloop.stop()
                 self.connection.close()
                 logger.info(f'Connection is close')
 
