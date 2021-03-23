@@ -51,37 +51,38 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
         self.attributes = tuple(set(queue_configuration.attributes))
-        self.consumer_number = 0
 
     def start(self):
         if self.subscribe_targets is None or self.exchange_name is None:
             raise Exception('Subscriber did not init')
-        self.check_and_open_channel()
+        if self.channel is None:
+            self.check_and_open_channel()
 
     def subscribe_to_targets(self):
         if self.subscriber_name is None:
             self.subscriber_name = 'rabbit_mq_subscriber'
             logger.info(f"Using default subscriber name: '{self.subscriber_name}'")
 
+        consumer_number = 0
         for subscribe_target in self.subscribe_targets:
             queue = subscribe_target.get_queue()
             routing_key = subscribe_target.get_routing_key()
             self.channel.basic_qos(prefetch_count=self.prefetch_count)
-            consumer_tag = f'{self.subscriber_name}.{self.consumer_number}.{datetime.datetime.now()}'
-            self.consumer_number += 1
+            consumer_tag = f'{self.subscriber_name}.{consumer_number}.{datetime.datetime.now()}'
+            consumer_number += 1
             self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
                                        on_message_callback=self.handle)
 
             logger.info(
-                f"Start listening channel #'{self.channel.channel_number}', exchangeName='{self.exchange_name}', "
-                f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
+                f"Start listening channel #{self.channel.channel_number}, routing key='{routing_key}', "
+                f"queue name='{queue}', consumer_tag={consumer_tag}, exchangeName='{self.exchange_name}'"
+            )
 
     def check_and_open_channel(self):
         self.connection_manager.wait_connection_readiness()
         if self.channel is None or not self.channel.is_open:
             self.channel = self.connection_manager.connection.channel()
             self.channel.add_on_close_callback(self.channel_close_callback)
-            self.consumer_number = 0
         self.wait_channel_readiness()
         self.subscribe_to_targets()
 
