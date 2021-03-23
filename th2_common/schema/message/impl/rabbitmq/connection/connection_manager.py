@@ -25,25 +25,25 @@ class ConnectionManager:
                                                                  port=config.port,
                                                                  credentials=self.__credentials)
         self.connection: Optional[pika.SelectConnection] = None
-        self.connection_is_open = False
+        self.connection_need_open = True
         self.connection_lock = threading.Lock()
+        self.channels_lock = threading.Lock()
         self.open_connection()
 
         self.__channels: Dict[str, Channel] = {}
 
     def open_connection(self):
         with self.connection_lock:
-            self.connection = pika.SelectConnection(self.__connection_parameters)
-            self.connection.add_on_close_callback(self.connection_close_callback)
+            self.connection = pika.SelectConnection(parameters=self.__connection_parameters,
+                                                    on_close_callback=self.connection_close_callback)
             threading.Thread(target=self.__run_connection_thread).start()
             self.wait_connection_readiness()
-            self.connection_is_open = True
             logging.info(f'Connection is open')
 
     def close_connection(self):
         with self.connection_lock:
             if self.connection.is_open:
-                self.connection.ioloop.stop()
+                self.connection.ioloop.add_callback_threadsafe(self.connection.ioloop.stop)
                 self.connection.close()
                 logger.info(f'Connection is close')
 
@@ -55,8 +55,6 @@ class ConnectionManager:
 
     def connection_close_callback(self, connection, reason):
         logger.info(f"Connection is close, reason: {reason}")
-        if self.connection_is_open:
-            self.reopen_connection()
 
     def __run_connection_thread(self):
         try:
@@ -65,8 +63,7 @@ class ConnectionManager:
             logger.exception(f'Failed starting loop SelectConnection')
 
     def close(self):
-        with self.connection_lock:
-            self.connection_is_open = False
+        self.connection_need_open = False
         self.close_connection()
 
     def wait_connection_readiness(self):

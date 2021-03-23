@@ -43,7 +43,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.connection_manager: ConnectionManager = connection_manager
         self.channel: Optional[Channel] = None
-        self.channel_is_open = True
+        self.channel_need_open = True
 
         self.subscribe_targets = subscribe_targets
         self.subscriber_name = connection_manager.configuration.subscriber_name
@@ -72,22 +72,26 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
                                        on_message_callback=self.handle)
 
-            logger.info(f"Start listening channel='{self.channel}', exchangeName='{self.exchange_name}', "
-                        f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
+            logger.info(
+                f"Start listening channel #'{self.channel.channel_number}', exchangeName='{self.exchange_name}', "
+                f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
 
     def check_and_open_channel(self):
         self.connection_manager.wait_connection_readiness()
         if self.channel is None or not self.channel.is_open:
             self.channel = self.connection_manager.connection.channel()
             self.channel.add_on_close_callback(self.channel_close_callback)
+            self.consumer_number = 0
         self.wait_channel_readiness()
         self.subscribe_to_targets()
 
     def channel_close_callback(self, channel, reason):
         logger.info(f"Channel '{channel}' is close, reason: {reason}")
-        if self.channel_is_open:
-            self.connection_manager.reopen_connection()
-            self.check_and_open_channel()
+        with self.connection_manager.channels_lock:
+            if self.channel_need_open:
+                if not self.connection_manager.connection.is_open:
+                    self.connection_manager.reopen_connection()
+                self.check_and_open_channel()
 
     def wait_channel_readiness(self):
         while not self.channel.is_open:
@@ -104,7 +108,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.channel is not None and self.channel.is_open:
             self.channel.close()
-            self.channel_is_open = False
+            self.channel_need_open = False
             logger.info(f"Close channel: {self.channel} for subscriber[{self.exchange_name}]")
 
     def add_listener(self, message_listener: MessageListener):
@@ -112,22 +116,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             return
         with self.lock_listeners:
             self.listeners.add(message_listener)
-
-    @abstractmethod
-    def get_delivery_counter(self) -> Counter:
-        pass
-
-    @abstractmethod
-    def get_content_counter(self) -> Counter:
-        pass
-
-    @abstractmethod
-    def get_processing_timer(self) -> Histogram:
-        pass
-
-    @abstractmethod
-    def extract_count_from(self, message):
-        pass
 
     def handle(self, channel, method, properties, body):
         try:
@@ -181,4 +169,20 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
     @abstractmethod
     def filter(self, value) -> bool:
+        pass
+
+    @abstractmethod
+    def get_delivery_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def get_content_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def get_processing_timer(self) -> Histogram:
+        pass
+
+    @abstractmethod
+    def extract_count_from(self, message):
         pass

@@ -31,7 +31,7 @@ class AbstractRabbitSender(MessageSender, ABC):
     def __init__(self, connection_manager: ConnectionManager, exchange_name: str, send_queue: str) -> None:
         self.connection_manager: ConnectionManager = connection_manager
         self.channel: Optional[Channel] = None
-        self.channel_is_open = True
+        self.channel_need_open = True
         self.exchange_name: str = exchange_name
         self.send_queue: str = send_queue
 
@@ -49,9 +49,11 @@ class AbstractRabbitSender(MessageSender, ABC):
 
     def channel_close_callback(self, channel, reason):
         logger.info(f"Channel '{channel}' is close, reason: {reason}")
-        if self.channel_is_open:
-            self.connection_manager.reopen_connection()
-            self.check_and_open_channel()
+        with self.connection_manager.channels_lock:
+            if self.channel_need_open:
+                if not self.connection_manager.connection.is_open:
+                    self.connection_manager.reopen_connection()
+                self.check_and_open_channel()
 
     def wait_channel_readiness(self):
         while not self.channel.is_open:
@@ -63,20 +65,8 @@ class AbstractRabbitSender(MessageSender, ABC):
     def close(self):
         if self.channel is not None and self.channel.is_open:
             self.channel.close()
-            self.channel_is_open = False
+            self.channel_need_open = False
             logger.info(f"Close channel: {self.channel} for sender[{self.exchange_name}:{self.send_queue}]")
-
-    @abstractmethod
-    def get_delivery_counter(self) -> Counter:
-        pass
-
-    @abstractmethod
-    def get_content_counter(self) -> Counter:
-        pass
-
-    @abstractmethod
-    def extract_count_from(self, message):
-        pass
 
     def send(self, message):
         if message is None:
@@ -100,4 +90,16 @@ class AbstractRabbitSender(MessageSender, ABC):
 
     @abstractmethod
     def value_to_bytes(self, value):
+        pass
+
+    @abstractmethod
+    def get_delivery_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def get_content_counter(self) -> Counter:
+        pass
+
+    @abstractmethod
+    def extract_count_from(self, message):
         pass
