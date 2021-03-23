@@ -66,11 +66,11 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             queue = subscribe_target.get_queue()
             routing_key = subscribe_target.get_routing_key()
             self.channel.basic_qos(prefetch_count=self.prefetch_count)
-            consumer_tag = f'{self.subscriber_name}.{datetime.datetime.now()}'
+            consumer_tag = f'{self.subscriber_name}.{self.subscribe_targets.index(subscribe_target)}.{datetime.datetime.now()}'
             self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
                                        on_message_callback=self.handle)
 
-            logger.info(f"Start listening exchangeName='{self.exchange_name}', "
+            logger.info(f"Start listening channel='{self.channel}', exchangeName='{self.exchange_name}', "
                         f"routing key='{routing_key}', queue name='{queue}', consumer_tag={consumer_tag}")
 
     def check_and_open_channel(self):
