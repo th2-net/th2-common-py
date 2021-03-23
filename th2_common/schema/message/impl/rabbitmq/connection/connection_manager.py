@@ -34,8 +34,7 @@ class ConnectionManager:
 
     def open_connection(self):
         with self.connection_lock:
-            self.connection = pika.SelectConnection(parameters=self.__connection_parameters,
-                                                    on_close_callback=self.connection_close_callback)
+            self.connection = pika.SelectConnection(parameters=self.__connection_parameters)
             threading.Thread(target=self.__run_connection_thread).start()
             self.wait_connection_readiness()
             logging.info(f'Connection is open')
@@ -52,9 +51,6 @@ class ConnectionManager:
             return
         self.close_connection()
         self.open_connection()
-
-    def connection_close_callback(self, connection, reason):
-        logger.info(f"Connection is close, reason: {reason}")
 
     def __run_connection_thread(self):
         try:
