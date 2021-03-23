@@ -51,6 +51,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.prefetch_count = queue_configuration.prefetch_count
         self.exchange_name = queue_configuration.exchange
         self.attributes = tuple(set(queue_configuration.attributes))
+        self.consumer_number = 0
 
     def start(self):
         if self.subscribe_targets is None or self.exchange_name is None:
@@ -66,7 +67,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             queue = subscribe_target.get_queue()
             routing_key = subscribe_target.get_routing_key()
             self.channel.basic_qos(prefetch_count=self.prefetch_count)
-            consumer_tag = f'{self.subscriber_name}.{self.subscribe_targets.index(subscribe_target)}.{datetime.datetime.now()}'
+            consumer_tag = f'{self.subscriber_name}.{self.consumer_number}.{datetime.datetime.now()}'
+            self.consumer_number += 1
             self.channel.basic_consume(queue=queue, consumer_tag=consumer_tag,
                                        on_message_callback=self.handle)
 
