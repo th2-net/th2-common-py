@@ -46,8 +46,8 @@ class AbstractRabbitSender(MessageSender, ABC):
         if self.channel is None or not self.channel.is_open:
             self.channel = self.connection_manager.connection.channel()
             self.channel.add_on_close_callback(self.channel_close_callback)
-        self.wait_channel_readiness()
-        logger.info(f"Channel #{self.channel.channel_number} is open for send queue='{self.send_queue}'")
+            self.wait_channel_readiness()
+            logger.info(f"Channel #{self.channel.channel_number} is open for send queue='{self.send_queue}'")
 
     def channel_close_callback(self, channel, reason):
         logger.info(f"Channel #{channel.channel_number} is close, reason: {reason}")
