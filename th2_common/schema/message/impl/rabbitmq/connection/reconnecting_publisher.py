@@ -4,6 +4,7 @@ import time
 from typing import Optional
 
 import pika
+from pika import SelectConnection
 from pika.channel import Channel
 
 logger = logging.getLogger()
@@ -14,7 +15,7 @@ class ReconnectingPublisher(object):
     def __init__(self, connection_parameters: pika.ConnectionParameters):
         self._connection_parameters = connection_parameters
 
-        self._connection = None
+        self._connection: Optional[SelectConnection] = None
         self._channel: Optional[Channel] = None
 
         self._deliveries = None
@@ -125,7 +126,7 @@ class ReconnectingPublisher(object):
         logger.info('Publisher stopping')
         deliveries_size = len(self._deliveries)
         while deliveries_size > 0:
-            logger.info(f'Deliveries size != 0, size={deliveries_size}')
+            logger.info(f'Deliveries size != 0, size={deliveries_size}. Wait confirm delivery.')
             time.sleep(1)
             deliveries_size = len(self._deliveries)
         self._stopping = True
@@ -133,11 +134,11 @@ class ReconnectingPublisher(object):
         self.close_connection()
 
     def close_channel(self):
-        if self._channel is not None:
+        if self._channel is not None and not self._channel.is_closing and not self._channel.is_closed:
             logger.info('Closing Publisher channel')
             self._channel.close()
 
     def close_connection(self):
-        if self._connection is not None:
+        if self._connection is not None and not self._connection.is_closing and not self._connection.is_closed:
             logger.info('Closing Publisher connection')
             self._connection.close()
