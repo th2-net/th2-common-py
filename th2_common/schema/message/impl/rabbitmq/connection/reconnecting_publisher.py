@@ -1,8 +1,10 @@
 import logging
 import threading
 import time
+from typing import Optional
 
 import pika
+from pika.channel import Channel
 
 logger = logging.getLogger()
 
@@ -13,7 +15,7 @@ class ReconnectingPublisher(object):
         self._connection_parameters = connection_parameters
 
         self._connection = None
-        self._channel = None
+        self._channel: Optional[Channel] = None
 
         self._deliveries = None
         self._acked = None
@@ -85,7 +87,8 @@ class ReconnectingPublisher(object):
 
             self._channel.basic_publish(exchange=exchange_name,
                                         routing_key=routing_key,
-                                        body=message)
+                                        body=message,
+                                        mandatory=True)
 
             self._message_number += 1
             self._deliveries.append(self._message_number)
