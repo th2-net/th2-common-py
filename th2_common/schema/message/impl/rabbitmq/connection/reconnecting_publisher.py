@@ -68,13 +68,21 @@ class ReconnectingPublisher(object):
     def on_delivery_confirmation(self, method_frame):
         with self._message_lock:
             confirmation_type = method_frame.method.NAME.split('.')[1].lower()
-            logger.info('Received %s for delivery tag: %i', confirmation_type,
-                        method_frame.method.delivery_tag)
+            logger.info('Received %s for delivery tag: %i multi: %s', confirmation_type,
+                        method_frame.method.delivery_tag, method_frame.method.multiple)
+            cnt = 0
+            if method_frame.method.multiple:
+                while len(self._deliveries) > 0 and self._deliveries[0] <= method_frame.method.delivery_tag:
+                    cnt += 1
+                    self._deliveries.pop(0)
+            else:
+                cnt += 1
+                self._deliveries.remove(method_frame.method.delivery_tag)
             if confirmation_type == 'ack':
-                self._acked += 1
+                self._acked += cnt
             elif confirmation_type == 'nack':
-                self._nacked += 1
-            self._deliveries.remove(method_frame.method.delivery_tag)
+                self._nacked += cnt
+
             logger.info(
                 'Published %i messages, %i have yet to be confirmed, '
                 '%i were acked and %i were nacked', self._message_number,
@@ -87,8 +95,7 @@ class ReconnectingPublisher(object):
 
             self._channel.basic_publish(exchange=exchange_name,
                                         routing_key=routing_key,
-                                        body=message,
-                                        mandatory=True)
+                                        body=message)
 
             self._message_number += 1
             self._deliveries.append(self._message_number)
