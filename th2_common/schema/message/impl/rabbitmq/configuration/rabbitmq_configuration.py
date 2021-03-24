@@ -15,7 +15,8 @@
 
 class RabbitMQConfiguration:
 
-    def __init__(self, host, vHost, port, username, password, exchangeName, subscriberName=None) -> None:
+    def __init__(self, host, vHost, port, username, password, exchangeName, prefetch_count: int = 1000,
+                 subscriberName=None) -> None:
         self.host = host
         self.vhost = vHost
         self.port = port
@@ -23,3 +24,4 @@ class RabbitMQConfiguration:
         self.password = password
         self.subscriber_name = subscriberName
         self.exchange_name = exchangeName
+        self.prefetch_count = prefetch_count
