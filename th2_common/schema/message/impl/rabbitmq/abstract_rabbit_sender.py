@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import logging
+import threading
 import time
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -34,6 +35,7 @@ class AbstractRabbitSender(MessageSender, ABC):
         self.channel_need_open = True
         self.exchange_name: str = exchange_name
         self.send_queue: str = send_queue
+        self.channel_lock = threading.Lock()
 
     def start(self):
         if self.send_queue is None or self.exchange_name is None:
@@ -43,11 +45,12 @@ class AbstractRabbitSender(MessageSender, ABC):
 
     def check_and_open_channel(self):
         self.connection_manager.wait_connection_readiness()
-        if self.channel is None or not self.channel.is_open:
-            self.channel = self.connection_manager.connection.channel()
-            self.channel.add_on_close_callback(self.channel_close_callback)
-            self.wait_channel_readiness()
-            logger.info(f"Channel #{self.channel.channel_number} is open for send queue='{self.send_queue}'")
+        with self.channel_lock:
+            if self.channel is None or not self.channel.is_open:
+                self.channel = self.connection_manager.connection.channel()
+                self.channel.add_on_close_callback(self.channel_close_callback)
+                self.wait_channel_readiness()
+                logger.info(f"Channel #{self.channel.channel_number} is open for send queue='{self.send_queue}'")
 
     def channel_close_callback(self, channel, reason):
         logger.info(f"Channel #{channel.channel_number} is close, reason: {reason}")
