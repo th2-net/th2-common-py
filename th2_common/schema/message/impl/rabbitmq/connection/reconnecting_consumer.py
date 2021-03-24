@@ -176,6 +176,7 @@ class ReconnectingConsumer(object):
         self._subscribers[consumer_tag] = (queue, on_message_callback)
         self._consuming[consumer_tag] = False
         self._consumer.start_consuming(consumer_tag)
+        return consumer_tag
 
     def remove_subscriber(self, consumer_tag):
         self._consumer.stop_consuming(consumer_tag)
