@@ -79,14 +79,14 @@ class ReconnectingPublisher(object):
                 len(self._deliveries), self._acked, self._nacked)
 
     def publish_message(self, exchange_name, routing_key, message):
-        while self._channel is None or not self._channel.is_open:
-            time.sleep(5)
-
-        self._channel.basic_publish(exchange=exchange_name,
-                                    routing_key=routing_key,
-                                    body=message)
-
         with self._message_lock:
+            while self._channel is None or not self._channel.is_open:
+                time.sleep(5)
+
+            self._channel.basic_publish(exchange=exchange_name,
+                                        routing_key=routing_key,
+                                        body=message)
+
             self._message_number += 1
             self._deliveries.append(self._message_number)
             logger.info('Published message # %i', self._message_number)
@@ -104,7 +104,7 @@ class ReconnectingPublisher(object):
                 self._connection = self.connect()
                 self._connection.ioloop.start()
             except Exception:
-                logger.exception("While running Publisher")
+                logger.info("Error while running Publisher")
 
         self.stop()
         if self._connection is not None and not self._connection.is_closed:

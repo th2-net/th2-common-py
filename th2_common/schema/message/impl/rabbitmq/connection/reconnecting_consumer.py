@@ -67,7 +67,7 @@ class Consumer:
         self.stop()
 
     def open_channel(self):
-        logger.info('Creating a new channel for Consumer')
+        logger.info('Creating a channel for Consumer')
         self._connection.channel(on_open_callback=self.on_channel_open)
 
     def on_channel_open(self, channel):
