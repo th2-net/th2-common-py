@@ -74,9 +74,13 @@ class ReconnectingPublisher(object):
                         method_frame.method.delivery_tag, method_frame.method.multiple)
             cnt = 0
             if method_frame.method.multiple:
-                while len(self._deliveries) > 0 and self._deliveries[0] != method_frame.method.delivery_tag:
-                    cnt += 1
+                idx = len(self._deliveries) - 1
+                while self._deliveries[idx] != method_frame.method.delivery_tag:
+                    idx -= 1
+                while idx >= 0:
                     self._deliveries.pop(0)
+                    cnt += 1
+                    idx -= 1
             else:
                 cnt += 1
                 self._deliveries.remove(method_frame.method.delivery_tag)
