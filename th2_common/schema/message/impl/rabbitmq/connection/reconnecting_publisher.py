@@ -73,7 +73,7 @@ class ReconnectingPublisher(object):
                         method_frame.method.delivery_tag, method_frame.method.multiple)
             cnt = 0
             if method_frame.method.multiple:
-                while len(self._deliveries) > 0 and self._deliveries[0] <= method_frame.method.delivery_tag:
+                while len(self._deliveries) > 0 and self._deliveries[0] != method_frame.method.delivery_tag:
                     cnt += 1
                     self._deliveries.pop(0)
             else:
@@ -91,8 +91,8 @@ class ReconnectingPublisher(object):
 
     def publish_message(self, exchange_name, routing_key, message):
         while self._channel is None or not self._channel.is_open:
-            logger.warning('Cannot send a message because the connection or channel is closed. Next try in 5 sec.')
-            time.sleep(5)
+            logger.warning('Cannot send a message because the connection or channel is closed. Next try in 1 sec.')
+            time.sleep(1)
         with self._message_lock:
             self._channel.basic_publish(exchange=exchange_name,
                                         routing_key=routing_key,
@@ -106,7 +106,6 @@ class ReconnectingPublisher(object):
         while not self._stopping:
             self._connection = None
             with self._message_lock:
-                self._deliveries = []
                 self._acked = 0
                 self._nacked = 0
                 self._message_number = 0
