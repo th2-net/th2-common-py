@@ -18,7 +18,7 @@ class ReconnectingPublisher(object):
         self._connection: Optional[SelectConnection] = None
         self._channel: Optional[Channel] = None
 
-        self._deliveries = None
+        self._deliveries = []
         self._acked = None
         self._nacked = None
         self._message_number = None
