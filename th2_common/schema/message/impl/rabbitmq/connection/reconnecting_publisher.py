@@ -90,10 +90,10 @@ class ReconnectingPublisher(object):
                 len(self._deliveries), self._acked, self._nacked)
 
     def publish_message(self, exchange_name, routing_key, message):
+        while self._channel is None or not self._channel.is_open:
+            logger.warning('Cannot send a message because the connection or channel is closed. Next try in 5 sec.')
+            time.sleep(5)
         with self._message_lock:
-            while self._channel is None or not self._channel.is_open:
-                time.sleep(5)
-
             self._channel.basic_publish(exchange=exchange_name,
                                         routing_key=routing_key,
                                         body=message)
