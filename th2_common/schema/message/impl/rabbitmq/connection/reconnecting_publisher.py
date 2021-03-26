@@ -1,4 +1,3 @@
-import asyncio
 import functools
 import logging
 import threading
@@ -98,6 +97,9 @@ class ReconnectingPublisher(object):
 
     def publish_message(self, exchange_name, routing_key, message):
         cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
+        while self._connection is None or not self._connection.is_open:
+            logger.warning('Cannot send a message because the connection. Try in 1 sec.')
+            time.sleep(1)
         self._connection.ioloop.call_later(1, cb)
 
     def _basic_publish(self, exchange_name, routing_key, message):
