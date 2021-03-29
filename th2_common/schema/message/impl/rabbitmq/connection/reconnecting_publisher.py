@@ -1,3 +1,4 @@
+import functools
 import logging
 import threading
 import time
@@ -95,9 +96,17 @@ class ReconnectingPublisher(object):
                 len(self._deliveries), self._acked, self._nacked)
 
     def publish_message(self, exchange_name, routing_key, message):
-        while self._channel is None or not self._channel.is_open:
-            logger.warning('Cannot send a message because the connection or channel is closed. Next try in 1 sec.')
+        cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
+        while self._connection is None or not self._connection.is_open:
+            logger.warning('Cannot send a message because the connection. Try in 1 sec.')
             time.sleep(1)
+        self._connection.ioloop.call_later(1, cb)
+
+    def _basic_publish(self, exchange_name, routing_key, message):
+        if self._channel is None or not self._channel.is_open:
+            logger.warning('Cannot send a message because the connection or channel is closed. Try in 5 sec.')
+            cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
+            self._connection.ioloop.call_later(5, cb)
         with self._message_lock:
             self._channel.basic_publish(exchange=exchange_name,
                                         routing_key=routing_key,
