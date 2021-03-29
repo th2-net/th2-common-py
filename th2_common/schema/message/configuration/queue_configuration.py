@@ -19,12 +19,11 @@ from th2_common.schema.message.configuration.mq_router_filter_configuration impo
 
 class QueueConfiguration(Configuration):
 
-    def __init__(self, name: str, queue: str, exchange: str, attributes: list, filters: list,
-                 prefetch_count: int = 1000, can_read=True, can_write=True) -> None:
+    def __init__(self, name: str, queue: str, exchange: str, attributes: list, filters: list, can_read=True,
+                 can_write=True) -> None:
         self.routing_key = name
         self.queue = queue
         self.exchange = exchange
-        self.prefetch_count = prefetch_count
         self.attributes = attributes
         self.filters = [MqRouterFilterConfiguration(**filter_schema) for filter_schema in filters]
         self.can_read = can_read

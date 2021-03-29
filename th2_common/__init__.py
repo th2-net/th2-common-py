@@ -17,4 +17,4 @@ from importlib.metadata import version, PackageNotFoundError
 try:
     print(f"Use th2-common=={version('th2_common')}")
 except PackageNotFoundError:
-    print(f"th2-common lib not found")
+    print(f"th2-common lib not install")
