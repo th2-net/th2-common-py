@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,13 +16,11 @@
 import json
 import logging
 import os
-import threading
 from abc import ABC, abstractmethod
 from threading import Lock
 
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
-from th2_common.schema.exception.common_factory_error import CommonFactoryError
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
@@ -163,6 +161,8 @@ class AbstractCommonFactory(ABC):
 
         if self.prometheus.stopped is False:
             self.prometheus.stop()
+
+        logger.info('Common Factory is closed')
 
     @staticmethod
     def read_configuration(filepath):
