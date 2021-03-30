@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
+import functools
 import logging
 import time
 from abc import ABC, abstractmethod
@@ -87,10 +87,14 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             return
         finally:
             process_timer.observe(time.time() - start_time)
-            if channel.is_open:
-                channel.basic_ack(method.delivery_tag)
-            else:
-                logger.error('Message acknowledgment failed due to the channel being closed')
+            cb = functools.partial(self.ack_message, channel, method.delivery_tag)
+            self.__consumer.add_callback_threadsafe(cb)
+
+    def ack_message(self, channel, delivery_tag):
+        if channel.is_open:
+            channel.basic_ack(delivery_tag)
+        else:
+            logger.error('Message acknowledgment failed due to the channel being closed')
 
     def handle_with_listener(self, value, channel, method):
         with self.__lock_listeners:

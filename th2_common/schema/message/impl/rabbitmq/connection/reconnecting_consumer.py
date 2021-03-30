@@ -6,6 +6,7 @@ import time
 from typing import Dict, Optional
 
 import pika
+from pika import SelectConnection
 from pika.channel import Channel
 
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
@@ -25,7 +26,7 @@ class Consumer:
         self._consuming: Dict[str, bool] = consuming
         self._subscribers: Dict[str, tuple] = subscribers
 
-        self._connection = None
+        self._connection: Optional[SelectConnection] = None
         self._channel: Optional[Channel] = None
         self._closing = False
 
@@ -135,6 +136,9 @@ class Consumer:
                 self._connection.ioloop.stop()
             logger.info('Stopped ReconnectingConsumer')
 
+    def add_callback_threadsafe(self, cb):
+        self._connection.ioloop.add_callback_threadsafe(cb)
+
 
 class ReconnectingConsumer(object):
     def __init__(self, configuration: RabbitMQConfiguration, connection_parameters: pika.ConnectionParameters):
@@ -182,6 +186,9 @@ class ReconnectingConsumer(object):
         self._consumer.stop_consuming(consumer_tag)
         self._subscribers.pop(consumer_tag)
         self._consuming.pop(consumer_tag)
+
+    def add_callback_threadsafe(self, cb):
+        self._consumer.add_callback_threadsafe(cb)
 
     def _maybe_reconnect(self):
         if self._consumer.should_reconnect:

@@ -12,7 +12,8 @@ logger = logging.getLogger()
 
 
 class ReconnectingPublisher(object):
-    TIMEOUT_WAIT_CONFIRM_DELIVERY_BY_CLOSE = 20
+    TIMEOUT_WAIT_CONFIRM_DELIVERY_BY_CLOSE = 10
+    TIMEOUT_STOPPING = 5
 
     def __init__(self, connection_parameters: pika.ConnectionParameters):
         self._connection_parameters = connection_parameters
@@ -137,6 +138,8 @@ class ReconnectingPublisher(object):
 
     def stop(self):
         logger.info('Publisher stopping')
+        self._stopping = True
+        time.sleep(ReconnectingPublisher.TIMEOUT_STOPPING)
         deliveries_size = len(self._deliveries)
         wait_counter = 0
         while deliveries_size > 0 and wait_counter <= ReconnectingPublisher.TIMEOUT_WAIT_CONFIRM_DELIVERY_BY_CLOSE:
@@ -145,7 +148,6 @@ class ReconnectingPublisher(object):
             time.sleep(1)
             wait_counter += 1
             deliveries_size = len(self._deliveries)
-        self._stopping = True
         self.close_channel()
         self.close_connection()
 
