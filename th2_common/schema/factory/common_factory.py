@@ -41,6 +41,8 @@ class CommonFactory(AbstractCommonFactory):
     CRADLE_CONFIG_FILENAME = 'cradle.json'
     PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
     CUSTOM_CONFIG_FILENAME = 'custom.json'
+    DICTIONARY_FILENAME = 'dictionary.json'
+    BOX_FILE_NAME = 'box.json'
 
     #   FIX: Add path to dictionary as a parameter
     def __init__(self,
@@ -104,13 +106,15 @@ class CommonFactory(AbstractCommonFactory):
                             help='namespace in Kubernetes to find config maps related to the target')
         parser.add_argument('--boxName',
                             help='name of the target th2 box placed in the specified namespace in Kubernetes')
+        parser.add_argument('--contextName',
+                            help='context name to choose the context from Kube config')
         parser.add_argument('--customConfiguration',
                             help='path to json file with custom configuration')
         result = parser.parse_args(args)
 
         if hasattr(result, 'namespace') and hasattr(result, 'box_name'):
 
-            return CommonFactory.create_from_kubernetes(result.namespace, result.box_name)
+            return CommonFactory.create_from_kubernetes(result.namespace, result.box_name, result.contextName)
 
         else:
 
@@ -130,20 +134,14 @@ class CommonFactory(AbstractCommonFactory):
             )
 
     @staticmethod
-    def create_from_kubernetes(namespace, box_name):
+    def create_from_kubernetes(namespace, box_name, context_name=None):
 
         config.load_kube_config()
-        kube_contexts = config.kube_config.list_kube_config_contexts()
 
-        v1 = client.CoreV1Api()
+        v1 = client.CoreV1Api(api_client=config.new_client_from_config(context=context_name))
 
         config_maps = v1.list_namespaced_config_map(namespace)
         config_maps_dict = config_maps.to_dict()
-
-        service_in_namespace_service = v1.list_namespaced_service('service').to_dict()
-
-        services = v1.list_namespaced_service(namespace)
-        services_dict = services.to_dict()
 
         config_dir = 'generated_configs'
 
@@ -152,11 +150,9 @@ class CommonFactory(AbstractCommonFactory):
         mq_path = config_dir + '/' + CommonFactory.MQ_ROUTER_CONFIG_FILENAME
         cradle_path = config_dir + '/' + CommonFactory.CRADLE_CONFIG_FILENAME
         rabbit_path = config_dir + '/' + CommonFactory.RABBIT_MQ_CONFIG_FILENAME
-        dictionary_path = config_dir + '/' + 'dictionary.json'
-        prometheus_path = config_dir + '/' + 'prometheus.json'
-
-        prometheus_host = '0.0.0.0'
-        prometheus_port = 9752
+        dictionary_path = config_dir + '/' + CommonFactory.DICTIONARY_FILENAME
+        prometheus_path = config_dir + '/' + CommonFactory.PROMETHEUS_CONFIG_FILENAME
+        box_configuration_path = config_dir + '/' + CommonFactory.BOX_FILE_NAME
 
         try:
             mkdir(config_dir)
@@ -164,15 +160,27 @@ class CommonFactory(AbstractCommonFactory):
         except OSError:
             logger.info('All configuration in the %s folder are overridden' % (getcwd() + '/' + config_dir))
 
-        CommonFactory._get_grpc(config_maps_dict, box_name, grpc_path, services_dict, kube_contexts)
-        CommonFactory._get_custom(config_maps_dict, box_name, custom_path)
-        CommonFactory._get_mq(config_maps_dict, box_name, mq_path)
-        CommonFactory._get_cradle(config_maps_dict, cradle_path, kube_contexts, service_in_namespace_service)
-        CommonFactory._get_rabbit(config_maps_dict, rabbit_path, kube_contexts, service_in_namespace_service)
+        CommonFactory._get_config(config_maps_dict, box_name + '-app-config',
+                                  CommonFactory.GRPC_ROUTER_CONFIG_FILENAME, grpc_path)
+
+        CommonFactory._get_config(config_maps_dict, box_name + '-app-config',
+                                  CommonFactory.CUSTOM_CONFIG_FILENAME, custom_path)
+
+        CommonFactory._get_config(config_maps_dict, box_name + '-app-config',
+                                  CommonFactory.MQ_ROUTER_CONFIG_FILENAME, mq_path)
+
+        CommonFactory._get_config(config_maps_dict, 'cradle', CommonFactory.CRADLE_CONFIG_FILENAME, cradle_path)
+
+        CommonFactory._get_config(config_maps_dict, 'rabbit-mq-app-config',
+                                  CommonFactory.RABBIT_MQ_CONFIG_FILENAME, rabbit_path)
+
+        CommonFactory._get_config(config_maps_dict, 'prometheus-app-config',
+                                  CommonFactory.PROMETHEUS_CONFIG_FILENAME, prometheus_path)
+
         CommonFactory._get_dictionary(box_name, v1.list_config_map_for_all_namespaces(), dictionary_path)
 
-        with open(prometheus_path, 'w') as prometheus_file:
-            prometheus_file.write('{' + f'"host":"{prometheus_host}","port":{prometheus_port},"enabled":true' + '}')
+        CommonFactory._get_box_config(config_maps_dict, box_name + '-app-config',
+                                      CommonFactory.BOX_FILE_NAME, box_configuration_path)
 
         return CommonFactory(
             rabbit_mq_config_filepath=rabbit_path,
@@ -198,121 +206,42 @@ class CommonFactory(AbstractCommonFactory):
                 logger.error('Failed to write file for dictionary.')
 
     @staticmethod
-    def _get_grpc(config_maps_dict, box_name, grpc_path, services_dict, kube_contexts):
+    def _get_config(config_maps_dict, name, config_file_name, path):
         try:
             if 'items' in config_maps_dict:
-                for box_config_map in config_maps_dict['items']:
-                    if box_config_map['metadata']['name'] == box_name + '-app-config':
-                        box_data = box_config_map['data']
-                        grpc = loads(box_data['grpc.json'])
+                for config_map in config_maps_dict['items']:
+                    if config_map['metadata']['name'] == name:
+                        box_data = config_map['data']
+                        config_data = loads(box_data[config_file_name])
 
-                        for grpc_service in grpc['services']:
-                            endpoints = grpc['services'][grpc_service]['endpoints']
-
-                            for endpoint in endpoints:
-                                endpoint_port = endpoints[endpoint]['port']
-
-                                for service in services_dict['items']:
-                                    if service['metadata']['name'] == endpoints[endpoint]['host']:
-                                        ports = service['spec']['ports']
-
-                                        for port in ports:
-                                            if port['target_port'] == endpoint_port:
-                                                grpc['services'][grpc_service]['endpoints'][endpoint]['port'] = \
-                                                    port['node_port']
-                                                grpc['services'][grpc_service]['endpoints'][endpoint]['host'] = \
-                                                    kube_contexts[1]['name']
-
-                                                with open(grpc_path, 'w') as grpc_file:
-                                                    grpc_file.write(dumps(grpc))
-                                                break
+                        with open(path, 'w') as file:
+                            file.write(dumps(config_data))
         except KeyError:
-            logger.error(f'{box_name}-app-config\'s data not valid. Some keys are absent.')
+            logger.error(f'{name}\'s data not valid. Some keys are absent.')
         except IOError:
-            logger.error('Failed to write grpc config.')
+            logger.error(f'Failed to write ${name} config.')
 
     @staticmethod
-    def _get_custom(config_maps_dict, box_name, custom_path):
+    def _get_box_config(config_maps_dict, name, config_file_name, path):
+        found = False
         try:
             if 'items' in config_maps_dict:
-                for box_config_map in config_maps_dict['items']:
-                    if box_config_map['metadata']['name'] == box_name + '-app-config':
-                        box_data = box_config_map['data']
-                        custom = loads(box_data['custom.json'])
+                for config_map in config_maps_dict['items']:
+                    if config_map['metadata']['name'] == name:
+                        found = True
+                        box_data = config_map['data']
+                        config_data = loads(box_data[config_file_name])
 
-                        with open(custom_path, 'w') as custom_file:
-                            custom_file.write(dumps(custom))
+                        with open(path, 'w') as file:
+                            file.write(dumps(config_data))
 
+                if not found:
+                    with open(path, 'w') as file:
+                        file.write('{"boxName"="'+name+'"}')
         except KeyError:
-            logger.error(f'{box_name}-app-config\'s data not valid. Some keys are absent.')
+            logger.error(f'{name}\'s data not valid. Some keys are absent.')
         except IOError:
-            logger.error('Failed to write for custom config.')
-
-    @staticmethod
-    def _get_mq(config_maps_dict, box_name, mq_path):
-        try:
-            if 'items' in config_maps_dict:
-                for box_config_map in config_maps_dict['items']:
-                    if box_config_map['metadata']['name'] == box_name + '-app-config':
-                        box_data = box_config_map['data']
-                        mq = loads(box_data['mq.json'])
-
-                        with open(mq_path, 'w') as mq_file:
-                            mq_file.write(dumps(mq))
-
-        except KeyError:
-            logger.error(f'{box_name}-app-config\'s data not valid. Some keys are absent.')
-        except IOError:
-            logger.error('Failed to write for mq config.')
-
-    @staticmethod
-    def _get_cradle(config_maps_dict, cradle_path, kube_contexts, service_in_namespace_service):
-        try:
-            if 'items' in config_maps_dict:
-                for cassandra_config_map in config_maps_dict['items']:
-                    if cassandra_config_map['metadata']['name'] == 'cradle':
-                        cradle = loads(cassandra_config_map['data']['cradle.json'])
-                        cradle['host'] = kube_contexts[1]['name']
-
-                        for item in service_in_namespace_service['items']:
-                            if item['metadata']['name'] == 'cassandra-schema':
-
-                                for port in item['spec']['ports']:
-                                    if port['port'] == int(cradle['port']):
-                                        cradle['port'] = port['node_port']
-
-                                        with open(cradle_path, 'w') as cradle_file:
-                                            cradle_file.write(dumps(cradle))
-                        break
-        except KeyError:
-            logger.error(f'cassandra config map\'s data not valid. Some keys are absent.')
-        except IOError:
-            logger.error('Failed to write file for Cradle config.')
-
-    @staticmethod
-    def _get_rabbit(config_maps_dict, rabbit_path, kube_contexts, service_in_namespace_service):
-        try:
-            if 'items' in config_maps_dict:
-                for rabbit_config_map in config_maps_dict['items']:
-                    if rabbit_config_map['metadata']['name'] == 'rabbit-mq-app-config':
-                        rabbit = loads(rabbit_config_map['data']['rabbitMQ.json'])
-                        rabbit['host'] = kube_contexts[1]['name']
-                        rabbit['username'] = kube_contexts[1]['context']['user']
-
-                        for item in service_in_namespace_service['items']:
-                            if item['metadata']['name'] == 'rabbitmq-schema':
-
-                                for port in item['spec']['ports']:
-                                    if port['port'] == int(rabbit['port']):
-                                        rabbit['port'] = port['node_port']
-
-                                        with open(rabbit_path, 'w') as rabbit_file:
-                                            rabbit_file.write(dumps(rabbit))
-                        break
-        except KeyError:
-            logger.error(f'rabbit config map\'s data not valid. Some keys are absent.')
-        except IOError:
-            logger.error(f'Failed to write file for rabbitMQ config.')
+            logger.error(f'Failed to write ${name} config.')
 
     def _path_to_rabbit_mq_configuration(self) -> str:
         return self.rabbit_mq_config_filepath
