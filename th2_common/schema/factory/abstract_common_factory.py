@@ -60,7 +60,7 @@ class AbstractCommonFactory(ABC):
 
         self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 
-        self.prometheus_config = PrometheusConfiguration()
+        self.prometheus_config = self._create_prometheus_configuration()
         self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
         if self.prometheus_config.enabled is True:
             self.prometheus.run()
@@ -152,8 +152,11 @@ class AbstractCommonFactory(ABC):
     def create_cradle_configuration(self) -> CradleConfiguration:
         return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration()))
 
-    def create_prometheus_configuration(self) -> PrometheusConfiguration:
-        return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+    def _create_prometheus_configuration(self) -> PrometheusConfiguration:
+        if os.path.exists(self._path_to_prometheus_configuration()):
+            return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+        else:
+            return PrometheusConfiguration()
 
     def create_custom_configuration(self) -> dict:
         return self.read_configuration(self._path_to_custom_configuration())
