@@ -79,10 +79,8 @@ Then you create an instance of imported class, choosing one of the options:
 
 1. It is necessary to have Kubernetes configuration written in ~/.kube/config. See more on kubectl configuration [here](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
 
-
-2. It is necessary to have environment variables `CASSANDRA_PASS` and `RABBITMQ_PASS` to use configs from `cradle.json` and `rabbitMQ.json` as the passwords are not stored there explicitly. 
-
-3. Also note that `generated_configs` directory will be created to store `.json` files with configs from Kubernetes. Those files are overridden when `CommonFactory.create_from_kubernetes(namespace, box_name)` is invoked again. 
+2. Also note that `generated_configs` directory will be created to store `.json` files with configs from Kubernetes. Those files are overridden when `CommonFactory.create_from_kubernetes(namespace, box_name)` is invoked again. 
+3. User needs to have authentication with service account token that has necessary access to read CRs and secrets from the specified namespace.
 
 After that you can get various `Routers` through `factory` properties:
 ```
