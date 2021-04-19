@@ -12,9 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from importlib.metadata import version, PackageNotFoundError
+from pkg_resources import get_distribution, DistributionNotFound
 
 try:
-    print(f"Use th2-common=={version('th2_common')}")
-except PackageNotFoundError:
-    print(f"th2-common lib not install")
+    print(f"Using th2-common=={get_distribution('th2_common').version}")
+except DistributionNotFound:
+    print(f'th2-common package not installed')
