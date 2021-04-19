@@ -37,10 +37,44 @@ Then you create an instance of imported class, choosing one of the options:
     ```
     factory = CommonFactory.create_from_arguments(args)
     ```
+    You can use one of the following groups of arguments. Arguments from different
+    groups cannot be used together. 
+    
+    The first group:
+    * --rabbitConfiguration - path to json file with RabbitMQ configuration
+    * --messageRouterConfiguration - path to json file with configuration for MessageRouter
+    * --grpcRouterConfiguration - path to json file with configuration for GrpcRouter
+    * --cradleConfiguration - path to json file with configuration for Cradle
+    * --customConfiguration - path to json file with custom configuration
+    * --dictionariesDir - path to directory which contains files with encoded dictionaries
+    * --prometheusConfiguration - path to json file with configuration for prometheus metrics server
+    * --boxConfiguration - path to json file with boxes configuration and information
+    * -c/--configs - folder with json files for schemas configurations with special names:
+    1. rabbitMq.json - configuration for RabbitMQ
+    2. mq.json - configuration for MessageRouter
+    3. grpc.json - configuration for GrpcRouter
+    4. cradle.json - configuration for cradle
+    5. custom.json - custom configuration
+    
+    The second group:
+    * --namespace - the namespace in Kubernetes to search config maps
+    * --boxName - the name of the target th2 box placed in the specified Kubernetes namespace
+    * --contextName - the context name to search connect parameters in Kube config
+    
+    Their usage is discovered further.
+    
 6. Create factory with a namespace in Kubernetes and the name of the target th2 box from Kubernetes:
     ```
     factory = CommonFactory.create_from_kubernetes(namespace, box_name)
     ```
+    It also can be called by using `create_from_arguments(args)` with arguments `--namespace` and `--boxName`.
+    
+7. Create factory with a namespace in Kubernetes, the name of the target th2 box from Kubernetes and the name of context to choose the context from Kube config: 
+    ```
+    var factory = CommonFactory.create_from_kubernetes(namespace, boxName, contextName);
+    ```
+    It also can be called by using `create_from_arguments(args)` with arguments `--namespace`, `--boxName` and `--contextName`. 
+    ContextName parameter is `None` by default; if it is set to `None`, the current context will not be changed.
 ### Requirements for creatring factory with Kubernetes
 
 1. It is necessary to have Kubernetes configuration written in ~/.kube/config. See more on kubectl configuration [here](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
