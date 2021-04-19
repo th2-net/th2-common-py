@@ -14,7 +14,9 @@
 
 
 import argparse
+import base64
 import logging
+import os
 import sys
 from json import loads, dumps
 from os import mkdir, getcwd
@@ -43,6 +45,14 @@ class CommonFactory(AbstractCommonFactory):
     CUSTOM_CONFIG_FILENAME = 'custom.json'
     DICTIONARY_FILENAME = 'dictionary.json'
     BOX_FILE_NAME = 'box.json'
+
+    RABBITMQ_SECRET_NAME = 'rabbitmq'
+    CASSANDRA_SECRET_NAME = 'cassandra'
+    RABBITMQ_PASSWORD_KEY = 'rabbitmq-password'
+    CASSANDRA_PASSWORD_KEY = 'cassandra-password'
+
+    KEY_RABBITMQ_PASS = 'RABBITMQ_PASS'
+    KEY_CASSANDRA_PASS = 'CASSANDRA_PASS'
 
     #   FIX: Add path to dictionary as a parameter
     def __init__(self,
@@ -136,9 +146,9 @@ class CommonFactory(AbstractCommonFactory):
     @staticmethod
     def create_from_kubernetes(namespace, box_name, context_name=None):
 
-        config.load_kube_config()
+        configuration = config.load_kube_config(context=context_name, config_file='/home/exp.exactpro.com/eugene.zheltov/.kube/config')
 
-        v1 = client.CoreV1Api(api_client=config.new_client_from_config(context=context_name))
+        v1 = client.CoreV1Api(client.ApiClient(configuration))
 
         config_maps = v1.list_namespaced_config_map(namespace)
         config_maps_dict = config_maps.to_dict()
@@ -153,6 +163,15 @@ class CommonFactory(AbstractCommonFactory):
         dictionary_path = config_dir + '/' + CommonFactory.DICTIONARY_FILENAME
         prometheus_path = config_dir + '/' + CommonFactory.PROMETHEUS_CONFIG_FILENAME
         box_configuration_path = config_dir + '/' + CommonFactory.BOX_FILE_NAME
+
+        rabbit_mq_encoded_password = v1.read_namespaced_secret(CommonFactory.RABBITMQ_SECRET_NAME, namespace).data\
+            .get(CommonFactory.RABBITMQ_PASSWORD_KEY)
+
+        cassandra_encoded_password = v1.read_namespaced_secret(CommonFactory.CASSANDRA_SECRET_NAME, namespace).data\
+            .get(CommonFactory.CASSANDRA_PASSWORD_KEY)
+
+        os.environ[CommonFactory.KEY_RABBITMQ_PASS] = CommonFactory._decode_from_base64(rabbit_mq_encoded_password)
+        os.environ[CommonFactory.KEY_CASSANDRA_PASS] = CommonFactory._decode_from_base64(cassandra_encoded_password)
 
         try:
             mkdir(config_dir)
@@ -169,9 +188,9 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, box_name + '-app-config',
                                   CommonFactory.MQ_ROUTER_CONFIG_FILENAME, mq_path)
 
-        CommonFactory._get_config(config_maps_dict, 'cradle', CommonFactory.CRADLE_CONFIG_FILENAME, cradle_path)
+        CommonFactory._get_config(config_maps_dict, 'cradle-external', CommonFactory.CRADLE_CONFIG_FILENAME, cradle_path)
 
-        CommonFactory._get_config(config_maps_dict, 'rabbit-mq-app-config',
+        CommonFactory._get_config(config_maps_dict, 'rabbit-mq-external-app-config',
                                   CommonFactory.RABBIT_MQ_CONFIG_FILENAME, rabbit_path)
 
         CommonFactory._get_config(config_maps_dict, 'prometheus-app-config',
@@ -190,6 +209,12 @@ class CommonFactory(AbstractCommonFactory):
             prometheus_config_filepath=prometheus_path,
             custom_config_filepath=custom_path
         )
+
+    @staticmethod
+    def _decode_from_base64(data):
+        data_bytes = data.encode("ascii")
+        data_string_bytes = base64.b64decode(data_bytes)
+        return data_string_bytes.decode("ascii")
 
     @staticmethod
     def _get_dictionary(box_name, config_maps, dictionary_path):
@@ -223,21 +248,19 @@ class CommonFactory(AbstractCommonFactory):
 
     @staticmethod
     def _get_box_config(config_maps_dict, name, config_file_name, path):
-        found = False
         try:
             if 'items' in config_maps_dict:
                 for config_map in config_maps_dict['items']:
                     if config_map['metadata']['name'] == name:
-                        found = True
                         box_data = config_map['data']
                         config_data = loads(box_data[config_file_name])
 
                         with open(path, 'w') as file:
                             file.write(dumps(config_data))
+                            return
 
-                if not found:
-                    with open(path, 'w') as file:
-                        file.write('{"boxName"="'+name+'"}')
+            with open(path, 'w') as file:
+                file.write('{"boxName":"' + name + '"}')
         except KeyError:
             logger.error(f'{name}\'s data not valid. Some keys are absent.')
         except IOError:
