@@ -177,7 +177,10 @@ class AbstractCommonFactory(ABC):
         return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration()))
 
     def _create_prometheus_configuration(self) -> PrometheusConfiguration:
-        return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+        if os.path.exists(self._path_to_prometheus_configuration()):
+            return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+        else:
+            return PrometheusConfiguration()
 
     def create_custom_configuration(self) -> dict:
         return self.read_configuration(self._path_to_custom_configuration())
