@@ -18,7 +18,7 @@ import base64
 import logging
 import os
 import sys
-from json import loads, dumps
+from json import loads, dump
 from os import mkdir, getcwd
 
 from kubernetes import client, config
@@ -224,7 +224,7 @@ class CommonFactory(AbstractCommonFactory):
                     if config_map['metadata']['name'].startswith(box_name) & \
                             config_map['metadata']['name'].endswith('-dictionary'):
                         with open(dictionary_path, 'w') as dictionary_file:
-                            dictionary_file.write(dumps(config_map))
+                            dump(config_map, dictionary_file)
             except KeyError:
                 logger.error(f'dictionary config map\'s metadata not valid. Some keys are absent.')
             except IOError:
@@ -240,7 +240,7 @@ class CommonFactory(AbstractCommonFactory):
                         config_data = loads(box_data[config_file_name])
 
                         with open(path, 'w') as file:
-                            file.write(dumps(config_data))
+                            dump(config_data, file)
         except KeyError:
             logger.error(f'{name}\'s data not valid. Some keys are absent.')
         except IOError:
@@ -256,12 +256,11 @@ class CommonFactory(AbstractCommonFactory):
                         config_data = loads(box_data[config_file_name])
 
                         with open(path, 'w') as file:
-                            file.write(dumps(config_data))
-
+                            dump(config_data, file)
         except KeyError:
             try:
                 with open(path, 'w') as file:
-                    file.write('{"boxName":"' + name + '"}')
+                    dump({'boxName': name}, file)
             except IOError:
                 logger.error(f'Failed to write ${name} config.')
         except IOError:
