@@ -17,4 +17,4 @@ class PrometheusConfiguration:
     def __init__(self, host="0.0.0.0", port=9752, enabled='True') -> None:
         self.host = host
         self.port = port
-        self.enabled = self.enabled = True if enabled.lower() == 'true' else False
+        self.enabled = enabled.lower() == 'true'
