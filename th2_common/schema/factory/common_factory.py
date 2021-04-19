@@ -146,7 +146,7 @@ class CommonFactory(AbstractCommonFactory):
     @staticmethod
     def create_from_kubernetes(namespace, box_name, context_name=None):
 
-        configuration = config.load_kube_config(context=context_name, config_file='/home/exp.exactpro.com/eugene.zheltov/.kube/config')
+        configuration = config.load_kube_config(context=context_name)
 
         v1 = client.CoreV1Api(client.ApiClient(configuration))
 
@@ -193,7 +193,7 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, 'rabbit-mq-external-app-config',
                                   CommonFactory.RABBIT_MQ_CONFIG_FILENAME, rabbit_path)
 
-        CommonFactory._get_config(config_maps_dict, 'prometheus-app-config',
+        CommonFactory._get_config(config_maps_dict, box_name + '-app-config',
                                   CommonFactory.PROMETHEUS_CONFIG_FILENAME, prometheus_path)
 
         CommonFactory._get_dictionary(box_name, v1.list_config_map_for_all_namespaces(), dictionary_path)
@@ -257,12 +257,13 @@ class CommonFactory(AbstractCommonFactory):
 
                         with open(path, 'w') as file:
                             file.write(dumps(config_data))
-                            return
 
-            with open(path, 'w') as file:
-                file.write('{"boxName":"' + name + '"}')
         except KeyError:
-            logger.error(f'{name}\'s data not valid. Some keys are absent.')
+            try:
+                with open(path, 'w') as file:
+                    file.write('{"boxName":"' + name + '"}')
+            except IOError:
+                logger.error(f'Failed to write ${name} config.')
         except IOError:
             logger.error(f'Failed to write ${name} config.')
 
