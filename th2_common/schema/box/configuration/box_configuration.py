@@ -13,5 +13,5 @@
 #   limitations under the License.
 
 class BoxConfiguration:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, box_name):
+        self.box_name = box_name
