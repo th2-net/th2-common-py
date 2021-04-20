@@ -146,9 +146,9 @@ class CommonFactory(AbstractCommonFactory):
     @staticmethod
     def create_from_kubernetes(namespace, box_name, context_name=None):
 
-        configuration = config.load_kube_config(context=context_name)
+        config.load_kube_config(context=context_name)
 
-        v1 = client.CoreV1Api(client.ApiClient(configuration))
+        v1 = client.CoreV1Api()
 
         config_maps = v1.list_namespaced_config_map(namespace)
         config_maps_dict = config_maps.to_dict()
