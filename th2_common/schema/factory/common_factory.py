@@ -122,9 +122,11 @@ class CommonFactory(AbstractCommonFactory):
                             help='path to json file with custom configuration')
         result = parser.parse_args(args)
 
-        if hasattr(result, 'namespace') and hasattr(result, 'box_name'):
-
-            return CommonFactory.create_from_kubernetes(result.namespace, result.box_name, result.contextName)
+        if hasattr(result, 'namespace') and hasattr(result, 'boxName'):
+            if hasattr(result, 'contextName'):
+                return CommonFactory.create_from_kubernetes(result.namespace, result.boxName, result.contextName)
+            else:
+                return CommonFactory.create_from_kubernetes(result.namespace, result.boxName)
 
         else:
 
