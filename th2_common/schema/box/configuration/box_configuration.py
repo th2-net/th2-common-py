@@ -14,4 +14,4 @@
 
 class BoxConfiguration:
     def __init__(self, box_name):
-        self.box_name = box_name
+        self.boxName = box_name
