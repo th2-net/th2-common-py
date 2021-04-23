@@ -146,6 +146,7 @@ class ReconnectingConsumer(object):
         self._connection_parameters: pika.ConnectionParameters = connection_parameters
         self._consuming: Dict[str, bool] = dict()
         self._subscribers: Dict[str, tuple] = dict()
+        self._reconnect_delay = 0
 
         self._subscriber_name = configuration.subscriber_name
 
