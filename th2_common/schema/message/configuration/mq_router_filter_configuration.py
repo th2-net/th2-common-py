@@ -14,18 +14,19 @@
 
 
 from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
-from th2_common.schema.message.configuration.router_filter import RouterFilter
+from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
 
 
-class MqRouterFilterConfiguration(RouterFilter):
+class MqRouterFilterConfiguration(RouterFilterConfiguration):
 
-    def __init__(self, metadata=None, message=None) -> None:
+    def __init__(self, metadata=None, message=None, **kwargs) -> None:
         if metadata is None:
             metadata = dict()
         if message is None:
             message = dict()
         self.metadata = {key: FieldFilterConfiguration(**metadata[key]) for key in metadata.keys()}
         self.message = {key: FieldFilterConfiguration(**message[key]) for key in message.keys()}
+        self.check_unexpected_args(kwargs)
 
     def get_metadata(self) -> {str: FieldFilterConfiguration}:
         return self.metadata

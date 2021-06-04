@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,11 +18,12 @@ from typing import List
 
 from google.protobuf.message import Message
 
-from th2_common.schema.message.configuration.router_filter import RouterFilter
+from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
 
 
 class FilterStrategy(ABC):
 
     @abstractmethod
-    def verify(self, message: Message, router_filter: RouterFilter = None, router_filters: List[RouterFilter] = None):
+    def verify(self, message: Message, router_filter: RouterFilterConfiguration = None,
+               router_filters: List[RouterFilterConfiguration] = None):
         pass

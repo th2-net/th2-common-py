@@ -12,13 +12,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from th2_common.schema.configuration.configuration import AbstractConfiguration
 
-class CradleConfiguration:
 
-    def __init__(self, dataCenter: str, host: str, port: int, keyspace: str, username: str, password: str) -> None:
+class CradleConfiguration(AbstractConfiguration):
+
+    def __init__(self, dataCenter: str, host: str, port: int,
+                 keyspace: str, username: str, password: str, **kwargs) -> None:
         self.data_center = dataCenter
         self.host = host
         self.port = port
         self.keyspace = keyspace
         self.username = username
         self.password = password
+        self.check_unexpected_args(kwargs)

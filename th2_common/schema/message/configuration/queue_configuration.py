@@ -13,14 +13,14 @@
 #   limitations under the License.
 
 
-from th2_common.schema.message.configuration.configuration import Configuration
+from th2_common.schema.configuration.configuration import AbstractConfiguration
 from th2_common.schema.message.configuration.mq_router_filter_configuration import MqRouterFilterConfiguration
 
 
-class QueueConfiguration(Configuration):
+class QueueConfiguration(AbstractConfiguration):
 
     def __init__(self, name: str, queue: str, exchange: str, attributes: list, filters: list, can_read=True,
-                 can_write=True) -> None:
+                 can_write=True, **kwargs) -> None:
         self.routing_key = name
         self.queue = queue
         self.exchange = exchange
@@ -28,3 +28,4 @@ class QueueConfiguration(Configuration):
         self.filters = [MqRouterFilterConfiguration(**filter_schema) for filter_schema in filters]
         self.can_read = can_read
         self.can_write = can_write
+        self.check_unexpected_args(kwargs)

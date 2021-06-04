@@ -14,15 +14,16 @@
 
 
 from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
-from th2_common.schema.message.configuration.router_filter import RouterFilter
+from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
 
 
-class GrpcRouterFilterConfiguration(RouterFilter):
+class GrpcRouterFilterConfiguration(RouterFilterConfiguration):
 
-    def __init__(self, endpoint: str, metadata, message) -> None:
+    def __init__(self, endpoint: str, metadata, message, **kwargs) -> None:
         self.metadata = metadata
         self.message = message
         self.endpoint = endpoint
+        self.check_unexpected_args(kwargs)
 
     def get_metadata(self) -> {str: FieldFilterConfiguration}:
         return self.metadata
