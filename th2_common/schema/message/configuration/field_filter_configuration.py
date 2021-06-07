@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from th2_common.schema.configuration.configuration import AbstractConfiguration
 
-from th2_common.schema.message.configuration.configuration import Configuration
 
+class FieldFilterConfiguration(AbstractConfiguration):
 
-class FieldFilterConfiguration(Configuration):
-
-    def __init__(self, value, operation) -> None:
+    def __init__(self, value, operation, **kwargs) -> None:
         self.value = value
         self.operation = operation
+        self.check_unexpected_args(kwargs)

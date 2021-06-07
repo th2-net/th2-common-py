@@ -12,10 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_common.schema.configuration.configuration import AbstractConfiguration
+import logging
+from abc import ABC
+
+logger = logging.getLogger()
 
 
-class BoxConfiguration(AbstractConfiguration):
-    def __init__(self, box_name, **kwargs):
-        self.boxName = box_name
-        self.check_unexpected_args(kwargs)
+class AbstractConfiguration(ABC):
+    def check_unexpected_args(self, args):
+        if len(args) > 0:
+            logger.warning(f"{self.__class__} json config contains unexpected arguments: {args}")

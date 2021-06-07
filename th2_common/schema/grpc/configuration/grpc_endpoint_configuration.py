@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,11 +13,12 @@
 #   limitations under the License.
 
 
-from th2_common.schema.message.configuration.configuration import Configuration
+from th2_common.schema.configuration.configuration import AbstractConfiguration
 
 
-class GrpcEndpointConfiguration(Configuration):
+class GrpcEndpointConfiguration(AbstractConfiguration):
 
-    def __init__(self, host, port) -> None:
+    def __init__(self, host, port, **kwargs) -> None:
         self.host = host
         self.port = port
+        self.check_unexpected_args(kwargs)

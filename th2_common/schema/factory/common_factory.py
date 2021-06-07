@@ -166,10 +166,10 @@ class CommonFactory(AbstractCommonFactory):
         prometheus_path = config_dir + '/' + CommonFactory.PROMETHEUS_CONFIG_FILENAME
         box_configuration_path = config_dir + '/' + CommonFactory.BOX_FILE_NAME
 
-        rabbit_mq_encoded_password = v1.read_namespaced_secret(CommonFactory.RABBITMQ_SECRET_NAME, namespace).data\
+        rabbit_mq_encoded_password = v1.read_namespaced_secret(CommonFactory.RABBITMQ_SECRET_NAME, namespace).data \
             .get(CommonFactory.RABBITMQ_PASSWORD_KEY)
 
-        cassandra_encoded_password = v1.read_namespaced_secret(CommonFactory.CASSANDRA_SECRET_NAME, namespace).data\
+        cassandra_encoded_password = v1.read_namespaced_secret(CommonFactory.CASSANDRA_SECRET_NAME, namespace).data \
             .get(CommonFactory.CASSANDRA_PASSWORD_KEY)
 
         os.environ[CommonFactory.KEY_RABBITMQ_PASS] = CommonFactory._decode_from_base64(rabbit_mq_encoded_password)
@@ -190,7 +190,8 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, box_name + '-app-config',
                                   CommonFactory.MQ_ROUTER_CONFIG_FILENAME, mq_path)
 
-        CommonFactory._get_config(config_maps_dict, 'cradle-external', CommonFactory.CRADLE_CONFIG_FILENAME, cradle_path)
+        CommonFactory._get_config(config_maps_dict, 'cradle-external', CommonFactory.CRADLE_CONFIG_FILENAME,
+                                  cradle_path)
 
         CommonFactory._get_config(config_maps_dict, 'rabbit-mq-external-app-config',
                                   CommonFactory.RABBIT_MQ_CONFIG_FILENAME, rabbit_path)

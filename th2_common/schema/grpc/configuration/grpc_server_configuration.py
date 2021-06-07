@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from th2_common.schema.grpc.configuration.grpc_endpoint_configuration import Grp
 
 class GrpcServerConfiguration(GrpcEndpointConfiguration):
 
-    def __init__(self, host, port, workers) -> None:
+    def __init__(self, host, port, workers, **kwargs) -> None:
         super().__init__(host, port)
         self.workers = workers
-
+        self.check_unexpected_args(kwargs)

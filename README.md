@@ -75,7 +75,7 @@ Then you create an instance of imported class, choosing one of the options:
     ```
     It also can be called by using `create_from_arguments(args)` with arguments `--namespace`, `--boxName` and `--contextName`. 
     ContextName parameter is `None` by default; if it is set to `None`, the current context will not be changed.
-### Requirements for creatring factory with Kubernetes
+### Requirements for creating factory with Kubernetes
 
 1. It is necessary to have Kubernetes configuration written in ~/.kube/config. See more on kubectl configuration [here](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
 
@@ -95,7 +95,7 @@ event_batch_router = factory.event_batch_router
 
 See [th2-grpc-common](https://github.com/th2-net/th2-grpc-common/blob/master/src/main/proto/th2_grpc_common/common.proto "common.proto") for details.
 
-With `router` created, you can subscribe to pins (specifying callback function) or send data that router works with:
+With `router` created, you can subscribe to pin (specifying callback function) or send data that router works with:
 ```
 router.subscribe(callback)  # subscribe to only one pin 
 router.subscribe_all(callback)  # subscribe to one or several pins

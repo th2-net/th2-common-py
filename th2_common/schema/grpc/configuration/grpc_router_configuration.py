@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,13 +13,14 @@
 #   limitations under the License.
 
 
+from th2_common.schema.configuration.configuration import AbstractConfiguration
 from th2_common.schema.grpc.configuration.grpc_server_configuration import GrpcServerConfiguration
-from th2_common.schema.message.configuration.configuration import Configuration
 
 
-class GrpcRouterConfiguration(Configuration):
+class GrpcRouterConfiguration(AbstractConfiguration):
 
-    def __init__(self, services, server=None) -> None:
+    def __init__(self, services, server=None, **kwargs) -> None:
         self.services = services
         if server is not None:
             self.serverConfiguration = GrpcServerConfiguration(**server)
+        self.check_unexpected_args(kwargs)
