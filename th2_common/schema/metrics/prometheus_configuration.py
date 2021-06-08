@@ -12,9 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-class PrometheusConfiguration:
 
-    def __init__(self, host="0.0.0.0", port=9752, enabled='True') -> None:
+from th2_common.schema.configuration.configuration import AbstractConfiguration
+
+
+class PrometheusConfiguration(AbstractConfiguration):
+
+    def __init__(self, host="0.0.0.0", port=9752, enabled='True', **kwargs) -> None:
         self.host = host
         self.port = port
         self.enabled = enabled.lower() == 'true'
+        self.check_unexpected_args(kwargs)

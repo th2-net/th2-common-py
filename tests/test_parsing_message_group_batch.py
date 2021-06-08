@@ -1,4 +1,3 @@
-import unittest
 from datetime import datetime
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -11,7 +10,7 @@ from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_sender import 
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_subscriber import RabbitRawBatchSubscriber
 
 
-class TestCheckParsingMessageGroupBatch(unittest.TestCase):
+class TestCheckParsingMessageGroupBatch:
     def test_parse_message_group_batch_to_message_batch_and_back(self):
         start_time = datetime.now()
         seconds = int(start_time.timestamp())
@@ -35,7 +34,7 @@ class TestCheckParsingMessageGroupBatch(unittest.TestCase):
         value_from_bytes = RabbitParsedBatchSubscriber.value_from_bytes(original_bytes)
         bytes_from_value = RabbitParsedBatchSender.value_to_bytes(value_from_bytes[0])
 
-        self.assertEqual(original_bytes, bytes_from_value)
+        assert original_bytes == bytes_from_value
 
     def test_parse_message_group_batch_to_raw_message_batch_and_back(self):
         start_time = datetime.now()
@@ -56,4 +55,4 @@ class TestCheckParsingMessageGroupBatch(unittest.TestCase):
         value_from_bytes = RabbitRawBatchSubscriber.value_from_bytes(original_bytes)
         bytes_from_value = RabbitRawBatchSender.value_to_bytes(value_from_bytes[0])
 
-        self.assertEqual(original_bytes, bytes_from_value)
+        assert original_bytes == bytes_from_value

@@ -12,6 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-class BoxConfiguration:
-    def __init__(self, box_name):
+from th2_common.schema.configuration.configuration import AbstractConfiguration
+
+
+class BoxConfiguration(AbstractConfiguration):
+    def __init__(self, box_name, **kwargs):
         self.boxName = box_name
+        self.check_unexpected_args(kwargs)

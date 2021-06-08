@@ -12,7 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-pika==1.2.0
-th2-grpc-common==3.1.2
-kubernetes==12.0.1
-prometheus_client==0.9.0
+import logging
+from abc import ABC
+
+logger = logging.getLogger()
+
+
+class AbstractConfiguration(ABC):
+    def check_unexpected_args(self, args):
+        if len(args) > 0:
+            logger.warning(f"{self.__class__} json config contains unexpected arguments: {args}")

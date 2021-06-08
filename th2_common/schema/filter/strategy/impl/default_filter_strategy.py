@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ from google.protobuf.message import Message
 
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
-from th2_common.schema.message.configuration.router_filter import RouterFilter
+from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
 from th2_common.schema.strategy.field_extraction.impl.th2_batch_msg_field_extraction import Th2BatchMsgFieldExtraction
 
 
@@ -28,7 +28,8 @@ class DefaultFilterStrategy(FilterStrategy):
     def __init__(self, extract_strategy=Th2BatchMsgFieldExtraction()) -> None:
         self.extract_strategy = extract_strategy
 
-    def verify(self, message: Message, router_filter: RouterFilter = None, router_filters: List[RouterFilter] = None):
+    def verify(self, message: Message, router_filter: RouterFilterConfiguration = None,
+               router_filters: List[RouterFilterConfiguration] = None):
         if router_filters is None:
             msg_field_filters = dict(router_filter.get_message())
             msg_field_filters.update(router_filter.get_metadata())
