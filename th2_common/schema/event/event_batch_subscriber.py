@@ -12,11 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
 from th2_common.schema.metrics.common_metrics import CommonMetrics
+from th2_common.schema.util.util import get_debug_string_event
 
 
 class EventBatchSubscriber(AbstractRabbitSubscriber):
@@ -37,16 +39,23 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
     def get_processing_timer(self) -> Histogram:
         return self.EVENT_PROCESSING_TIME
 
-    def extract_count_from(self, message: EventBatch):
-        return len(self.get_events(message))
+    def extract_count_from(self, batch: EventBatch):
+        return len(self.get_events(batch))
 
     def get_events(self, batch: EventBatch) -> list:
         return batch.events
 
-    def value_from_bytes(self, body):
+    @staticmethod
+    def value_from_bytes(body):
         event_batch = EventBatch()
         event_batch.ParseFromString(body)
         return [event_batch]
 
     def filter(self, value) -> bool:
         return True
+
+    def to_trace_string(self, value):
+        return MessageToJson(value)
+
+    def to_debug_string(self, value):
+        return get_debug_string_event(value)

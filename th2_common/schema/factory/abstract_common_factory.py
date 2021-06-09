@@ -19,6 +19,7 @@ import os
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from th2_common.log.trace import install_trace_logger
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
@@ -39,6 +40,9 @@ logger = logging.getLogger()
 
 
 class AbstractCommonFactory(ABC):
+
+    DEFAULT_LOGGING_CONFIG_OUTER_PATH = '/var/th2/config/log_config.conf'
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = '../../log/config.conf'
 
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
@@ -63,17 +67,25 @@ class AbstractCommonFactory(ABC):
         self._event_batch_router = None
         self._grpc_router = None
 
+        if os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH):
+            logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
+                                      disable_existing_loggers=False)
+        elif os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH):
+            logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH,
+                                      disable_existing_loggers=False)
+        install_trace_logger()
+
         self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 
         self.prometheus_config = self._create_prometheus_configuration()
         self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
-        if self.prometheus_config.enabled is True:
+        if self.prometheus_config.enabled:
             self.prometheus.run()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
         """
-        Created MessageRouter which work with MessageBatch
+        Create MessageRouter which work with MessageBatch
         """
         if self._message_parsed_batch_router is None:
             self._message_parsed_batch_router = self.message_parsed_batch_router_class(self._connection_manager,
@@ -85,7 +97,7 @@ class AbstractCommonFactory(ABC):
     @property
     def message_raw_batch_router(self) -> MessageRouter:
         """
-        Created MessageRouter which work with RawMessageBatch
+        Create MessageRouter which work with RawMessageBatch
         """
         if self._message_raw_batch_router is None:
             self._message_raw_batch_router = self.message_raw_batch_router_class(self._connection_manager,
@@ -95,7 +107,7 @@ class AbstractCommonFactory(ABC):
     @property
     def message_group_batch_router(self) -> MessageRouter:
         """
-        Created MessageRouter which work with MessageGroupBatch
+        Create MessageRouter which work with MessageGroupBatch
         """
         if self._message_group_batch_router is None:
             self._message_group_batch_router = self.message_group_batch_router_class(self._connection_manager,
@@ -106,7 +118,7 @@ class AbstractCommonFactory(ABC):
     @property
     def event_batch_router(self) -> MessageRouter:
         """
-        Created MessageRouter which work with EventBatch
+        Create MessageRouter which work with EventBatch
         """
         if self._event_batch_router is None:
             self._event_batch_router = self.event_batch_router_class(self._connection_manager,

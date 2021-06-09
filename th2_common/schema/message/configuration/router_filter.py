@@ -15,7 +15,7 @@
 
 from abc import ABC, abstractmethod
 
-from th2_common.schema.configuration.configuration import AbstractConfiguration
+from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
 
 

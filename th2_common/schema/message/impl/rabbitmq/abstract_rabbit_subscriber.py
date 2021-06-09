@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 import functools
 import logging
 import time
@@ -66,10 +67,23 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                 if value is None:
                     raise ValueError('Received value is null')
 
-                counter = self.get_delivery_counter()
-                counter.inc()
-                content_counter = self.get_content_counter()
-                content_counter.inc(self.extract_count_from(value))
+                labels = self.extract_labels(value)
+                if labels is None:
+                    raise ValueError('Labels list extracted from received value is null')
+
+                if labels:
+                    counter = self.get_delivery_counter()
+                    counter.labels(*labels).inc()
+                    content_counter = self.get_content_counter()
+                    content_counter.labels(*labels).inc(self.extract_count_from(value))
+                else:
+                    counter = self.get_delivery_counter()
+                    counter.inc()
+                    content_counter = self.get_content_counter()
+                    content_counter.inc(self.extract_count_from(value))
+
+                logger.trace(f'Received message: "{self.to_trace_string(value)}"')
+                logger.debug(f'Received message: "{self.to_debug_string(value)}"')
 
                 if not self.filter(value):
                     return
@@ -121,8 +135,9 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.__consumer.remove_subscriber(self.__consumer_tag)
         self.__closed = True
 
+    @staticmethod
     @abstractmethod
-    def value_from_bytes(self, body):
+    def value_from_bytes(body):
         pass
 
     @abstractmethod
@@ -142,5 +157,17 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         pass
 
     @abstractmethod
-    def extract_count_from(self, message):
+    def extract_count_from(self, batch):
+        pass
+
+    @abstractmethod
+    def extract_labels(self, batch):
+        pass
+
+    @abstractmethod
+    def to_trace_string(self, value):
+        pass
+
+    @abstractmethod
+    def to_debug_string(self, value):
         pass

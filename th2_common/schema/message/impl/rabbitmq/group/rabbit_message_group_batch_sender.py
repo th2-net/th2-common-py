@@ -12,10 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
+from th2_common.schema.util.util import get_debug_string_group
 
 
 class RabbitMessageGroupBatchSender(AbstractRabbitSender):
@@ -30,8 +32,15 @@ class RabbitMessageGroupBatchSender(AbstractRabbitSender):
     def get_content_counter(self) -> Counter:
         return self.OUTGOING_MSG_GROUP_QUANTITY
 
-    def extract_count_from(self, message: MessageGroupBatch):
-        return len(message.groups)
+    def extract_count_from(self, batch: MessageGroupBatch):
+        return len(batch.groups)
 
-    def value_to_bytes(self, value: MessageGroupBatch):
+    @staticmethod
+    def value_to_bytes(value: MessageGroupBatch):
         return value.SerializeToString()
+
+    def to_trace_string(self, value):
+        return MessageToJson(value)
+
+    def to_debug_string(self, value):
+        return get_debug_string_group(value)
