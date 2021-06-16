@@ -17,7 +17,8 @@ from th2_common.schema.configuration.abstract_configuration import AbstractConfi
 
 class FieldFilterConfiguration(AbstractConfiguration):
 
-    def __init__(self, value, operation, **kwargs) -> None:
-        self.value = value
+    def __init__(self, value=None, expectedValue=None, fieldName=None, operation=None, **kwargs) -> None:
+        self.value = value or expectedValue
+        self.field_name = fieldName
         self.operation = operation
         self.check_unexpected_args(kwargs)

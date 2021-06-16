@@ -42,7 +42,7 @@ def get_debug_string_event(event_batch: EventBatch) -> str:
 
 
 def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
-    messages = [message for group in group_batch.groups for message in group]
+    messages = [message for group in group_batch.groups for message in group.messages]
     session_alias, direction = get_session_alias_and_direction_group(messages[0])
     sequences = []
     for message in messages:

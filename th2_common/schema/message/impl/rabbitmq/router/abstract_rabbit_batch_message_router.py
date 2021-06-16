@@ -35,7 +35,7 @@ class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
         for queue_alias in queues.keys():
             filters = queues[queue_alias].filters
 
-            if len(filters) == 0 or self._filter_strategy.verify(message, filters):
+            if len(filters) == 0 or self._filter_strategy.verify(message, router_filters=filters):
                 aliases.add(queue_alias)
         return aliases
 

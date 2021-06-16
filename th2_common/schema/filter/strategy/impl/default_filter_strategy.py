@@ -31,9 +31,8 @@ class DefaultFilterStrategy(FilterStrategy):
     def verify(self, message: Message, router_filter: RouterFilterConfiguration = None,
                router_filters: List[RouterFilterConfiguration] = None):
         if router_filters is None:
-            msg_field_filters = dict(router_filter.get_message())
-            msg_field_filters.update(router_filter.get_metadata())
-            return self.check_values(self.extract_strategy.get_fields(message), msg_field_filters)
+            filters = router_filter.get_message() + router_filter.get_metadata()
+            return self.check_values(self.extract_strategy.get_fields(message), filters)
         else:
             if len(router_filters) == 0:
                 return True
@@ -42,10 +41,9 @@ class DefaultFilterStrategy(FilterStrategy):
                     return True
             return False
 
-    def check_values(self, message_fields: {str: str}, field_filters: {str: FieldFilterConfiguration}) -> bool:
-        for field_name in field_filters.keys():
-            field_filter = field_filters[field_name]
-            msg_field_value = message_fields[field_name]
+    def check_values(self, message_fields: {str: str}, field_filters: List[FieldFilterConfiguration]) -> bool:
+        for field_filter in field_filters:
+            msg_field_value = message_fields[field_filter.field_name]
             if not self.check_value(msg_field_value, field_filter):
                 return False
         return True
