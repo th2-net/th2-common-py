@@ -19,7 +19,7 @@ import os
 from abc import ABC, abstractmethod
 from threading import Lock
 
-from th2_common.log.trace import install_trace_logger
+from th2_common.schema.log.trace import install_trace_logger
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
@@ -42,7 +42,7 @@ logger = logging.getLogger()
 class AbstractCommonFactory(ABC):
 
     DEFAULT_LOGGING_CONFIG_OUTER_PATH = '/var/th2/config/log_config.conf'
-    DEFAULT_LOGGING_CONFIG_INNER_PATH = '../../log/config.conf'
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = '../log/config.conf'
 
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
@@ -70,9 +70,12 @@ class AbstractCommonFactory(ABC):
         if os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH):
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
                                       disable_existing_loggers=False)
+            logger.info(f'Using config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')
         elif os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH):
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH,
                                       disable_existing_loggers=False)
+            logger.info(f'Using config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
+
         install_trace_logger()
 
         self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)

@@ -38,7 +38,7 @@ def get_debug_string(class_name: str, ids: List[MessageID]) -> str:
 
 
 def get_debug_string_event(event_batch: EventBatch) -> str:
-    return f'EventBatch: parent_event_id = {event_batch.parent_event_id}'
+    return f'EventBatch: parent_event_id = {event_batch.events[0].parent_id}'
 
 
 def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
