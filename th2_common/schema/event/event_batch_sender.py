@@ -12,10 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
+from th2_common.schema.util.util import get_debug_string_event
 
 
 class EventBatchSender(AbstractRabbitSender):
@@ -30,11 +32,18 @@ class EventBatchSender(AbstractRabbitSender):
     def get_content_counter(self) -> Counter:
         return self.OUTGOING_EVENT_QUANTITY
 
-    def extract_count_from(self, message: EventBatch):
-        return len(self.get_events(message))
+    def extract_count_from(self, batch: EventBatch):
+        return len(self.get_events(batch))
 
     def get_events(self, batch: EventBatch) -> list:
         return batch.events
 
-    def value_to_bytes(self, value: EventBatch):
+    @staticmethod
+    def value_to_bytes(value: EventBatch):
         return value.SerializeToString()
+
+    def to_trace_string(self, value):
+        return MessageToJson(value)
+
+    def to_debug_string(self, value):
+        return get_debug_string_event(value)

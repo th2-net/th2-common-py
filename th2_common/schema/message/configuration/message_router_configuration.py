@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_common.schema.configuration.configuration import AbstractConfiguration
+from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
 
 
@@ -27,11 +27,6 @@ class MessageRouterConfiguration(AbstractConfiguration):
     def find_queues_by_attr(self, attrs) -> {str: QueueConfiguration}:
         result = dict()
         for queue_alias in self.queues.keys():
-            ok = True
-            for attr in attrs:
-                if not self.queues[queue_alias].attributes.__contains__(attr):
-                    ok = False
-                    break
-            if ok:
+            if all(attr in self.queues[queue_alias].attributes for attr in attrs):
                 result[queue_alias] = self.queues[queue_alias]
         return result

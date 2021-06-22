@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 
-from th2_common.schema.configuration.configuration import AbstractConfiguration
+from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
 
 class RabbitMQConfiguration(AbstractConfiguration):

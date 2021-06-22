@@ -12,13 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
-from th2_common.schema.grpc.configuration.grpc_endpoint_configuration import GrpcEndpointConfiguration
 
-
-class GrpcServerConfiguration(GrpcEndpointConfiguration):
+class GrpcServerConfiguration(AbstractConfiguration):
 
     def __init__(self, host, port, workers, **kwargs) -> None:
-        super().__init__(host, port)
+        self.host = host
+        self.port = port
         self.workers = workers
         self.check_unexpected_args(kwargs)

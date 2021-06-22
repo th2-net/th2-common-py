@@ -51,6 +51,13 @@ class AbstractRabbitSender(MessageSender, ABC):
                                              routing_key=self.__send_queue,
                                              message=self.value_to_bytes(message))
 
+            logger.trace(f'Message sent to exchange_name = "{self.__exchange_name}", '
+                         f'routing_key = "{self.__send_queue}": '
+                         f'"{self.to_trace_string(message)}"')
+            logger.debug(f'Message sent to exchange_name = "{self.__exchange_name}", '
+                         f'routing_key = "{self.__send_queue}": '
+                         f'"{self.to_debug_string(message)}"')
+
             counter = self.get_delivery_counter()
             counter.inc()
             content_counter = self.get_content_counter()
@@ -60,8 +67,9 @@ class AbstractRabbitSender(MessageSender, ABC):
             logger.exception('Can not send')
             raise
 
+    @staticmethod
     @abstractmethod
-    def value_to_bytes(self, value):
+    def value_to_bytes(value):
         pass
 
     @abstractmethod
@@ -73,5 +81,13 @@ class AbstractRabbitSender(MessageSender, ABC):
         pass
 
     @abstractmethod
-    def extract_count_from(self, message):
+    def extract_count_from(self, batch):
+        pass
+
+    @abstractmethod
+    def to_trace_string(self, value):
+        pass
+
+    @abstractmethod
+    def to_debug_string(self, value):
         pass

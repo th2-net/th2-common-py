@@ -12,19 +12,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
 from th2_common.schema.metrics.common_metrics import CommonMetrics
+from th2_common.schema.util.util import get_debug_string_group, get_session_alias_and_direction_group
 
 
 class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
     INCOMING_MSG_GROUP_BATCH_QUANTITY = Counter('th2_mq_incoming_msg_group_batch_quantity',
-                                                'Quantity of incoming message group batches')
+                                                'Quantity of incoming message group batches',
+                                                CommonMetrics.DEFAULT_LABELS)
     INCOMING_MSG_GROUP_QUANTITY = Counter('th2_mq_incoming_msg_group_quantity',
-                                          'Quantity of incoming message groups')
+                                          'Quantity of incoming message groups',
+                                          CommonMetrics.DEFAULT_LABELS)
     MSG_GROUP_PROCESSING_TIME = Histogram('th2_mq_msg_group_processing_time',
                                           'Time of processing message groups',
                                           buckets=CommonMetrics.DEFAULT_BUCKETS)
@@ -38,8 +42,8 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
     def get_processing_timer(self) -> Histogram:
         return self.MSG_GROUP_PROCESSING_TIME
 
-    def extract_count_from(self, message: MessageGroupBatch):
-        return len(message.groups)
+    def extract_count_from(self, batch: MessageGroupBatch):
+        return len(batch.groups)
 
     def get_messages(self, batch) -> list:
         return batch.groups
@@ -47,7 +51,17 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
     def extract_metadata(self, message) -> Metadata:
         raise ValueError
 
-    def value_from_bytes(self, body):
+    @staticmethod
+    def value_from_bytes(body):
         message_group_batch = MessageGroupBatch()
         message_group_batch.ParseFromString(body)
         return [message_group_batch]
+
+    def extract_labels(self, batch):
+        return get_session_alias_and_direction_group(self.get_messages(batch)[0].messages[0])
+
+    def to_trace_string(self, value):
+        return MessageToJson(value)
+
+    def to_debug_string(self, value):
+        return get_debug_string_group(value)

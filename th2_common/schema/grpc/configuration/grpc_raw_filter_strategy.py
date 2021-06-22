@@ -19,6 +19,4 @@ from th2_common.schema.grpc.configuration.grpc_router_filter_configuration impor
 class GrpcRawFilterStrategy:
 
     def __init__(self, filters) -> None:
-        self.filters = list()
-        for key in filters.keys():
-            self.filters.append(GrpcRouterFilterConfiguration(**filters[key]))
+        self.filters = [GrpcRouterFilterConfiguration(**filter_configuration) for filter_configuration in filters]

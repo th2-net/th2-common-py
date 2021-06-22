@@ -12,19 +12,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage, MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
 from th2_common.schema.metrics.common_metrics import CommonMetrics
+from th2_common.schema.util.util import get_debug_string, get_session_alias_and_direction
 
 
 class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
     INCOMING_RAW_MSG_BATCH_QUANTITY = Counter('th2_mq_incoming_raw_msg_batch_quantity',
-                                              'Quantity of incoming raw message batches')
+                                              'Quantity of incoming raw message batches',
+                                              CommonMetrics.DEFAULT_LABELS)
     INCOMING_RAW_MSG_QUANTITY = Counter('th2_mq_incoming_raw_msg_quantity',
-                                        'Quantity of incoming raw messages')
+                                        'Quantity of incoming raw messages',
+                                        CommonMetrics.DEFAULT_LABELS)
     RAW_MSG_PROCESSING_TIME = Histogram('th2_mq_raw_msg_processing_time',
                                         'Time of processing raw messages',
                                         buckets=CommonMetrics.DEFAULT_BUCKETS)
@@ -40,8 +44,8 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
     def get_processing_timer(self) -> Histogram:
         return self.RAW_MSG_PROCESSING_TIME
 
-    def extract_count_from(self, message: RawMessageBatch):
-        return len(self.get_messages(message))
+    def extract_count_from(self, batch: RawMessageBatch):
+        return len(self.get_messages(batch))
 
     def get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
@@ -67,3 +71,12 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
                         direction=metadata.id.direction,
                         sequence=metadata.id.sequence,
                         session_alias=metadata.id.connection_id.session_alias)
+
+    def extract_labels(self, batch):
+        return get_session_alias_and_direction(self.get_messages(batch)[0].metadata.id)
+
+    def to_trace_string(self, value):
+        return MessageToJson(value)
+
+    def to_debug_string(self, value):
+        return get_debug_string(self.__class__.__name__, [message.metadata.id for message in self.get_messages(value)])

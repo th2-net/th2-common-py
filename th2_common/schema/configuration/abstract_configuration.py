@@ -21,4 +21,4 @@ logger = logging.getLogger()
 class AbstractConfiguration(ABC):
     def check_unexpected_args(self, args):
         if len(args) > 0:
-            logger.warning(f"{self.__class__} json config contains unexpected arguments: {args}")
+            logger.warning(f'{self.__class__.__name__} JSON config contains unexpected arguments: {args}')

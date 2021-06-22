@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from typing import List
 
 from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
 from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
@@ -25,8 +26,8 @@ class GrpcRouterFilterConfiguration(RouterFilterConfiguration):
         self.endpoint = endpoint
         self.check_unexpected_args(kwargs)
 
-    def get_metadata(self) -> {str: FieldFilterConfiguration}:
+    def get_metadata(self) -> List[FieldFilterConfiguration]:
         return self.metadata
 
-    def get_message(self) -> {str: FieldFilterConfiguration}:
+    def get_message(self) -> List[FieldFilterConfiguration]:
         return self.message

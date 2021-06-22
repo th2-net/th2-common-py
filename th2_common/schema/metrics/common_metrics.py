@@ -13,10 +13,17 @@
 #   limitations under the License.
 
 from prometheus_client import Gauge
+from typing import Tuple
 
 
 class CommonMetrics:
     DEFAULT_BUCKETS = [0.000_25, 0.000_5, 0.001, 0.005, 0.010, 0.015, 0.025, 0.050, 0.100, 0.250, 0.500, 1.0]
+
+    DEFAULT_SESSION_ALIAS_LABEL_NAME: str = "session_alias"
+    DEFAULT_DIRECTION_LABEL_NAME: str = "direction"
+    DEFAULT_LABELS: Tuple[str, str] = (DEFAULT_SESSION_ALIAS_LABEL_NAME, DEFAULT_DIRECTION_LABEL_NAME)
+    EMPTY_LABELS: Tuple[str, str] = ('', '')
+    UNKNOWN_LABELS: Tuple[str, str] = ('unknown', 'unknown')
 
     LIVENESS = Gauge("th2_liveness", "Service liveness")
     READINESS = Gauge("th2_readiness", "Service readiness")

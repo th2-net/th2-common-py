@@ -14,17 +14,18 @@
 
 
 from abc import ABC, abstractmethod
+from typing import List
 
-from th2_common.schema.configuration.configuration import AbstractConfiguration
+from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
 
 
 class RouterFilterConfiguration(AbstractConfiguration, ABC):
 
     @abstractmethod
-    def get_metadata(self) -> {str: FieldFilterConfiguration}:
+    def get_metadata(self) -> List[FieldFilterConfiguration]:
         pass
 
     @abstractmethod
-    def get_message(self) -> {str: FieldFilterConfiguration}:
+    def get_message(self) -> List[FieldFilterConfiguration]:
         pass
