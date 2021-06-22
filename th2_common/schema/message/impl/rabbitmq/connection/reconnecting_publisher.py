@@ -97,27 +97,25 @@ class ReconnectingPublisher(object):
                 len(self._deliveries), self._acked, self._nacked)
 
     def publish_message(self, exchange_name, routing_key, message):
-        if self._connection is None or not self._connection.is_open:
+        cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
+        while self._connection is None or not self._connection.is_open:
             logger.warning('Cannot send a message because the connection. Try in 1 sec.')
-            cb = functools.partial(self.publish_message, exchange_name, routing_key, message)
-            self._connection.ioloop.call_later(1, cb)
-        else:
-            self._basic_publish(exchange_name, routing_key, message)
+            time.sleep(1)
+        self._connection.ioloop.call_later(1, cb)
 
     def _basic_publish(self, exchange_name, routing_key, message):
         if self._channel is None or not self._channel.is_open:
             logger.warning('Cannot send a message because the connection or channel is closed. Try in 5 sec.')
             cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
             self._connection.ioloop.call_later(5, cb)
-        else:
-            with self._message_lock:
-                self._channel.basic_publish(exchange=exchange_name,
-                                            routing_key=routing_key,
-                                            body=message)
+        with self._message_lock:
+            self._channel.basic_publish(exchange=exchange_name,
+                                        routing_key=routing_key,
+                                        body=message)
 
-                self._message_number += 1
-                self._deliveries.append(self._message_number)
-                logger.info('Published message # %i', self._message_number)
+            self._message_number += 1
+            self._deliveries.append(self._message_number)
+            logger.info('Published message # %i', self._message_number)
 
     def run(self):
         while not self._stopping:
