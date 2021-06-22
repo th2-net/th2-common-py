@@ -17,7 +17,8 @@ from th2_common.schema.configuration.abstract_configuration import AbstractConfi
 
 class GrpcEndpointConfiguration(AbstractConfiguration):
 
-    def __init__(self, host, port, **kwargs) -> None:
+    def __init__(self, host, port, attributes, **kwargs) -> None:
         self.host = host
         self.port = port
+        self.attributes = attributes
         self.check_unexpected_args(kwargs)
