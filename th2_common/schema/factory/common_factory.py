@@ -31,7 +31,8 @@ from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_ro
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class CommonFactory(AbstractCommonFactory):

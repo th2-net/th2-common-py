@@ -37,7 +37,8 @@ from th2_common.schema.message.message_router import MessageRouter
 from th2_common.schema.metrics.prometheus_configuration import PrometheusConfiguration
 from th2_common.schema.metrics.prometheus_server import PrometheusServer
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractCommonFactory(ABC):

@@ -15,7 +15,8 @@
 import logging
 from abc import ABC
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractConfiguration(ABC):

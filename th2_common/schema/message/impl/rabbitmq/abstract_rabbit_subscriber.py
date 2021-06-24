@@ -28,7 +28,8 @@ from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer im
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractRabbitSubscriber(MessageSubscriber, ABC):
