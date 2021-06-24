@@ -83,7 +83,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                     content_counter = self.get_content_counter()
                     content_counter.inc(self.extract_count_from(value))
 
-                if logger.isEnabledFor(logger.TRACE):
+                if logger.isEnabledFor(logging.TRACE):
                     logger.trace(f'Received message: {self.to_trace_string(value)}')
                 elif logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f'Received message: {self.to_debug_string(value)}')
