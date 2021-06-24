@@ -14,8 +14,9 @@
 
 
 import json
-import logging
+import logging.config
 import os
+import pathlib
 from abc import ABC, abstractmethod
 from threading import Lock
 
@@ -42,7 +43,7 @@ logger = logging.getLogger()
 class AbstractCommonFactory(ABC):
 
     DEFAULT_LOGGING_CONFIG_OUTER_PATH = '/var/th2/config/log_config.conf'
-    DEFAULT_LOGGING_CONFIG_INNER_PATH = '../log/config.conf'
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = pathlib.Path(__file__).parent.parent.joinpath('log/config.conf')
 
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
@@ -67,6 +68,8 @@ class AbstractCommonFactory(ABC):
         self._event_batch_router = None
         self._grpc_router = None
 
+        install_trace_logger()
+
         if os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH):
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
                                       disable_existing_loggers=False)
@@ -75,8 +78,6 @@ class AbstractCommonFactory(ABC):
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH,
                                       disable_existing_loggers=False)
             logger.info(f'Using config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
-
-        install_trace_logger()
 
         self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 

@@ -51,12 +51,14 @@ class AbstractRabbitSender(MessageSender, ABC):
                                              routing_key=self.__send_queue,
                                              message=self.value_to_bytes(message))
 
-            logger.trace(f'Message sent to exchange_name = "{self.__exchange_name}", '
-                         f'routing_key = "{self.__send_queue}": '
-                         f'"{self.to_trace_string(message)}"')
-            logger.debug(f'Message sent to exchange_name = "{self.__exchange_name}", '
-                         f'routing_key = "{self.__send_queue}": '
-                         f'"{self.to_debug_string(message)}"')
+            if logger.isEnabledFor(logging.TRACE):
+                logger.trace(f'Sending to exchange_name = "{self.__exchange_name}", '
+                             f'routing_key = "{self.__send_queue}", '
+                             f'message = {self.to_trace_string(message)}')
+            elif logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f'Sending to exchange_name = "{self.__exchange_name}", '
+                             f'routing_key = "{self.__send_queue}", '
+                             f'message = {self.to_debug_string(message)}')
 
             counter = self.get_delivery_counter()
             counter.inc()

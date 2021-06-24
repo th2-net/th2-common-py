@@ -12,14 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch
+from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction
 from typing import List, Tuple
 
 from th2_common.schema.metrics.common_metrics import CommonMetrics
 
 
 def get_session_alias_and_direction(message_id: MessageID) -> Tuple[str, str]:
-    return message_id.connectionId.sessionAlias, message_id.direction.name
+    return message_id.connection_id.session_alias, Direction.Name(message_id.direction)
 
 
 def get_session_alias_and_direction_group(any_message: AnyMessage) -> Tuple[str, str]:
@@ -34,11 +34,11 @@ def get_session_alias_and_direction_group(any_message: AnyMessage) -> Tuple[str,
 def get_debug_string(class_name: str, ids: List[MessageID]) -> str:
     session_alias, direction = get_session_alias_and_direction(ids[0])
     sequences = ''.join([str(i.sequence) for i in ids])
-    return f'{class_name}: session_alias = {session_alias}, direction = {direction}, sequences = {sequences}'
+    return f'{class_name}: session_alias = {session_alias}, direction = {direction}, sequences = {sequences}'.strip()
 
 
 def get_debug_string_event(event_batch: EventBatch) -> str:
-    return f'EventBatch: parent_event_id = {event_batch.events[0].parent_id}'
+    return f'EventBatch: {event_batch.events[0].id}'.strip()
 
 
 def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
@@ -52,4 +52,7 @@ def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
             sequences.append(str(message.raw_message.metadata.id.sequence))
     sequences = ''.join(sequences)
 
-    return f'MessageGroupBatch: session_alias = {session_alias}, direction = {direction}, sequences = {sequences}'
+    return f'MessageGroupBatch: ' \
+           f'session_alias = {session_alias}, ' \
+           f'direction = {direction}, ' \
+           f'sequences = {sequences}'.strip()
