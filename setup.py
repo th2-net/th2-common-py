@@ -39,8 +39,8 @@ setup(
     install_requires=[
         'pika==1.2.0',
         'th2-grpc-common~=3.1.2',
-        'kubernetes~=12.0.1',
-        'prometheus_client~=0.9.0'
+        'kubernetes==17.17.0',
+        'prometheus_client==0.11.0'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json']}

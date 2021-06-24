@@ -21,7 +21,7 @@ def install_trace_logger():
     if _trace_installed:
         return
 
-    level = logging.TRACE = logging.DEBUG - 5
+    level = logging.TRACE = 5
 
     def log_logger(self, message, *args, **kwargs):
         if self.isEnabledFor(level):
