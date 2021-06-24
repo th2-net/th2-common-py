@@ -13,6 +13,8 @@
 #   limitations under the License.
 
 import logging
+
+
 _trace_installed = False
 
 
@@ -21,17 +23,18 @@ def install_trace_logger():
     if _trace_installed:
         return
 
-    level = logging.TRACE = 5
+    TRACE = 5
 
-    def log_logger(self, message, *args, **kwargs):
-        if self.isEnabledFor(level):
-            self._log(level, message, args, **kwargs)
+    def trace(self, msg, *args, **kwargs):
+        if self.isEnabledFor(TRACE):
+            self._log(TRACE, msg, args, **kwargs)
 
-    logging.getLoggerClass().trace = log_logger
+    def log_to_root(msg, *args, **kwargs):
+        logging.log(TRACE, msg, *args, **kwargs)
 
-    def log_root(msg, *args, **kwargs):
-        logging.log(level, msg, *args, **kwargs)
+    logging.addLevelName(TRACE, 'TRACE')
+    setattr(logging, 'TRACE', TRACE)
+    setattr(logging.getLoggerClass(), 'trace', trace)
+    setattr(logging, 'trace', log_to_root)
 
-    logging.addLevelName(level, "TRACE")
-    logging.trace = log_root
     _trace_installed = True

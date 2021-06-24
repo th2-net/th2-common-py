@@ -73,11 +73,11 @@ class AbstractCommonFactory(ABC):
         if os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH):
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
                                       disable_existing_loggers=False)
-            logger.info(f'Using config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')
+            logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')
         elif os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH):
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH,
                                       disable_existing_loggers=False)
-            logger.info(f'Using config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
+            logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
 
         self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 
