@@ -8,7 +8,8 @@ import pika
 from pika import SelectConnection
 from pika.channel import Channel
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class ReconnectingPublisher(object):
@@ -64,7 +65,8 @@ class ReconnectingPublisher(object):
         self._channel.add_on_close_callback(self.on_channel_closed)
 
     def on_channel_closed(self, channel, reason):
-        logger.warning('Publisher channel %i was closed: %s', channel, reason)
+        if reason.reply_code != 0:
+            logger.warning('Publisher channel %i was closed: %s', channel, reason)
         self._channel = None
         if not self._stopping and not self._connection.is_closed and not self._connection.is_closing:
             self._connection.close()

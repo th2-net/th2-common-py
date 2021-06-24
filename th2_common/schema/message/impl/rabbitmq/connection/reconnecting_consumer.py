@@ -11,7 +11,8 @@ from pika.channel import Channel
 
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class Consumer:
@@ -78,7 +79,8 @@ class Consumer:
         self.set_qos()
 
     def on_channel_closed(self, channel, reason):
-        logger.warning('Channel %i was closed: %s', channel, reason)
+        if reason.reply_code != 0:
+            logger.warning('Channel %i was closed: %s', channel, reason)
         self.close_connection()
 
     def set_qos(self):

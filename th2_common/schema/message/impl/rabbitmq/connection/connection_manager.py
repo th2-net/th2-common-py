@@ -7,7 +7,8 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
