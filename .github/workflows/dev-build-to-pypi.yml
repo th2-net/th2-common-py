@@ -5,6 +5,9 @@ on:
     branches-ignore:
       - master
       - version-2
+      - dependabot*
+    paths-ignore:
+      - README.md
 #     paths:
 #     - package_info.json
 
