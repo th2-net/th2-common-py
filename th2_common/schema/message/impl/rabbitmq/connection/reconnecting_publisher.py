@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import queue
 import threading
 import time
 from typing import Optional
@@ -21,53 +22,49 @@ class ReconnectingPublisher(object):
 
         self._connection: Optional[AsyncioConnection] = None
         self._channel: Optional[Channel] = None
+        self._loop = asyncio.new_event_loop()
+        self._not_executed_tasks = queue.Queue(maxsize=1000)
 
         self._deliveries = []
         self._acked = None
         self._nacked = None
         self._message_number = None
+
         self._message_lock = threading.Lock()
-        self._wait_publish = threading.Event()
+        self._publishing_allowed = threading.Event()
 
         self._stopping = False
 
-    def connect(self):
-        logger.info('Connecting by Publisher')
-        return AsyncioConnection(
-            self._connection_parameters,
-            on_open_callback=self.on_connection_open,
-            on_open_error_callback=self.on_connection_open_error,
-            on_close_callback=self.on_connection_closed,
-            custom_ioloop=asyncio.new_event_loop())
-
     def on_connection_open(self, _unused_connection):
-        logger.info('Publisher connection opened')
+        logger.info('Publisher\'s connection has been opened')
         self.open_channel()
 
     def on_connection_open_error(self, _unused_connection, err):
-        logger.error('Publisher connection open failed, reopening as soon as possible: %s', err)
-        self._connection.ioloop.call_soon_threadsafe(self._connection.ioloop.stop)
+        self._publishing_allowed.clear()
+        logger.error('An error occurred while opening a publisher\'s connection,'
+                     ' reopening as soon as possible: %s', err)
+        if not self._stopping and not self._connection.is_closed and not self._connection.is_closing:
+            self._connection.close()
 
     def on_connection_closed(self, _unused_connection, reason):
-        self._channel = None
-        self._connection.ioloop.stop()
+        self._publishing_allowed.clear()
+        logger.info('Publisher\'s connection has been closed: %s', reason)
+        self._loop.call_soon_threadsafe(self._connection.ioloop.stop)
 
     def open_channel(self):
         logger.info('Creating a channel for Publisher')
         self._connection.channel(on_open_callback=self.on_channel_open)
 
     def on_channel_open(self, channel):
-        logger.info('Publisher channel opened')
+        logger.info('Publisher\'s channel has been opened')
         self._channel = channel
         self._channel.confirm_delivery(self.on_delivery_confirmation)
         self._channel.add_on_close_callback(self.on_channel_closed)
-        self._wait_publish.set()
+        self._publishing_allowed.set()
 
     def on_channel_closed(self, channel, reason):
-        self._wait_publish.clear()
-        if reason.reply_code != 0:
-            logger.warning('Publisher channel %i was closed: %s', channel, reason)
-        self._channel = None
+        self._publishing_allowed.clear()
+        logger.info('Publisher\'s channel %i has been closed: %s', channel, reason)
         if not self._stopping and not self._connection.is_closed and not self._connection.is_closing:
             self._connection.close()
 
@@ -75,7 +72,7 @@ class ReconnectingPublisher(object):
         with self._message_lock:
             confirmation_type = method_frame.method.NAME.split('.')[1].lower()
             logger.debug('Received %s for delivery tag: %i multi: %s', confirmation_type,
-                        method_frame.method.delivery_tag, method_frame.method.multiple)
+                         method_frame.method.delivery_tag, method_frame.method.multiple)
             cnt = 0
             if method_frame.method.multiple:
                 idx = len(self._deliveries) - 1
@@ -99,20 +96,36 @@ class ReconnectingPublisher(object):
                 len(self._deliveries), self._acked, self._nacked)
 
     def publish_message(self, exchange_name, routing_key, message):
-        self._wait_publish.wait()
+        self._publishing_allowed.wait()
         cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
+        while not self._not_executed_tasks.empty():
+            self._connection.ioloop.call_soon_threadsafe(self._not_executed_tasks.get())
+        while self._stopping:
+            # It may be worth throwing an exception here that the connection is closed manually.
+            time.sleep(1)
         self._connection.ioloop.call_soon_threadsafe(cb)
 
     def _basic_publish(self, exchange_name, routing_key, message):
-        self._wait_publish.wait()
         with self._message_lock:
-            self._channel.basic_publish(exchange=exchange_name,
-                                        routing_key=routing_key,
-                                        body=message)
+            if not self._publishing_allowed.is_set():
+                cb = functools.partial(self._basic_publish, exchange_name, routing_key, message)
+                self._not_executed_tasks.put(cb)
+            else:
+                self._channel.basic_publish(exchange=exchange_name,
+                                            routing_key=routing_key,
+                                            body=message)
 
-            self._message_number += 1
-            self._deliveries.append(self._message_number)
-            logger.debug('Published message # %i', self._message_number)
+                self._message_number += 1
+                self._deliveries.append(self._message_number)
+                logger.debug('Published message # %i', self._message_number)
+
+    def connect(self):
+        self._connection = AsyncioConnection(
+            self._connection_parameters,
+            on_open_callback=self.on_connection_open,
+            on_open_error_callback=self.on_connection_open_error,
+            on_close_callback=self.on_connection_closed,
+            custom_ioloop=self._loop)
 
     def run(self):
         while not self._stopping:
@@ -123,16 +136,12 @@ class ReconnectingPublisher(object):
                 self._message_number = 0
 
             try:
-                self._connection = self.connect()
+                self.connect()
+                logger.info('Publisher\'s Event loop running')
                 self._connection.ioloop.run_forever()
-                print("stop123")
+                logger.info('Publisher\'s Event loop has been stopped')
             except Exception:
                 logger.exception("Error while running Publisher")
-
-        self.stop()
-        if self._connection is not None and not self._connection.is_closed:
-            self._connection.ioloop.run_forever()
-        logger.info('Publisher stopped')
 
     def stop(self):
         logger.info('Publisher stopping')
@@ -153,10 +162,10 @@ class ReconnectingPublisher(object):
 
     def close_channel(self):
         if self._channel is not None and not self._channel.is_closing and not self._channel.is_closed:
-            logger.info('Closing Publisher channel')
+            logger.info('Closing Publisher\'s channel')
             self._channel.close()
 
     def close_connection(self):
         if self._connection is not None and not self._connection.is_closing and not self._connection.is_closed:
-            logger.info('Closing Publisher connection')
+            logger.info('Closing Publisher\'s connection')
             self._connection.close()
