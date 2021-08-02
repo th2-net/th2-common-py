@@ -21,7 +21,6 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
 from th2_common.schema.message.message_sender import MessageSender
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +67,6 @@ class AbstractRabbitSender(MessageSender, ABC):
 
         except Exception:
             logger.exception('Can not send')
-            raise
 
     @staticmethod
     @abstractmethod
