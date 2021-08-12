@@ -12,8 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from prometheus_client import Gauge
 from typing import Tuple
+
+from th2_common.schema.metrics.aggregating_metric import AggregatingMetric
+from th2_common.schema.metrics.file_metric import FileMetric
+from th2_common.schema.metrics.prometheus_metric import PrometheusMetric
 
 
 class CommonMetrics:
@@ -25,15 +28,30 @@ class CommonMetrics:
     EMPTY_LABELS: Tuple[str, str] = ('', '')
     UNKNOWN_LABELS: Tuple[str, str] = ('unknown', 'unknown')
 
-    LIVENESS = Gauge("th2_liveness", "Service liveness")
-    READINESS = Gauge("th2_readiness", "Service readiness")
+    LIVENESS_ARBITER = AggregatingMetric([PrometheusMetric("th2_liveness", "Service liveness"), FileMetric('healthy')])
+    READINESS_ARBITER = AggregatingMetric([PrometheusMetric("th2_readiness", "Service readiness"), FileMetric('ready')])
 
-    RABBITMQ_READINESS = True
-    GRPC_READINESS = True
-    ALL_READINESS = [RABBITMQ_READINESS, GRPC_READINESS]
+    @staticmethod
+    def register_liveness(name: str):
+        return CommonMetrics.LIVENESS_ARBITER.create_monitor(name)
 
-    def check_common_readiness(self):
-        for readiness_parameter in self.ALL_READINESS:
-            if not readiness_parameter:
-                return False
-        return True
+    @staticmethod
+    def register_readiness(name: str):
+        return CommonMetrics.READINESS_ARBITER.create_monitor(name)
+
+    LIVENESS_MONITOR = register_liveness('user_liveness')
+    READINESS_MONITOR = register_readiness('user_readiness')
+
+    class HealthMetrics:
+
+        def __init__(self, obj: object) -> None:
+            self.liveness_monitor = CommonMetrics.register_liveness(f'{obj.__class__.__name__}_liveness_{hash(obj)}')
+            self.readiness_monitor = CommonMetrics.register_readiness(f'{obj.__class__.__name__}_readiness_{hash(obj)}')
+
+        def enable(self):
+            self.liveness_monitor.enable()
+            self.readiness_monitor.enable()
+
+        def disable(self):
+            self.liveness_monitor.disable()
+            self.readiness_monitor.disable()

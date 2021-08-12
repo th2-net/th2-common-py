@@ -12,20 +12,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 import json
 import logging.config
 import os
-import pathlib
 from abc import ABC, abstractmethod
+from pathlib import Path
 from threading import Lock
 
-from th2_common.schema.log.trace import install_trace_logger
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
+from th2_common.schema.log.trace import install_trace_logger
 from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
@@ -43,8 +42,8 @@ logger = logging.getLogger(__name__)
 
 class AbstractCommonFactory(ABC):
 
-    DEFAULT_LOGGING_CONFIG_OUTER_PATH = '/var/th2/config/log_config.conf'
-    DEFAULT_LOGGING_CONFIG_INNER_PATH = pathlib.Path(__file__).parent.parent.joinpath('log/config.conf')
+    DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/log4py.conf')
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent.joinpath('log/config.conf')
 
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
@@ -71,11 +70,11 @@ class AbstractCommonFactory(ABC):
 
         install_trace_logger()
 
-        if os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH):
+        if AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH.exists():
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
                                       disable_existing_loggers=False)
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')
-        elif os.path.exists(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH):
+        elif AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH.exists():
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH,
                                       disable_existing_loggers=False)
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
