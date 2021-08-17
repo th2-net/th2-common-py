@@ -14,14 +14,14 @@
 
 from abc import ABC
 
-from th2_common.schema.metrics.metric_monitor import MetricMonitor
+import th2_common.schema.metrics.metric_monitor as metric_monitor
 
 
 class Metric(ABC):
 
     enabled: bool = None
 
-    def create_monitor(self, name: str) -> MetricMonitor:
+    def create_monitor(self, name: str) -> 'metric_monitor.MetricMonitor':
         """
         Creates new monitor for the metric
 
@@ -30,7 +30,7 @@ class Metric(ABC):
         """
         pass
 
-    def is_enabled(self, monitor: MetricMonitor) -> bool:
+    def is_enabled(self, monitor: 'metric_monitor.MetricMonitor') -> bool:
         """
         Checks if status of a monitor is `enabled`
 
@@ -39,7 +39,7 @@ class Metric(ABC):
         """
         pass
 
-    def enable(self, monitor: MetricMonitor):
+    def enable(self, monitor: 'metric_monitor.MetricMonitor'):
         """
         Changes status of a monitor to `enabled`
 
@@ -47,7 +47,7 @@ class Metric(ABC):
         """
         pass
 
-    def disable(self, monitor: MetricMonitor):
+    def disable(self, monitor: 'metric_monitor.MetricMonitor'):
         """
         Changes status of a monitor to `disabled`
 
