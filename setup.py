@@ -38,7 +38,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'pika==1.2.0',
-        'th2-grpc-common~=3.3.0',
+        'th2-grpc-common>=3.3,<3.5',
         'kubernetes==17.17.0',
         'prometheus_client==0.11.0'
     ],
