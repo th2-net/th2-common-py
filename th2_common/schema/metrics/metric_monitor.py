@@ -12,12 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_common.schema.metrics.metric import Metric
+import th2_common.schema.metrics.metric as metric
 
 
 class MetricMonitor:
 
-    def __init__(self, name: str, arbiter: Metric) -> None:
+    def __init__(self, name: str, arbiter: 'metric.Metric') -> None:
         self.name = name
         self.arbiter = arbiter
 
