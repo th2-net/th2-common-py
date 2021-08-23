@@ -12,10 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction
 from typing import List, Tuple
 
-from th2_common.schema.metrics.common_metrics import CommonMetrics
+from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction
+
+import th2_common.schema.metrics.common_metrics as common_metrics
 
 
 def get_session_alias_and_direction(message_id: MessageID) -> Tuple[str, str]:
@@ -28,7 +29,7 @@ def get_session_alias_and_direction_group(any_message: AnyMessage) -> Tuple[str,
     elif any_message.HasField('raw_message'):
         return get_session_alias_and_direction(any_message.raw_message.metadata.id)
     else:
-        return CommonMetrics.UNKNOWN_LABELS
+        return common_metrics.UNKNOWN_LABELS
 
 
 def get_debug_string(class_name: str, ids: List[MessageID]) -> str:

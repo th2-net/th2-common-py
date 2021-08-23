@@ -14,8 +14,6 @@
 
 from prometheus_client.exposition import start_wsgi_server
 
-from th2_common.schema.metrics.common_metrics import CommonMetrics
-
 
 class PrometheusServer:
 
@@ -25,10 +23,8 @@ class PrometheusServer:
         self.host = host
 
     def run(self):
-        CommonMetrics.LIVENESS.inc()
         start_wsgi_server(self.port, self.host)
         self.stopped = False
 
     def stop(self):
-        CommonMetrics.LIVENESS.dec()
         self.stopped = True
