@@ -148,6 +148,7 @@ class ReconnectingPublisher(object):
         self._stopping = True
         logger.info(f'Waiting for the remaining messages to be published for'
                     f' {ReconnectingPublisher.TIMEOUT_STOPPING} sec.')
+        # Pull from queue tasks
         time.sleep(ReconnectingPublisher.TIMEOUT_STOPPING)
         deliveries_size = len(self._deliveries)
         wait_counter = 0
