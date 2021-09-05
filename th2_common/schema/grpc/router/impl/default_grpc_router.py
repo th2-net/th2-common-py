@@ -79,7 +79,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         return self.Connection(find_service, strategy_obj, stub_class, self.channels)
 
     def __load_strategies(self):
-        package_dir = Path(route.__file__).resolve().parent
+        package_dir = str(Path(route.__file__).resolve().parent)
 
         for _, module_name, _ in iter_modules([package_dir]):
             module = import_module(f'{route.__name__}.{module_name}')

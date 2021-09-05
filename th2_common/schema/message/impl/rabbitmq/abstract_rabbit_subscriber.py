@@ -27,6 +27,7 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
+from th2_common.schema.metrics.common_metrics import HealthMetrics
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.__consumer_tag = None
         self.__closed = True
 
+        self.__metrics = HealthMetrics(self)
+
     def start(self):
         if self.__subscribe_target is None:
             raise Exception('Subscriber did not init')
@@ -56,6 +59,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.__consumer_tag = self.__consumer.add_subscriber(queue=queue,
                                                                  on_message_callback=self.handle)
             self.__closed = False
+
+        self.__metrics.enable()
 
     def handle(self, channel, method, properties, body):
         process_timer = self.get_processing_timer()
@@ -137,6 +142,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.listeners.clear()
         self.__consumer.remove_subscriber(self.__consumer_tag)
         self.__closed = True
+
+        self.__metrics.disable()
 
     @staticmethod
     @abstractmethod
