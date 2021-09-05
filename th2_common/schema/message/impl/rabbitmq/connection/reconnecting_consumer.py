@@ -106,7 +106,8 @@ class Consumer:
             self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
             self._subscribe_allowed.set()
             for consumer_tag in self._subscribers.keys():
-                self.start_consuming(consumer_tag)
+                if not self._consuming[consumer_tag]:
+                    self.start_consuming(consumer_tag)
         except Exception:
             logger.exception('An error occurred when executing basic_consume by %s for the Consumer\'s channel')
 
