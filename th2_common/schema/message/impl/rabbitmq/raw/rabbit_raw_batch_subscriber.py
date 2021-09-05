@@ -16,22 +16,22 @@ from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage, MessageGroupBatch
 
+import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
-from th2_common.schema.metrics.common_metrics import CommonMetrics
 from th2_common.schema.util.util import get_debug_string, get_session_alias_and_direction
 
 
 class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
     INCOMING_RAW_MSG_BATCH_QUANTITY = Counter('th2_mq_incoming_raw_msg_batch_quantity',
                                               'Quantity of incoming raw message batches',
-                                              CommonMetrics.DEFAULT_LABELS)
+                                              common_metrics.DEFAULT_LABELS)
     INCOMING_RAW_MSG_QUANTITY = Counter('th2_mq_incoming_raw_msg_quantity',
                                         'Quantity of incoming raw messages',
-                                        CommonMetrics.DEFAULT_LABELS)
+                                        common_metrics.DEFAULT_LABELS)
     RAW_MSG_PROCESSING_TIME = Histogram('th2_mq_raw_msg_processing_time',
                                         'Time of processing raw messages',
-                                        buckets=CommonMetrics.DEFAULT_BUCKETS)
+                                        buckets=common_metrics.DEFAULT_BUCKETS)
 
     __MESSAGE_TYPE = 'raw'
 

@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from threading import Lock
 
+import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
@@ -79,12 +80,15 @@ class AbstractCommonFactory(ABC):
                                       disable_existing_loggers=False)
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
 
+        self._liveness_monitor = common_metrics.register_liveness('common_factory_liveness')
+
         self._connection_manager = ConnectionManager(self.rabbit_mq_configuration)
 
         self.prometheus_config = self._create_prometheus_configuration()
-        self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
         if self.prometheus_config.enabled:
+            self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
             self.prometheus.run()
+            self._liveness_monitor.enable()
 
     @property
     def message_parsed_batch_router(self) -> MessageRouter:
@@ -178,6 +182,8 @@ class AbstractCommonFactory(ABC):
         if self.prometheus.stopped is False:
             self.prometheus.stop()
 
+        self._liveness_monitor.disable()
+
         logger.info('Common Factory is closed')
 
     @staticmethod
@@ -190,22 +196,22 @@ class AbstractCommonFactory(ABC):
         return config_dict
 
     def create_cradle_configuration(self) -> CradleConfiguration:
-        return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration()))
+        return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration))
 
     def _create_prometheus_configuration(self) -> PrometheusConfiguration:
-        if os.path.exists(self._path_to_prometheus_configuration()):
-            return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration()))
+        if self._path_to_prometheus_configuration.exists():
+            return PrometheusConfiguration(**self.read_configuration(self._path_to_prometheus_configuration))
         else:
             return PrometheusConfiguration()
 
     def create_custom_configuration(self) -> dict:
-        return self.read_configuration(self._path_to_custom_configuration())
+        return self.read_configuration(self._path_to_custom_configuration)
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
         lock = Lock()
         with lock:
             if not hasattr(self, 'rabbit_mq_configuration'):
-                config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration())
+                config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration)
                 self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
         return self.rabbit_mq_configuration
 
@@ -213,37 +219,43 @@ class AbstractCommonFactory(ABC):
         lock = Lock()
         with lock:
             if not hasattr(self, 'message_router_configuration'):
-                config_dict = self.read_configuration(self._path_to_message_router_configuration())
+                config_dict = self.read_configuration(self._path_to_message_router_configuration)
                 self.message_router_configuration = MessageRouterConfiguration(**config_dict)
         return self.message_router_configuration
 
     def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
         lock = Lock()
         with lock:
-            config_dict = self.read_configuration(self._path_to_grpc_router_configuration())
+            config_dict = self.read_configuration(self._path_to_grpc_router_configuration)
             self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
         return self.grpc_router_configuration
 
+    @property
     @abstractmethod
-    def _path_to_rabbit_mq_configuration(self) -> str:
+    def _path_to_rabbit_mq_configuration(self) -> Path:
         pass
 
+    @property
     @abstractmethod
-    def _path_to_message_router_configuration(self) -> str:
+    def _path_to_message_router_configuration(self) -> Path:
         pass
 
+    @property
     @abstractmethod
-    def _path_to_grpc_router_configuration(self) -> str:
+    def _path_to_grpc_router_configuration(self) -> Path:
         pass
 
+    @property
     @abstractmethod
-    def _path_to_cradle_configuration(self) -> str:
+    def _path_to_cradle_configuration(self) -> Path:
         pass
 
+    @property
     @abstractmethod
-    def _path_to_prometheus_configuration(self) -> str:
+    def _path_to_prometheus_configuration(self) -> Path:
         pass
 
+    @property
     @abstractmethod
-    def _path_to_custom_configuration(self) -> str:
+    def _path_to_custom_configuration(self) -> Path:
         pass

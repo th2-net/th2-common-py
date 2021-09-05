@@ -97,7 +97,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         for queue_alias in self.configuration.find_queues_by_attr(attrs).keys():
             subscribers.append(self._subscribe_by_alias(callback, queue_alias))
         if len(subscribers) == 0:
-            raise RouterError(f'Wrong amount of queues for subscribe_all_by_attr. Must not be empty. '
+            raise RouterError(f'Wrong amount of queues for subscribe_all. Must not be empty. '
                               f'Search was done by {attrs} attributes')
         return MultiplySubscribeMonitorImpl(subscribers)
 

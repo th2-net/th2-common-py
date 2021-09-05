@@ -16,8 +16,8 @@ from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import EventBatch
 
+import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
-from th2_common.schema.metrics.common_metrics import CommonMetrics
 from th2_common.schema.util.util import get_debug_string_event
 
 
@@ -28,7 +28,7 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
                                       'Quantity of incoming events')
     EVENT_PROCESSING_TIME = Histogram('th2_mq_event_processing_time',
                                       'Time of processing events',
-                                      buckets=CommonMetrics.DEFAULT_BUCKETS)
+                                      buckets=common_metrics.DEFAULT_BUCKETS)
 
     def get_delivery_counter(self) -> Counter:
         return self.INCOMING_EVENT_BATCH_QUANTITY
@@ -53,6 +53,9 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
 
     def filter(self, value) -> bool:
         return True
+
+    def extract_labels(self, batch):
+        return []
 
     def to_trace_string(self, value):
         return MessageToJson(value)

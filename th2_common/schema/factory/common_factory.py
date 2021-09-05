@@ -267,20 +267,26 @@ class CommonFactory(AbstractCommonFactory):
         except IOError:
             logger.error(f'Failed to write ${name} config.')
 
+    @property
     def _path_to_rabbit_mq_configuration(self) -> Path:
         return self.rabbit_mq_config_filepath
 
+    @property
     def _path_to_message_router_configuration(self) -> Path:
         return self.mq_router_config_filepath
 
+    @property
     def _path_to_grpc_router_configuration(self) -> Path:
         return self.grpc_router_config_filepath
 
+    @property
     def _path_to_cradle_configuration(self) -> Path:
         return self.cradle_config_filepath
 
+    @property
     def _path_to_prometheus_configuration(self) -> Path:
         return self.prometheus_config_filepath
 
+    @property
     def _path_to_custom_configuration(self) -> Path:
         return self.custom_config_filepath

@@ -17,7 +17,7 @@ from th2_common.schema.configuration.abstract_configuration import AbstractConfi
 
 class PrometheusConfiguration(AbstractConfiguration):
 
-    def __init__(self, host="0.0.0.0", port=9752, enabled=True, **kwargs) -> None:
+    def __init__(self, host="0.0.0.0", port=9752, enabled=False, **kwargs) -> None:
         self.host = host
         self.port = port
         self.enabled = enabled

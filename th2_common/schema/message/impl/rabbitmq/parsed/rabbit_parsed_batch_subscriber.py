@@ -16,22 +16,22 @@ from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Histogram
 from th2_grpc_common.common_pb2 import MessageBatch, MessageGroupBatch
 
+import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
-from th2_common.schema.metrics.common_metrics import CommonMetrics
 from th2_common.schema.util.util import get_debug_string, get_session_alias_and_direction
 
 
 class RabbitParsedBatchSubscriber(AbstractRabbitBatchSubscriber):
     INCOMING_PARSED_MSG_BATCH_QUANTITY = Counter('th2_mq_incoming_parsed_msg_batch_quantity',
                                                  'Quantity of incoming parsed message batches',
-                                                 CommonMetrics.DEFAULT_LABELS)
+                                                 common_metrics.DEFAULT_LABELS)
     INCOMING_PARSED_MSG_QUANTITY = Counter('th2_mq_incoming_parsed_msg_quantity',
                                            'Quantity of incoming parsed messages',
-                                           CommonMetrics.DEFAULT_LABELS)
+                                           common_metrics.DEFAULT_LABELS)
     PARSED_MSG_PROCESSING_TIME = Histogram('th2_mq_parsed_msg_processing_time',
                                            'Time of processing parsed messages',
-                                           buckets=CommonMetrics.DEFAULT_BUCKETS)
+                                           buckets=common_metrics.DEFAULT_BUCKETS)
 
     def get_delivery_counter(self) -> Counter:
         return self.INCOMING_PARSED_MSG_BATCH_QUANTITY
