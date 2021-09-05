@@ -12,12 +12,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from enum import Enum, auto
+
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
+
+
+class FieldFilterOperation(Enum):
+    EQUAL = auto()
+    NOT_EQUAL = auto()
+    EMPTY = auto()
+    NOT_EMPTY = auto()
+    WILDCARD = auto()
 
 
 class FieldFilterConfiguration(AbstractConfiguration):
 
-    def __init__(self, value=None, expectedValue=None, fieldName=None, operation=None, **kwargs) -> None:
+    def __init__(self, value: str = None, expectedValue: str = None, fieldName: str = None,
+                 operation: FieldFilterOperation = None, **kwargs) -> None:
         self.value = value or expectedValue
         self.field_name = fieldName
         self.operation = operation

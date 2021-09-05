@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,7 +12,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-pika==1.2.0
-th2-grpc-common==3.4.0
-kubernetes==18.20.0
-prometheus_client==0.11.0
+from prometheus_client import Gauge
+
+from th2_common.schema.metrics.abstract_metric import AbstractMetric
+
+
+class PrometheusMetric(AbstractMetric):
+
+    def __init__(self, name: str, documentation: str) -> None:
+        self.metric = Gauge(name=name, documentation=documentation)
+
+    def on_value_change(self, value: bool):
+        self.metric.set(1.0 if value else 0.0)

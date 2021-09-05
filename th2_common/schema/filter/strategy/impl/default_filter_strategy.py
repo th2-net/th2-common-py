@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+from fnmatch import fnmatch
 from typing import List
 
 from google.protobuf.message import Message
@@ -48,18 +48,18 @@ class DefaultFilterStrategy(FilterStrategy):
                 return False
         return True
 
-    def check_value(self, value1, filter_configuration: FieldFilterConfiguration):
-        if len(value1) == 0:
-            return False
+    def check_value(self, value, filter_configuration: FieldFilterConfiguration):
+        expected = filter_configuration.value
 
-        value2 = filter_configuration.value
-        if filter_configuration.operation == "EQUAL":
-            return value1 == value2
-        elif filter_configuration.operation == "NOT_EQUAL":
-            return value1 != value2
-        elif filter_configuration.operation == "EMPTY":
-            return len(value1) == 0
-        elif filter_configuration.operation == "NOT_EMPTY":
-            return len(value1) != 0
+        if filter_configuration.operation.name == 'EQUAL':
+            return value == expected
+        elif filter_configuration.operation.name == 'NOT_EQUAL':
+            return value != expected
+        elif filter_configuration.operation.name == 'EMPTY':
+            return len(value) == 0
+        elif filter_configuration.operation.name == 'NOT_EMPTY':
+            return len(value) != 0
+        elif filter_configuration.operation.name == 'WILDCARD':
+            return fnmatch(value, expected)
         else:
             return False
