@@ -31,6 +31,7 @@ class Consumer:
         self._closing = False
 
         self._subscribe_allowed = threading.Event()
+        self.subscribers_lock = threading.Lock()
 
     def connect(self):
         logger.info('Connecting by ReconnectingConsumer')
@@ -105,8 +106,8 @@ class Consumer:
         try:
             self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
             self._subscribe_allowed.set()
-            for consumer_tag in self._subscribers.keys():
-                if not self._consuming[consumer_tag]:
+            with self.subscribers_lock:
+                for consumer_tag in self._subscribers.keys():
                     self.start_consuming(consumer_tag)
         except Exception:
             logger.exception('An error occurred when executing basic_consume by %s for the Consumer\'s channel')
@@ -115,11 +116,12 @@ class Consumer:
         if not self._subscribe_allowed.is_set():
             logger.warning('Waiting for the Consumer\'s channel to be ready to execute basic_consume')
         self._subscribe_allowed.wait()
-        self._channel.basic_consume(queue=self._subscribers[consumer_tag][0],
-                                    consumer_tag=consumer_tag,
-                                    on_message_callback=self._subscribers[consumer_tag][1])
-        self.was_consuming = True
-        self._consuming[consumer_tag] = True
+        if not self._consuming[consumer_tag]:
+            self._channel.basic_consume(queue=self._subscribers[consumer_tag][0],
+                                        consumer_tag=consumer_tag,
+                                        on_message_callback=self._subscribers[consumer_tag][1])
+            self.was_consuming = True
+            self._consuming[consumer_tag] = True
 
     def on_consumer_cancelled(self, method_frame):
         logger.info('Consumer was cancelled remotely, shutting down: %r', method_frame)
@@ -197,19 +199,21 @@ class ReconnectingConsumer(object):
         self._consumer.stop()
 
     def add_subscriber(self, queue, on_message_callback):
-        if self._subscriber_name is None:
-            self._subscriber_name = 'rabbit_mq_subscriber'
-            logger.info(f"Using default subscriber name: '{self._subscriber_name}'")
-        consumer_tag = f'{self._subscriber_name}.{self.next_id()}.{datetime.datetime.now()}'
-        self._subscribers[consumer_tag] = (queue, on_message_callback)
-        self._consuming[consumer_tag] = False
-        self._consumer.start_consuming(consumer_tag)
-        return consumer_tag
+        with self._consumer.subscribers_lock:
+            if self._subscriber_name is None:
+                self._subscriber_name = 'rabbit_mq_subscriber'
+                logger.info(f"Using default subscriber name: '{self._subscriber_name}'")
+            consumer_tag = f'{self._subscriber_name}.{self.next_id()}.{datetime.datetime.now()}'
+            self._subscribers[consumer_tag] = (queue, on_message_callback)
+            self._consuming[consumer_tag] = False
+            self._consumer.start_consuming(consumer_tag)
+            return consumer_tag
 
     def remove_subscriber(self, consumer_tag):
-        self._consumer.stop_consuming(consumer_tag)
-        self._subscribers.pop(consumer_tag)
-        self._consuming.pop(consumer_tag)
+        with self._consumer.subscribers_lock:
+            self._consumer.stop_consuming(consumer_tag)
+            self._subscribers.pop(consumer_tag)
+            self._consuming.pop(consumer_tag)
 
     def add_callback_threadsafe(self, cb):
         self._consumer.add_callback_threadsafe(cb)
