@@ -179,7 +179,7 @@ class AbstractCommonFactory(ABC):
         if self._connection_manager is not None:
             self._connection_manager.close()
 
-        if self.prometheus.stopped is False:
+        if self.prometheus_config.enabled and self.prometheus.stopped is False:
             self.prometheus.stop()
 
         self._liveness_monitor.disable()
