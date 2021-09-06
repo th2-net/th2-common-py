@@ -11,7 +11,6 @@ from pika.channel import Channel
 
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +30,9 @@ class Consumer:
         self._channel: Optional[Channel] = None
         self._closing = False
 
+        self._subscribe_allowed = threading.Event()
+        self.subscribers_lock = threading.Lock()
+
     def connect(self):
         logger.info('Connecting by ReconnectingConsumer')
         return pika.SelectConnection(
@@ -39,29 +41,32 @@ class Consumer:
             on_open_error_callback=self.on_connection_open_error,
             on_close_callback=self.on_connection_closed)
 
+    def on_connection_open(self, _unused_connection):
+        logger.info('Consumer\'s connection opened')
+        self.open_channel()
+
     def close_connection(self):
+        self._subscribe_allowed.clear()
         for consumer_tag in self._consuming.keys():
             self._consuming[consumer_tag] = False
         if self._connection.is_closing or self._connection.is_closed:
-            logger.info('Consumer connection is closing or already closed')
+            logger.info('Consumer\'s connection is closing or already closed')
         else:
-            logger.info('Closing consumer connection')
+            logger.info('Closing Consumer\'s connection')
             self._connection.close()
 
-    def on_connection_open(self, _unused_connection):
-        logger.info('Consumer connection opened')
-        self.open_channel()
-
     def on_connection_open_error(self, _unused_connection, err):
-        logger.error('Consumer connection open failed: %s', err)
+        self._subscribe_allowed.clear()
+        logger.error('Consumer\'s connection open failed: %s', err)
         self.reconnect()
 
     def on_connection_closed(self, _unused_connection, reason):
+        self._subscribe_allowed.clear()
         self._channel = None
         if self._closing:
             self._connection.ioloop.stop()
         else:
-            logger.warning('Consumer connection closed, reconnect necessary: %s', reason)
+            logger.warning('Consumer\'s connection closed, reconnect necessary: %s', reason)
             self.reconnect()
 
     def reconnect(self):
@@ -69,36 +74,54 @@ class Consumer:
         self.stop()
 
     def open_channel(self):
-        logger.info('Creating a channel for Consumer')
-        self._connection.channel(on_open_callback=self.on_channel_open)
+        logger.info('Creating the Consumer\'s channel')
+        try:
+            self._connection.channel(on_open_callback=self.on_channel_open)
+        except Exception:
+            logger.exception('An error occurred while creating the Consumer\'s channel ')
 
     def on_channel_open(self, channel):
-        logger.info('Consumer channel opened')
+        logger.info('Consumer\'s channel opened')
         self._channel = channel
-        self._channel.add_on_close_callback(self.on_channel_closed)
+        try:
+            self._channel.add_on_close_callback(self.on_channel_closed)
+        except Exception:
+            logger.exception('An error occurred while adding a callback to close the Consumer\'s channel')
         self.set_qos()
 
     def on_channel_closed(self, channel, reason):
-        if reason.reply_code != 0:
-            logger.warning('Channel %i was closed: %s', channel, reason)
+        self._subscribe_allowed.clear()
+        logger.warning('Consumer\'s channel %i was closed: %s', channel, reason)
         self.close_connection()
 
     def set_qos(self):
-        self._channel.basic_qos(prefetch_count=self._prefetch_count,
-                                callback=self.on_basic_qos_ok)
+        try:
+            self._channel.basic_qos(prefetch_count=self._prefetch_count,
+                                    callback=self.on_basic_qos_ok)
+        except Exception:
+            logger.exception('An error occurred when specifying prefetch_count for the Consumer\'s channel')
 
     def on_basic_qos_ok(self, _unused_frame):
         logger.info('QOS set to: %d', self._prefetch_count)
-        for consumer_tag in self._subscribers.keys():
-            self.start_consuming(consumer_tag)
+        try:
+            self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
+            self._subscribe_allowed.set()
+            with self.subscribers_lock:
+                for consumer_tag in self._subscribers.keys():
+                    self.start_consuming(consumer_tag)
+        except Exception:
+            logger.exception('An error occurred when executing basic_consume by %s for the Consumer\'s channel')
 
     def start_consuming(self, consumer_tag):
-        self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
-        self._channel.basic_consume(queue=self._subscribers[consumer_tag][0],
-                                    consumer_tag=consumer_tag,
-                                    on_message_callback=self._subscribers[consumer_tag][1])
-        self.was_consuming = True
-        self._consuming[consumer_tag] = True
+        if not self._subscribe_allowed.is_set():
+            logger.warning('Waiting for the Consumer\'s channel to be ready to execute basic_consume')
+        self._subscribe_allowed.wait()
+        if not self._consuming[consumer_tag]:
+            self._channel.basic_consume(queue=self._subscribers[consumer_tag][0],
+                                        consumer_tag=consumer_tag,
+                                        on_message_callback=self._subscribers[consumer_tag][1])
+            self.was_consuming = True
+            self._consuming[consumer_tag] = True
 
     def on_consumer_cancelled(self, method_frame):
         logger.info('Consumer was cancelled remotely, shutting down: %r', method_frame)
@@ -107,7 +130,7 @@ class Consumer:
 
     def stop_consuming(self, consumer_tag):
         if self._channel:
-            logger.info('Sending a Basic.Cancel RPC command to RabbitMQ')
+            logger.info('Sending a Basic.Cancel RPC command to RabbitMQ for tag: %s', consumer_tag)
             cb = functools.partial(self.on_cancel_ok, userdata=consumer_tag)
             self._channel.basic_cancel(consumer_tag, cb)
 
@@ -176,19 +199,21 @@ class ReconnectingConsumer(object):
         self._consumer.stop()
 
     def add_subscriber(self, queue, on_message_callback):
-        if self._subscriber_name is None:
-            self._subscriber_name = 'rabbit_mq_subscriber'
-            logger.info(f"Using default subscriber name: '{self._subscriber_name}'")
-        consumer_tag = f'{self._subscriber_name}.{self.next_id()}.{datetime.datetime.now()}'
-        self._subscribers[consumer_tag] = (queue, on_message_callback)
-        self._consuming[consumer_tag] = False
-        self._consumer.start_consuming(consumer_tag)
-        return consumer_tag
+        with self._consumer.subscribers_lock:
+            if self._subscriber_name is None:
+                self._subscriber_name = 'rabbit_mq_subscriber'
+                logger.info(f"Using default subscriber name: '{self._subscriber_name}'")
+            consumer_tag = f'{self._subscriber_name}.{self.next_id()}.{datetime.datetime.now()}'
+            self._subscribers[consumer_tag] = (queue, on_message_callback)
+            self._consuming[consumer_tag] = False
+            self._consumer.start_consuming(consumer_tag)
+            return consumer_tag
 
     def remove_subscriber(self, consumer_tag):
-        self._consumer.stop_consuming(consumer_tag)
-        self._subscribers.pop(consumer_tag)
-        self._consuming.pop(consumer_tag)
+        with self._consumer.subscribers_lock:
+            self._consumer.stop_consuming(consumer_tag)
+            self._subscribers.pop(consumer_tag)
+            self._consuming.pop(consumer_tag)
 
     def add_callback_threadsafe(self, cb):
         self._consumer.add_callback_threadsafe(cb)
