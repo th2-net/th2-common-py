@@ -80,12 +80,12 @@ class CommonFactory(AbstractCommonFactory):
             prometheus_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.PROMETHEUS_CONFIG_FILENAME
             custom_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.CUSTOM_CONFIG_FILENAME
 
-        self.rabbit_mq_config_filepath = rabbit_mq_config_filepath
-        self.mq_router_config_filepath = mq_router_config_filepath
-        self.grpc_router_config_filepath = grpc_router_config_filepath
-        self.cradle_config_filepath = cradle_config_filepath
-        self.prometheus_config_filepath = prometheus_config_filepath
-        self.custom_config_filepath = custom_config_filepath
+        self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
+        self.mq_router_config_filepath = Path(mq_router_config_filepath)
+        self.grpc_router_config_filepath = Path(grpc_router_config_filepath)
+        self.cradle_config_filepath = Path(cradle_config_filepath)
+        self.prometheus_config_filepath = Path(prometheus_config_filepath)
+        self.custom_config_filepath = Path(custom_config_filepath)
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
                          message_group_batch_router_class, event_batch_router_class, grpc_router_class)
