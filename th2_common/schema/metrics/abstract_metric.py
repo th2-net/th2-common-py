@@ -21,7 +21,7 @@ from th2_common.schema.metrics.metric_monitor import MetricMonitor
 
 class AbstractMetric(Metric, ABC):
 
-    __disabled_monitors: Set[MetricMonitor] = {}
+    __disabled_monitors: Set[MetricMonitor] = set()
 
     @property
     def enabled(self) -> bool:
