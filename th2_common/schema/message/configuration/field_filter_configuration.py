@@ -31,5 +31,5 @@ class FieldFilterConfiguration(AbstractConfiguration):
                  operation: FieldFilterOperation = None, **kwargs) -> None:
         self.value = value or expectedValue
         self.field_name = fieldName
-        self.operation = operation
+        self.operation = FieldFilterOperation[operation]
         self.check_unexpected_args(kwargs)
