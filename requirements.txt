@@ -13,6 +13,6 @@
 #   limitations under the License.
 
 pika==1.2.0
-th2-grpc-common==3.4.0
+th2-grpc-common==3.5.0
 kubernetes==18.20.0
 prometheus_client==0.11.0
