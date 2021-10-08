@@ -18,8 +18,8 @@ from typing import List
 from google.protobuf.message import Message
 
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
-from th2_common.schema.message.configuration.field_filter_configuration import FieldFilterConfiguration
-from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
+from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, \
+    RouterFilterConfiguration
 from th2_common.schema.strategy.field_extraction.impl.th2_batch_msg_field_extraction import Th2BatchMsgFieldExtraction
 
 

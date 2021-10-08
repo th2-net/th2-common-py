@@ -16,7 +16,7 @@
 from google.protobuf.message import Message
 
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
-from th2_common.schema.grpc.configuration.grpc_raw_filter_strategy import GrpcRawFilterStrategy
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcRawFilterStrategy
 from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 

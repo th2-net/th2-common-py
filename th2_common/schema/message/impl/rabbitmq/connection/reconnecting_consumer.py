@@ -9,6 +9,7 @@ import pika
 from pika import SelectConnection
 from pika.channel import Channel
 
+from th2_common.schema.message.configuration.message_configuration import ConnectionManagerConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 
 logger = logging.getLogger(__name__)
@@ -166,7 +167,8 @@ class Consumer:
 
 
 class ReconnectingConsumer(object):
-    def __init__(self, configuration: RabbitMQConfiguration, connection_parameters: pika.ConnectionParameters):
+    def __init__(self, configuration: RabbitMQConfiguration, connection_parameters: pika.ConnectionParameters,
+                 connection_manager_configuration: ConnectionManagerConfiguration):
         self._configuration: RabbitMQConfiguration = configuration
         self._connection_parameters: pika.ConnectionParameters = connection_parameters
         self._consuming: Dict[str, bool] = dict()
@@ -175,7 +177,7 @@ class ReconnectingConsumer(object):
 
         self._subscriber_name = configuration.subscriber_name
 
-        self._consumer = Consumer(connection_parameters, configuration.prefetch_count,
+        self._consumer = Consumer(connection_parameters, connection_manager_configuration.prefetch_count,
                                   self._consuming, self._subscribers)
         self._is_running = True
         self.__next_id_val = -1

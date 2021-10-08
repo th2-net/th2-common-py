@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 from th2_common.schema.event.event_batch_queue import EventBatchQueue
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_queue import MessageQueue

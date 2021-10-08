@@ -21,7 +21,7 @@ from threading import Lock
 from google.protobuf.message import DecodeError
 from prometheus_client import Histogram, Counter
 
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer

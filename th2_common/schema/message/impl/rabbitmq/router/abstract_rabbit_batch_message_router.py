@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 
 from google.protobuf.message import Message
 
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
 
 

@@ -14,7 +14,7 @@
 
 
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_queue import AbstractRabbitQueue
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager

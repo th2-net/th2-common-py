@@ -15,7 +15,7 @@
 
 from threading import Lock
 
-from th2_common.schema.grpc.configuration.grpc_raw_robin_strategy import GrpcRawRobinStrategy
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcRawRobinStrategy
 from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 

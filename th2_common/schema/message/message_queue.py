@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from threading import Lock
 
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
