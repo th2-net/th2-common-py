@@ -14,7 +14,9 @@
 
 from typing import List, Tuple
 
-from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction
+from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction, Value, \
+    ListValue, Message, MessageMetadata, ConnectionID, MetadataFilter, RootMessageFilter, MessageFilter, \
+    ValueFilter, ListValueFilter, SimpleList
 
 import th2_common.schema.metrics.common_metrics as common_metrics
 
@@ -57,3 +59,63 @@ def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
            f'session_alias = {session_alias}, ' \
            f'direction = {direction}, ' \
            f'sequences = {sequences}'.strip()
+
+
+def convert_message_value(value, message_type=None, session_alias=None):
+    if isinstance(value, Value):
+        return value
+    elif isinstance(value, (str, int, float)):
+        return Value(simple_value=str(value))
+    elif isinstance(value, list):
+        return Value(list_value=ListValue(values=[convert_message_value(x) for x in value]))
+    elif isinstance(value, dict):
+        return Value(message_value=Message(metadata=MessageMetadata(id=MessageID(
+                                                                        connection_id=ConnectionID(
+                                                                            session_alias=session_alias)),
+                                                                    message_type=message_type),
+                                           fields={key: convert_message_value(value[key]) for key in value
+                                                   if key not in ['message_type', 'session_alias']}))
+
+
+def create_message(fields: dict, session_alias=None, message_type=None):
+    return Message(metadata=MessageMetadata(id=MessageID(connection_id=ConnectionID(session_alias=session_alias)),
+                                            message_type=message_type),
+                   fields={field: convert_message_value(fields[field]) for field in fields})
+
+
+def convert_root_message_filter_value(filt, message_type=None, direction=None, fields=False, property_filters=False):
+    if isinstance(filt, ValueFilter):
+        return filt
+    elif isinstance(filt, (str, int, float)) and fields is True:
+        return ValueFilter(simple_filter=str(filt))
+    elif isinstance(filt, (str, int, float)) and property_filters is True:
+        return MetadataFilter.SimpleFilter(value=str(filt))
+    elif isinstance(filt, list) and fields is True:
+        return ValueFilter(
+                    list_filter=ListValueFilter(
+                        values=[convert_root_message_filter_value(x,
+                                                                  fields=fields,
+                                                                  property_filters=property_filters)
+                                for x in filt]))
+    elif isinstance(filt, list) and property_filters is True:
+        return MetadataFilter.SimpleFilter(simple_list=SimpleList(simple_values=filt))
+    elif isinstance(filt, dict):
+        return ValueFilter(
+                    message_filter=MessageFilter(messageType=message_type,
+                                                 fields={key: convert_root_message_filter_value(
+                                                                                    filt[key],
+                                                                                    fields=fields,
+                                                                                    property_filters=property_filters)
+                                                         for key in filt},
+                                                 direction=direction))
+
+
+def create_root_message_filter(message_filter: dict, metadata_filter: dict, message_type=None):
+    return RootMessageFilter(messageType=message_type,
+                             message_filter=MessageFilter(messageType=message_type, fields={
+                                 field: convert_root_message_filter_value(message_filter[field], fields=True)
+                                 for field in message_filter}),
+                             metadata_filter=MetadataFilter(property_filters={
+                                 filtr: convert_root_message_filter_value(metadata_filter[filtr], property_filters=True)
+                                 for filtr in metadata_filter})
+                             )
