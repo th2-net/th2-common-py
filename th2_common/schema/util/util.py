@@ -83,39 +83,37 @@ def create_message(fields: dict, session_alias=None, message_type=None):
                    fields={field: convert_message_value(fields[field]) for field in fields})
 
 
-def convert_root_message_filter_value(filt, message_type=None, direction=None, fields=False, property_filters=False):
-    if isinstance(filt, ValueFilter):
-        return filt
-    elif isinstance(filt, (str, int, float)) and fields is True:
-        return ValueFilter(simple_filter=str(filt))
-    elif isinstance(filt, (str, int, float)) and property_filters is True:
-        return MetadataFilter.SimpleFilter(value=str(filt))
-    elif isinstance(filt, list) and fields is True:
+def convert_filter_value(value, message_type=None, direction=None, fields=False, property_filters=False):
+    if isinstance(value, ValueFilter):
+        return value
+    elif isinstance(value, (str, int, float)) and fields is True:
+        return ValueFilter(simple_filter=str(value))
+    elif isinstance(value, (str, int, float)) and property_filters is True:
+        return MetadataFilter.SimpleFilter(value=str(value))
+    elif isinstance(value, list) and fields is True:
         return ValueFilter(
                     list_filter=ListValueFilter(
-                        values=[convert_root_message_filter_value(x,
-                                                                  fields=fields,
-                                                                  property_filters=property_filters)
-                                for x in filt]))
-    elif isinstance(filt, list) and property_filters is True:
-        return MetadataFilter.SimpleFilter(simple_list=SimpleList(simple_values=filt))
-    elif isinstance(filt, dict):
+                        values=[convert_filter_value(x,
+                                                     fields=fields,
+                                                     property_filters=property_filters)
+                                for x in value]))
+    elif isinstance(value, list) and property_filters is True:
+        return MetadataFilter.SimpleFilter(simple_list=SimpleList(simple_values=value))
+    elif isinstance(value, dict):
         return ValueFilter(
                     message_filter=MessageFilter(messageType=message_type,
-                                                 fields={key: convert_root_message_filter_value(
-                                                                                    filt[key],
-                                                                                    fields=fields,
-                                                                                    property_filters=property_filters)
-                                                         for key in filt},
+                                                 fields={key: convert_filter_value(value[key],
+                                                                                   fields=fields,
+                                                                                   property_filters=property_filters)
+                                                         for key in value},
                                                  direction=direction))
 
 
 def create_root_message_filter(message_filter: dict, metadata_filter: dict, message_type=None):
     return RootMessageFilter(messageType=message_type,
                              message_filter=MessageFilter(messageType=message_type, fields={
-                                 field: convert_root_message_filter_value(message_filter[field], fields=True)
+                                 field: convert_filter_value(message_filter[field], fields=True)
                                  for field in message_filter}),
                              metadata_filter=MetadataFilter(property_filters={
-                                 filtr: convert_root_message_filter_value(metadata_filter[filtr], property_filters=True)
-                                 for filtr in metadata_filter})
-                             )
+                                 value: convert_filter_value(metadata_filter[value], property_filters=True)
+                                 for value in metadata_filter}))

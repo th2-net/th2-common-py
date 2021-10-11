@@ -41,7 +41,7 @@ class CommonFactory(AbstractCommonFactory):
     MQ_ROUTER_CONFIG_FILENAME = 'mq.json'
     CONNECTION_MANAGER_CONFIG_FILENAME = 'mq_router.json'
     GRPC_CONFIG_FILENAME = 'grpc.json'
-    GRPC_ROUTER_CONFIG_FILENAME = 'grps_router.json'
+    GRPC_ROUTER_CONFIG_FILENAME = 'grpc_router.json'
     CRADLE_CONFIG_FILENAME = 'cradle.json'
     PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
     CUSTOM_CONFIG_FILENAME = 'custom.json'
@@ -78,11 +78,9 @@ class CommonFactory(AbstractCommonFactory):
             self.CONFIG_DEFAULT_PATH = Path(config_path)
             rabbit_mq_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
             mq_router_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
-            # !
             connection_manager_config_filepath = self.CONFIG_DEFAULT_PATH / \
                                                  CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME,
             grpc_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.GRPC_CONFIG_FILENAME
-            # !
             grpc_router_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
             cradle_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.CRADLE_CONFIG_FILENAME
             prometheus_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.PROMETHEUS_CONFIG_FILENAME
@@ -90,10 +88,8 @@ class CommonFactory(AbstractCommonFactory):
 
         self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
         self.mq_router_config_filepath = Path(mq_router_config_filepath)
-        # !
         self.connection_manager_config_filepath = Path(connection_manager_config_filepath)
         self.grpc_config_filepath = Path(grpc_config_filepath)
-        # !
         self.grpc_router_config_filepath = Path(grpc_router_config_filepath)
         self.cradle_config_filepath = Path(cradle_config_filepath)
         self.prometheus_config_filepath = Path(prometheus_config_filepath)
@@ -116,12 +112,10 @@ class CommonFactory(AbstractCommonFactory):
                             help='path to json file with RabbitMQ configuration')
         parser.add_argument('--messageRouterConfiguration',
                             help='path to json file with configuration for MessageRouter')
-        # !
         parser.add_argument('--connectionManagerConfiguration',
                             help='path to json file with configuration for ConnectionManager(mq_router.json)')
         parser.add_argument('--grpcConfiguration',
                             help='path to json file with configuration for Grpc')
-        # !
         parser.add_argument('--grpcRouterConfiguration',
                             help='path to json file with configuration for GrpcRouter')
         parser.add_argument('--cradleConfiguration',
@@ -151,14 +145,12 @@ class CommonFactory(AbstractCommonFactory):
                                                                        CommonFactory.RABBIT_MQ_CONFIG_FILENAME),
                 mq_router_config_filepath=CommonFactory.calculate_path(result, 'messageRouterConfiguration',
                                                                        CommonFactory.MQ_ROUTER_CONFIG_FILENAME),
-                # !
                 connection_manager_config_filepath=CommonFactory.calculate_path(
                     result,
                     'connectionManagerConfiguration',
                     CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME),
                 grpc_config_filepath=CommonFactory.calculate_path(result, 'grpcConfiguration',
                                                                   CommonFactory.GRPC_CONFIG_FILENAME),
-                # !
                 grpc_router_config_filepath=CommonFactory.calculate_path(result, 'grpcRouterConfiguration',
                                                                          CommonFactory.GRPC_ROUTER_CONFIG_FILENAME),
                 cradle_config_filepath=CommonFactory.calculate_path(result, 'cradleConfiguration',
@@ -182,11 +174,9 @@ class CommonFactory(AbstractCommonFactory):
         config_dir = Path('generated_configs')
 
         grpc_path = config_dir / CommonFactory.GRPC_CONFIG_FILENAME
-        # !
         grpc_router_path = config_dir / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
         custom_path = config_dir / CommonFactory.CUSTOM_CONFIG_FILENAME
         mq_path = config_dir / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
-        # !
         conn_manager_path = config_dir / CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME
         cradle_path = config_dir / CommonFactory.CRADLE_CONFIG_FILENAME
         rabbit_path = config_dir / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
@@ -212,7 +202,6 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
                                   CommonFactory.GRPC_CONFIG_FILENAME, grpc_path)
 
-        # !
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
                                   CommonFactory.GRPC_ROUTER_CONFIG_FILENAME, grpc_router_path)
 
@@ -222,7 +211,6 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
                                   CommonFactory.MQ_ROUTER_CONFIG_FILENAME, mq_path)
 
-        # !
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
                                   CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME, conn_manager_path)
 
@@ -243,10 +231,8 @@ class CommonFactory(AbstractCommonFactory):
         return CommonFactory(
             rabbit_mq_config_filepath=rabbit_path,
             mq_router_config_filepath=mq_path,
-            # !
             connection_manager_config_filepath=conn_manager_path,
             grpc_config_filepath=grpc_path,
-            # !
             grpc_router_config_filepath=grpc_router_path,
             cradle_config_filepath=cradle_path,
             prometheus_config_filepath=prometheus_path,
@@ -317,17 +303,14 @@ class CommonFactory(AbstractCommonFactory):
     def _path_to_message_router_configuration(self) -> Path:
         return self.mq_router_config_filepath
 
-    # !
     @property
     def _path_to_connection_manager_configuration(self) -> Path:
         return self.connection_manager_config_filepath
 
-    # !
     @property
     def _path_to_grpc_configuration(self) -> Path:
         return self.grpc_config_filepath
 
-    # !
     @property
     def _path_to_grpc_router_configuration(self) -> Path:
         return self.grpc_router_config_filepath

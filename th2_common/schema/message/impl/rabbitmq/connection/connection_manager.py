@@ -17,7 +17,6 @@ class ConnectionManager:
 
     def __init__(self, connection: RabbitMQConfiguration,
                  connectionManagerConfiguration: ConnectionManagerConfiguration) -> None:
-        # !
         self.__credentials = pika.PlainCredentials(connection.username,
                                                    connection.password)
         self.__connection_parameters = pika.ConnectionParameters(virtual_host=connection.vhost,

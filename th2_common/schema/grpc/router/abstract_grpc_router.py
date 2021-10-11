@@ -32,7 +32,6 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
         self.channels = {}
 
     def start_server(self, *services) -> grpc.Server:
-        # !
         server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers))
 
         if self.grpc_configuration.serverConfiguration.host is None:

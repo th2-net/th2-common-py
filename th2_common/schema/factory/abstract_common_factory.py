@@ -145,7 +145,6 @@ class AbstractCommonFactory(ABC):
 
         return self._event_batch_router
 
-    # !
     @property
     def grpc_router(self) -> GrpcRouter:
         if self._grpc_router is None:
@@ -235,7 +234,6 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = MessageRouterConfiguration(**config_dict)
         return self.message_router_configuration
 
-    # !
     def _create_conn_manager_configuration(self) -> ConnectionManagerConfiguration:
         lock = Lock()
         with lock:
@@ -243,7 +241,6 @@ class AbstractCommonFactory(ABC):
             self.connection_manager_configuration = ConnectionManagerConfiguration(**config_dict)
         return self.connection_manager_configuration
 
-    # !
     def _create_grpc_configuration(self) -> GrpcConfiguration:
         lock = Lock()
         with lock:
@@ -251,7 +248,6 @@ class AbstractCommonFactory(ABC):
             self.grpc_configuration = GrpcConfiguration(**config_dict)
         return self.grpc_configuration
 
-    # !
     def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
         lock = Lock()
         with lock:
@@ -269,7 +265,6 @@ class AbstractCommonFactory(ABC):
     def _path_to_message_router_configuration(self) -> Path:
         pass
 
-    # !
     @property
     @abstractmethod
     def _path_to_connection_manager_configuration(self) -> Path:
@@ -280,7 +275,6 @@ class AbstractCommonFactory(ABC):
     def _path_to_grpc_configuration(self) -> Path:
         pass
 
-    # !
     @property
     @abstractmethod
     def _path_to_grpc_router_configuration(self) -> Path:
