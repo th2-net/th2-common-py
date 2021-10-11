@@ -177,7 +177,7 @@ class ReconnectingConsumer(object):
 
         self._subscriber_name = configuration.subscriber_name
 
-        self._consumer = Consumer(connection_parameters, connection_manager_configuration.prefetch_count,
+        self._consumer = Consumer(connection_parameters, connection_manager_configuration.prefetchCount,
                                   self._consuming, self._subscribers)
         self._is_running = True
         self.__next_id_val = -1

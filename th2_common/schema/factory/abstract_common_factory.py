@@ -201,10 +201,13 @@ class AbstractCommonFactory(ABC):
 
     @staticmethod
     def read_configuration(filepath):
-        with open(filepath, 'r') as file:
-            config_json = file.read()
-            config_json_expanded = os.path.expandvars(config_json)
-            config_dict = json.loads(config_json_expanded)
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as file:
+                config_json = file.read()
+                config_json_expanded = os.path.expandvars(config_json)
+                config_dict = json.loads(config_json_expanded)
+        else:
+            config_dict = {}
 
         return config_dict
 
