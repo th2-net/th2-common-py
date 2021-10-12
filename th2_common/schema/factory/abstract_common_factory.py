@@ -56,9 +56,11 @@ class AbstractCommonFactory(ABC):
 
         self.rabbit_mq_configuration = None
         self.message_router_configuration = None
-        self.connection_manager_configuration = None
         self.grpc_configuration = None
         self.grpc_router_configuration = None
+
+        self._connection_manager = None
+        self.connection_manager_configuration = None
 
         self.message_parsed_batch_router_class = message_parsed_batch_router_class
         self.message_raw_batch_router_class = message_raw_batch_router_class
@@ -85,16 +87,6 @@ class AbstractCommonFactory(ABC):
 
         self._liveness_monitor = common_metrics.register_liveness('common_factory_liveness')
 
-        if self.rabbit_mq_configuration is None:
-            self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
-        if self.message_router_configuration is None:
-            self.message_router_configuration = self._create_message_router_configuration()
-        if self.connection_manager_configuration is None:
-            self.connection_manager_configuration = self._create_conn_manager_configuration()
-        self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
-                                                     self.connection_manager_configuration
-                                                     )
-
         self.prometheus_config = self._create_prometheus_configuration()
         if self.prometheus_config.enabled:
             self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
@@ -106,6 +98,16 @@ class AbstractCommonFactory(ABC):
         """
         Create MessageRouter which work with MessageBatch
         """
+        if self._connection_manager is None:
+            if self.rabbit_mq_configuration is None:
+                self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+            if self.connection_manager_configuration is None:
+                self.connection_manager_configuration = self._create_conn_manager_configuration()
+            self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
+                                                         self.connection_manager_configuration
+                                                         )
+        if self.message_router_configuration is None:
+            self.message_router_configuration = self._create_message_router_configuration()
         if self._message_parsed_batch_router is None:
             self._message_parsed_batch_router = self.message_parsed_batch_router_class(self._connection_manager,
                                                                                        self.message_router_configuration
@@ -118,6 +120,16 @@ class AbstractCommonFactory(ABC):
         """
         Create MessageRouter which work with RawMessageBatch
         """
+        if self._connection_manager is None:
+            if self.rabbit_mq_configuration is None:
+                self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+            if self.connection_manager_configuration is None:
+                self.connection_manager_configuration = self._create_conn_manager_configuration()
+            self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
+                                                         self.connection_manager_configuration
+                                                         )
+        if self.message_router_configuration is None:
+            self.message_router_configuration = self._create_message_router_configuration()
         if self._message_raw_batch_router is None:
             self._message_raw_batch_router = self.message_raw_batch_router_class(self._connection_manager,
                                                                                  self.message_router_configuration)
@@ -128,6 +140,16 @@ class AbstractCommonFactory(ABC):
         """
         Create MessageRouter which work with MessageGroupBatch
         """
+        if self._connection_manager is None:
+            if self.rabbit_mq_configuration is None:
+                self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+            if self.connection_manager_configuration is None:
+                self.connection_manager_configuration = self._create_conn_manager_configuration()
+            self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
+                                                         self.connection_manager_configuration
+                                                         )
+        if self.message_router_configuration is None:
+            self.message_router_configuration = self._create_message_router_configuration()
         if self._message_group_batch_router is None:
             self._message_group_batch_router = self.message_group_batch_router_class(self._connection_manager,
                                                                                      self.message_router_configuration)
@@ -139,6 +161,16 @@ class AbstractCommonFactory(ABC):
         """
         Create MessageRouter which work with EventBatch
         """
+        if self._connection_manager is None:
+            if self.rabbit_mq_configuration is None:
+                self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+            if self.connection_manager_configuration is None:
+                self.connection_manager_configuration = self._create_conn_manager_configuration()
+            self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
+                                                         self.connection_manager_configuration
+                                                         )
+        if self.message_router_configuration is None:
+            self.message_router_configuration = self._create_message_router_configuration()
         if self._event_batch_router is None:
             self._event_batch_router = self.event_batch_router_class(self._connection_manager,
                                                                      self.message_router_configuration)
@@ -201,13 +233,10 @@ class AbstractCommonFactory(ABC):
 
     @staticmethod
     def read_configuration(filepath):
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as file:
-                config_json = file.read()
-                config_json_expanded = os.path.expandvars(config_json)
-                config_dict = json.loads(config_json_expanded)
-        else:
-            config_dict = {}
+        with open(filepath, 'r') as file:
+            config_json = file.read()
+            config_json_expanded = os.path.expandvars(config_json)
+            config_dict = json.loads(config_json_expanded)
 
         return config_dict
 
@@ -224,39 +253,32 @@ class AbstractCommonFactory(ABC):
         return self.read_configuration(self._path_to_custom_configuration)
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
-        lock = Lock()
-        with lock:
-            config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration)
-            self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
+        config_dict = self.read_configuration(self._path_to_rabbit_mq_configuration)
+        self.rabbit_mq_configuration = RabbitMQConfiguration(**config_dict)
         return self.rabbit_mq_configuration
 
     def _create_message_router_configuration(self) -> MessageRouterConfiguration:
-        lock = Lock()
-        with lock:
-            config_dict = self.read_configuration(self._path_to_message_router_configuration)
-            self.message_router_configuration = MessageRouterConfiguration(**config_dict)
+        config_dict = self.read_configuration(self._path_to_message_router_configuration)
+        self.message_router_configuration = MessageRouterConfiguration(**config_dict)
         return self.message_router_configuration
 
     def _create_conn_manager_configuration(self) -> ConnectionManagerConfiguration:
-        lock = Lock()
-        with lock:
-            config_dict = self.read_configuration(self._path_to_connection_manager_configuration)
-            self.connection_manager_configuration = ConnectionManagerConfiguration(**config_dict)
-        return self.connection_manager_configuration
+        if self._path_to_connection_manager_configuration.exists():
+            return ConnectionManagerConfiguration(**self.read_configuration(
+                self._path_to_connection_manager_configuration))
+        else:
+            return ConnectionManagerConfiguration()
 
     def _create_grpc_configuration(self) -> GrpcConfiguration:
-        lock = Lock()
-        with lock:
-            config_dict = self.read_configuration(self._path_to_grpc_configuration)
-            self.grpc_configuration = GrpcConfiguration(**config_dict)
+        config_dict = self.read_configuration(self._path_to_grpc_configuration)
+        self.grpc_configuration = GrpcConfiguration(**config_dict)
         return self.grpc_configuration
 
     def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
-        lock = Lock()
-        with lock:
-            config_dict = self.read_configuration(self._path_to_grpc_router_configuration)
-            self.grpc_router_configuration = GrpcRouterConfiguration(**config_dict)
-        return self.grpc_router_configuration
+        if self._path_to_grpc_router_configuration.exists():
+            return GrpcRouterConfiguration(**self.read_configuration(self._path_to_grpc_router_configuration))
+        else:
+            return GrpcRouterConfiguration()
 
     @property
     @abstractmethod

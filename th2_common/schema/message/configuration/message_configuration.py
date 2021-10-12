@@ -107,10 +107,10 @@ class ConnectionManagerConfiguration(AbstractConfiguration):
     def __init__(self, subscriberName=None, connectionTimeout=-1, connectionCloseTimeout = 10000,
                  maxRecoveryAttempts=5, minConnectionRecoveryTimeout=10000, maxConnectionRecoveryTimeout=60000,
                  prefetchCount=10):
-        self.subscriberName = subscriberName
-        self.connectionTimeout = connectionTimeout
-        self.connectionCloseTimeout = connectionCloseTimeout
-        self.maxRecoveryAttempts = maxRecoveryAttempts
-        self.minConnectionRecoveryTimeout = minConnectionRecoveryTimeout
-        self.maxConnectionRecoveryTimeout = maxConnectionRecoveryTimeout
-        self.prefetchCount = prefetchCount
+        self.subscriber_name = subscriberName
+        self.connection_timeout = connectionTimeout
+        self.connection_close_timeout = connectionCloseTimeout
+        self.max_recovery_attempts = maxRecoveryAttempts
+        self.min_connection_recovery_timeout = minConnectionRecoveryTimeout
+        self.max_connection_recovery_timeout = maxConnectionRecoveryTimeout
+        self.prefetch_count = prefetchCount

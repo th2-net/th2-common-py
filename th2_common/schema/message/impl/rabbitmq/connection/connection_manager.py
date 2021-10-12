@@ -15,19 +15,20 @@ logger = logging.getLogger(__name__)
 
 class ConnectionManager:
 
-    def __init__(self, connection: RabbitMQConfiguration,
-                 connectionManagerConfiguration: ConnectionManagerConfiguration) -> None:
-        self.__credentials = pika.PlainCredentials(connection.username,
-                                                   connection.password)
-        self.__connection_parameters = pika.ConnectionParameters(virtual_host=connection.vhost,
-                                                                 host=connection.host,
-                                                                 port=connection.port,
+    def __init__(self, configuration: RabbitMQConfiguration,
+                 connection_manager_configuration: ConnectionManagerConfiguration) -> None:
+        self.__credentials = pika.PlainCredentials(configuration.username,
+                                                   configuration.password)
+        self.__connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vhost,
+                                                                 host=configuration.host,
+                                                                 port=configuration.port,
                                                                  credentials=self.__credentials
                                                                  )
         self.__metrics = HealthMetrics(self)
 
-        self.consumer = ReconnectingConsumer(connection, self.__connection_parameters,
-                                             connectionManagerConfiguration)
+        self.consumer = ReconnectingConsumer(configuration,
+                                             self.__connection_parameters,
+                                             connection_manager_configuration)
         threading.Thread(target=self.consumer.run).start()
 
         self.publisher = ReconnectingPublisher(self.__connection_parameters)

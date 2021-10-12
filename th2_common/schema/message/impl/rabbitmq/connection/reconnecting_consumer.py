@@ -171,13 +171,14 @@ class ReconnectingConsumer(object):
                  connection_manager_configuration: ConnectionManagerConfiguration):
         self._configuration: RabbitMQConfiguration = configuration
         self._connection_parameters: pika.ConnectionParameters = connection_parameters
+        self._connection_manager_configuration: ConnectionManagerConfiguration = connection_manager_configuration
         self._consuming: Dict[str, bool] = dict()
         self._subscribers: Dict[str, tuple] = dict()
         self._reconnect_delay = 0
 
-        self._subscriber_name = configuration.subscriber_name
+        self._subscriber_name = self._connection_manager_configuration.subscriber_name
 
-        self._consumer = Consumer(connection_parameters, connection_manager_configuration.prefetchCount,
+        self._consumer = Consumer(self._connection_parameters, self._connection_manager_configuration.prefetch_count,
                                   self._consuming, self._subscribers)
         self._is_running = True
         self.__next_id_val = -1
@@ -226,7 +227,7 @@ class ReconnectingConsumer(object):
             reconnect_delay = self._get_reconnect_delay()
             logger.info('Reconnecting consumer after %d seconds', reconnect_delay)
             time.sleep(reconnect_delay)
-            self._consumer = Consumer(self._connection_parameters, self._configuration.prefetch_count,
+            self._consumer = Consumer(self._connection_parameters, self._connection_manager_configuration.prefetch_count,
                                       self._consuming, self._subscribers)
 
     def _get_reconnect_delay(self):
