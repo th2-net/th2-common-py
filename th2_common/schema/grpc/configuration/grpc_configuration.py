@@ -33,7 +33,8 @@ class GrpcServiceConfiguration(AbstractConfiguration):
 
 class GrpcServerConfiguration(AbstractConfiguration):
 
-    def __init__(self, host, port, workers, **kwargs) -> None:
+    def __init__(self, attributes, host, port, workers, **kwargs) -> None:
+        self.attributes = attributes
         self.host = host
         self.port = port
         self.workers = workers
@@ -80,5 +81,6 @@ class GrpcRawFilterStrategy:
 
 
 class GrpcRouterConfiguration(AbstractConfiguration):
+
     def __init__(self, workers=5):
         self.workers = int(workers)
