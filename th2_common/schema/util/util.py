@@ -111,7 +111,7 @@ def convert_filter_value(value, message_type=None, direction=None, fields=False,
 
 def create_root_message_filter(message_filter: dict, metadata_filter: dict, message_type=None):
     return RootMessageFilter(messageType=message_type,
-                             message_filter=MessageFilter(messageType=message_type, fields={
+                             message_filter=MessageFilter(fields={
                                  field: convert_filter_value(message_filter[field], fields=True)
                                  for field in message_filter}),
                              metadata_filter=MetadataFilter(property_filters={

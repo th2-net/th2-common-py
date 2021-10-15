@@ -81,4 +81,4 @@ class GrpcRawFilterStrategy:
 
 class GrpcRouterConfiguration(AbstractConfiguration):
     def __init__(self, workers=5):
-        self.workers = workers
+        self.workers = int(workers)

@@ -108,9 +108,9 @@ class ConnectionManagerConfiguration(AbstractConfiguration):
                  maxRecoveryAttempts=5, minConnectionRecoveryTimeout=10000, maxConnectionRecoveryTimeout=60000,
                  prefetchCount=10):
         self.subscriber_name = subscriberName
-        self.connection_timeout = connectionTimeout
-        self.connection_close_timeout = connectionCloseTimeout
-        self.max_recovery_attempts = maxRecoveryAttempts
-        self.min_connection_recovery_timeout = minConnectionRecoveryTimeout
-        self.max_connection_recovery_timeout = maxConnectionRecoveryTimeout
-        self.prefetch_count = prefetchCount
+        self.connection_timeout = int(connectionTimeout)
+        self.connection_close_timeout = int(connectionCloseTimeout)
+        self.max_recovery_attempts = int(maxRecoveryAttempts)
+        self.min_connection_recovery_timeout = int(minConnectionRecoveryTimeout)
+        self.max_connection_recovery_timeout = int(maxConnectionRecoveryTimeout)
+        self.prefetch_count = int(prefetchCount)
