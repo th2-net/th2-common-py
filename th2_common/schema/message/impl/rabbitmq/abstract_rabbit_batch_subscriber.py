@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 from th2_grpc_common.common_pb2 import Direction
 
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 

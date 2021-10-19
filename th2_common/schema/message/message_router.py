@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 
-from th2_common.schema.message.configuration.message_router_configuration import MessageRouterConfiguration
+from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor

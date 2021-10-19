@@ -20,15 +20,16 @@ from pkgutil import iter_modules
 import grpc
 
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
-from th2_common.schema.grpc.configuration.grpc_router_configuration import GrpcRouterConfiguration
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
 import th2_common.schema.strategy.route.impl as route
 
 
 class DefaultGrpcRouter(AbstractGrpcRouter):
 
-    def __init__(self, configuration: GrpcRouterConfiguration) -> None:
-        super().__init__(configuration)
+    def __init__(self, grpc_configuration: GrpcConfiguration,
+                 grpc_router_configuration: GrpcRouterConfiguration) -> None:
+        super().__init__(grpc_configuration, grpc_router_configuration)
         self.strategies = dict()
         self.__load_strategies()
 
@@ -63,10 +64,10 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     def get_connection(self, service_class, stub_class):
         find_service = None
-        if self.configuration.services:
-            for service in self.configuration.services:
-                if self.configuration.services[service]['service-class'].split('.')[-1] == service_class.__name__:
-                    find_service = self.configuration.services[service]
+        if self.grpc_configuration.services:
+            for service in self.grpc_configuration.services:
+                if self.grpc_configuration.services[service]['service-class'].split('.')[-1] == service_class.__name__:
+                    find_service = self.grpc_configuration.services[service]
                     break
         else:
             raise GrpcRouterError("Services list are empty in 'grpc.json'. Check your links")

@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 
 from th2_common.schema.exception.router_error import RouterError
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_queue import MessageQueue
 from th2_common.schema.message.message_sender import MessageSender

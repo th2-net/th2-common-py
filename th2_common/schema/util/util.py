@@ -14,7 +14,10 @@
 
 from typing import List, Tuple
 
-from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction
+from google.protobuf.duration_pb2 import Duration
+from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction, Value, \
+    ListValue, Message, MessageMetadata, ConnectionID, MetadataFilter, RootMessageFilter, MessageFilter, \
+    ValueFilter, ListValueFilter, SimpleList, RootComparisonSettings
 
 import th2_common.schema.metrics.common_metrics as common_metrics
 
@@ -34,8 +37,8 @@ def get_session_alias_and_direction_group(any_message: AnyMessage) -> Tuple[str,
 
 def get_debug_string(class_name: str, ids: List[MessageID]) -> str:
     session_alias, direction = get_session_alias_and_direction(ids[0])
-    sequences = ''.join([str(i.sequence) for i in ids])
-    return f'{class_name}: session_alias = {session_alias}, direction = {direction}, sequences = {sequences}'.strip()
+    sequences = ', '.join([str(i.sequence) for i in ids])
+    return f'{class_name}: {session_alias = }, {direction = }, {sequences = }'.strip()
 
 
 def get_debug_string_event(event_batch: EventBatch) -> str:
@@ -54,6 +57,73 @@ def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
     sequences = ''.join(sequences)
 
     return f'MessageGroupBatch: ' \
-           f'session_alias = {session_alias}, ' \
-           f'direction = {direction}, ' \
-           f'sequences = {sequences}'.strip()
+           f'{session_alias = }, ' \
+           f'{direction = }, ' \
+           f'{sequences = }'.strip()
+
+
+def convert_message_value(value, message_type=None, session_alias=None):
+    if isinstance(value, Value):
+        return value
+    elif isinstance(value, (str, int, float)):
+        return Value(simple_value=str(value))
+    elif isinstance(value, list):
+        return Value(list_value=ListValue(values=[convert_message_value(x) for x in value]))
+    elif isinstance(value, dict):
+        return Value(message_value=Message(
+            metadata=MessageMetadata(id=MessageID(connection_id=ConnectionID(session_alias=session_alias)),
+                                     message_type=message_type),
+            fields={key: convert_message_value(value[key]) for key in value}))
+
+
+def create_message(fields: dict, session_alias=None, message_type=None):
+    return Message(metadata=MessageMetadata(id=MessageID(connection_id=ConnectionID(session_alias=session_alias)),
+                                            message_type=message_type),
+                   fields={field: convert_message_value(fields[field]) for field in fields})
+
+
+def convert_filter_value(value, message_type=None, direction=None, values=False, metadata=False):
+    if isinstance(value, ValueFilter):
+        return value
+    elif isinstance(value, (str, int, float)) and values is True:
+        return ValueFilter(simple_filter=str(value))
+    elif isinstance(value, (str, int, float)) and metadata is True:
+        return MetadataFilter.SimpleFilter(value=str(value))
+    elif isinstance(value, list) and values is True:
+        return ValueFilter(list_filter=ListValueFilter(
+            values=[convert_filter_value(x, values=values, metadata=metadata) for x in value]))
+    elif isinstance(value, list) and metadata is True:
+        return MetadataFilter.SimpleFilter(simple_list=SimpleList(simple_values=value))
+    elif isinstance(value, dict):
+        return ValueFilter(
+            message_filter=MessageFilter(messageType=message_type,
+                                         fields={key: convert_filter_value(value[key],
+                                                                           values=values,
+                                                                           metadata=metadata)
+                                                 for key in value},
+                                         direction=direction))
+
+
+def create_root_message_filter(message_type=None,
+                               message_filter=None,
+                               metadata_filter=None,
+                               ignore_fields: List[str] = None,
+                               check_repeating_group_order: bool = None,
+                               time_precision: Duration = None,
+                               decimal_precision: str = None):
+    if message_filter is None:
+        message_filter = {}
+    if metadata_filter is None:
+        metadata_filter = {}
+    return RootMessageFilter(messageType=message_type,
+                             message_filter=MessageFilter(fields={
+                                 field: convert_filter_value(message_filter[field], values=True)
+                                 for field in message_filter}),
+                             metadata_filter=MetadataFilter(property_filters={
+                                 value: convert_filter_value(metadata_filter[value], metadata=True)
+                                 for value in metadata_filter}),
+                             comparison_settings=RootComparisonSettings(
+                                 ignore_fields=ignore_fields,
+                                 check_repeating_group_order=check_repeating_group_order,
+                                 time_precision=time_precision,
+                                 decimal_precision=decimal_precision))

@@ -15,7 +15,7 @@
 
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
-from th2_common.schema.message.configuration.queue_configuration import QueueConfiguration
+from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_queue import RabbitMessageGroupBatchQueue
 from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \

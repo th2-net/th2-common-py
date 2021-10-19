@@ -18,7 +18,7 @@ from typing import List
 
 from google.protobuf.message import Message
 
-from th2_common.schema.message.configuration.router_filter import RouterFilterConfiguration
+from th2_common.schema.message.configuration.message_configuration import RouterFilterConfiguration
 
 
 class FilterStrategy(ABC):
