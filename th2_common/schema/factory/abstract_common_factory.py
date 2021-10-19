@@ -104,8 +104,7 @@ class AbstractCommonFactory(ABC):
             if self.connection_manager_configuration is None:
                 self.connection_manager_configuration = self._create_conn_manager_configuration()
             self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
-                                                         self.connection_manager_configuration
-                                                         )
+                                                         self.connection_manager_configuration)
         if self.message_router_configuration is None:
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_parsed_batch_router is None:
@@ -126,8 +125,7 @@ class AbstractCommonFactory(ABC):
             if self.connection_manager_configuration is None:
                 self.connection_manager_configuration = self._create_conn_manager_configuration()
             self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
-                                                         self.connection_manager_configuration
-                                                         )
+                                                         self.connection_manager_configuration)
         if self.message_router_configuration is None:
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_raw_batch_router is None:
@@ -146,8 +144,7 @@ class AbstractCommonFactory(ABC):
             if self.connection_manager_configuration is None:
                 self.connection_manager_configuration = self._create_conn_manager_configuration()
             self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
-                                                         self.connection_manager_configuration
-                                                         )
+                                                         self.connection_manager_configuration)
         if self.message_router_configuration is None:
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_group_batch_router is None:
@@ -167,8 +164,7 @@ class AbstractCommonFactory(ABC):
             if self.connection_manager_configuration is None:
                 self.connection_manager_configuration = self._create_conn_manager_configuration()
             self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
-                                                         self.connection_manager_configuration
-                                                         )
+                                                         self.connection_manager_configuration)
         if self.message_router_configuration is None:
             self.message_router_configuration = self._create_message_router_configuration()
         if self._event_batch_router is None:

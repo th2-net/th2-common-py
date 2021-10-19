@@ -22,13 +22,12 @@ class ConnectionManager:
         self.__connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vhost,
                                                                  host=configuration.host,
                                                                  port=configuration.port,
-                                                                 credentials=self.__credentials
-                                                                 )
+                                                                 credentials=self.__credentials)
         self.__metrics = HealthMetrics(self)
 
         self.consumer = ReconnectingConsumer(configuration,
-                                             self.__connection_parameters,
-                                             connection_manager_configuration)
+                                             connection_manager_configuration,
+                                             self.__connection_parameters)
         threading.Thread(target=self.consumer.run).start()
 
         self.publisher = ReconnectingPublisher(self.__connection_parameters)

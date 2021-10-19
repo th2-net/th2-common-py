@@ -167,11 +167,12 @@ class Consumer:
 
 
 class ReconnectingConsumer(object):
-    def __init__(self, configuration: RabbitMQConfiguration, connection_parameters: pika.ConnectionParameters,
-                 connection_manager_configuration: ConnectionManagerConfiguration):
+    def __init__(self, configuration: RabbitMQConfiguration,
+                 connection_manager_configuration: ConnectionManagerConfiguration,
+                 connection_parameters: pika.ConnectionParameters):
         self._configuration: RabbitMQConfiguration = configuration
-        self._connection_parameters: pika.ConnectionParameters = connection_parameters
         self._connection_manager_configuration: ConnectionManagerConfiguration = connection_manager_configuration
+        self._connection_parameters: pika.ConnectionParameters = connection_parameters
         self._consuming: Dict[str, bool] = dict()
         self._subscribers: Dict[str, tuple] = dict()
         self._reconnect_delay = 0

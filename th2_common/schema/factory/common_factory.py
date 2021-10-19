@@ -202,7 +202,7 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
                                   CommonFactory.GRPC_CONFIG_FILENAME, grpc_path)
 
-        CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
+        CommonFactory._get_config(config_maps_dict, 'grpc-router',
                                   CommonFactory.GRPC_ROUTER_CONFIG_FILENAME, grpc_router_path)
 
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
@@ -211,7 +211,7 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
                                   CommonFactory.MQ_ROUTER_CONFIG_FILENAME, mq_path)
 
-        CommonFactory._get_config(config_maps_dict, f'{box_name}-app-config',
+        CommonFactory._get_config(config_maps_dict, 'mq-router',
                                   CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME, conn_manager_path)
 
         CommonFactory._get_config(config_maps_dict, 'cradle-external', CommonFactory.CRADLE_CONFIG_FILENAME,
