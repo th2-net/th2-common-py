@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 from threading import Lock
 
 from google.protobuf.message import DecodeError
+from google.protobuf.pyext._message import SetAllowOversizeProtos
 from prometheus_client import Histogram, Counter
 
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
@@ -67,6 +68,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         start_time = time.time()
         try:
 
+            SetAllowOversizeProtos(True)
             values = self.value_from_bytes(body)
 
             for value in values:
