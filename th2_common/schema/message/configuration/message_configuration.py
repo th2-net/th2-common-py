@@ -104,9 +104,15 @@ class MessageRouterConfiguration(AbstractConfiguration):
 
 
 class ConnectionManagerConfiguration(AbstractConfiguration):
-    def __init__(self, subscriberName=None, connectionTimeout=-1, connectionCloseTimeout = 10000,
-                 maxRecoveryAttempts=5, minConnectionRecoveryTimeout=10000, maxConnectionRecoveryTimeout=60000,
-                 prefetchCount=10):
+    def __init__(self, subscriberName=None,
+                 connectionTimeout=-1,
+                 connectionCloseTimeout = 10000,
+                 maxRecoveryAttempts=5,
+                 minConnectionRecoveryTimeout=10000,
+                 maxConnectionRecoveryTimeout=60000,
+                 prefetchCount=10,
+                 messageRecursionLimit=100,
+                 **kwargs):
         self.subscriber_name = subscriberName
         self.connection_timeout = int(connectionTimeout)
         self.connection_close_timeout = int(connectionCloseTimeout)
@@ -114,3 +120,5 @@ class ConnectionManagerConfiguration(AbstractConfiguration):
         self.min_connection_recovery_timeout = int(minConnectionRecoveryTimeout)
         self.max_connection_recovery_timeout = int(maxConnectionRecoveryTimeout)
         self.prefetch_count = int(prefetchCount)
+        self.message_recursion_limit = int(messageRecursionLimit)
+        self.check_unexpected_args(kwargs)
