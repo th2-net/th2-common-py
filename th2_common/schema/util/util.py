@@ -15,6 +15,7 @@
 from typing import List, Tuple
 
 from google.protobuf.duration_pb2 import Duration
+from google.protobuf.pyext._message import RepeatedCompositeContainer
 from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction, Value, \
     ListValue, Message, MessageMetadata, ConnectionID, MetadataFilter, RootMessageFilter, MessageFilter, \
     ValueFilter, ListValueFilter, SimpleList, RootComparisonSettings
@@ -127,3 +128,51 @@ def create_root_message_filter(message_type=None,
                                  check_repeating_group_order=check_repeating_group_order,
                                  time_precision=time_precision,
                                  decimal_precision=decimal_precision))
+
+
+def convert_typed_field_into_value(field_value):
+    if isinstance(field_value, (str, int, float)):
+        return Value(simple_value=str(field_value))
+    elif isinstance(field_value, RepeatedCompositeContainer):
+        return Value(list_value=ListValue(values=[convert_typed_field_into_value(item)
+                                                  for item in field_value]))
+    elif hasattr(field_value, 'DESCRIPTOR'):
+        fields = [field.name for field in field_value.DESCRIPTOR.fields]
+        metadata = MessageMetadata()
+        if 'metadata' in fields:
+            fields.remove('metadata')
+            metadata = getattr(field_value, 'metadata')
+        return Value(message_value=Message(metadata=metadata,
+                                           fields={field: convert_typed_field_into_value(getattr(field_value, field))
+                                                   for field in fields}))
+
+
+def create_message_from_message_typed(message_typed, metadata=MessageMetadata()):
+    return Message(metadata=metadata,
+                   fields={field.name: convert_typed_field_into_value(getattr(message_typed, field.name))
+                           for field in message_typed.DESCRIPTOR.fields})
+
+
+def convert_value_into_typed_field(field_value, typed_field_value):
+    typed_field_type = type(typed_field_value)
+    if isinstance(typed_field_value, (str, int, float)):
+        return typed_field_type(field_value.simple_value)
+    elif isinstance(typed_field_value, RepeatedCompositeContainer):
+        return [convert_value_into_typed_field(list_item, typed_field_value.add())
+                for list_item in field_value.list_value.values]
+    elif hasattr(field_value, 'DESCRIPTOR'):
+        fields_typed = {field: convert_value_into_typed_field(field_value.message_value.fields[field],
+                                                              getattr(typed_field_type(), field))
+                        for field in field_value.message_value.fields}
+        return typed_field_type(**fields_typed)
+
+
+def create_typed_message_from_message(message, expected_message_types: set):
+    response_fields = message.fields
+    for message_type in expected_message_types:
+        try:
+            fields_typed = {field: convert_value_into_typed_field(message.fields[field], getattr(message_type(), field))
+                            for field in response_fields}
+            return message_type(**fields_typed)
+        except:
+            continue
