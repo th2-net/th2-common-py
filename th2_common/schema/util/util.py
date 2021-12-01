@@ -128,25 +128,20 @@ def create_root_message_filter(message_type=None,
 
 
 def convert_value_into_typed_field(field_value, typed_field_value):
-    typed_field_type = type(typed_field_value)
-    if isinstance(typed_field_value, (str, int, float)):
-        return typed_field_type(field_value.simple_value)
-    elif isinstance(typed_field_value, RepeatedCompositeContainer):
+    if field_value.WhichOneof('kind') == 'simple_value':
+        return type(typed_field_value)(field_value.simple_value)
+    elif field_value.WhichOneof('kind') == 'list_value':
         return [convert_value_into_typed_field(list_item, typed_field_value.add())
                 for list_item in field_value.list_value.values]
-    elif hasattr(field_value, 'DESCRIPTOR'):
+    elif field_value.WhichOneof('kind') == 'message_value':
         fields_typed = {field: convert_value_into_typed_field(field_value.message_value.fields[field],
-                                                              getattr(typed_field_type(), field))
+                                                              getattr(typed_field_value, field))
                         for field in field_value.message_value.fields}
-        return typed_field_type(**fields_typed)
+        return type(typed_field_value)(**fields_typed)
 
 
-def create_typed_message_from_message(message, expected_message_types: set):
-    for message_type in expected_message_types:
-        try:
-            response_fields = [field.name for field in message_type().DESCRIPTOR.fields]
-            fields_typed = {field: convert_value_into_typed_field(message.fields[field], getattr(message_type(), field))
-                            for field in response_fields}
-            return message_type(**fields_typed)
-        except:
-            continue
+def create_typed_message_from_message(message, message_type):
+    response_fields = [field.name for field in message_type().DESCRIPTOR.fields]
+    fields_typed = {field: convert_value_into_typed_field(message.fields[field], getattr(message_type(), field))
+                    for field in response_fields}
+    return message_type(**fields_typed)
