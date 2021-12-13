@@ -82,5 +82,6 @@ class GrpcRawFilterStrategy:
 
 class GrpcRouterConfiguration(AbstractConfiguration):
 
-    def __init__(self, workers=5):
+    def __init__(self, workers=5, **kwargs):
         self.workers = int(workers)
+        self.check_unexpected_args(kwargs)

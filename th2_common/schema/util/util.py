@@ -15,6 +15,7 @@
 from typing import List, Tuple
 
 from google.protobuf.duration_pb2 import Duration
+from google.protobuf.pyext._message import RepeatedCompositeContainer
 from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction, Value, \
     ListValue, Message, MessageMetadata, ConnectionID, MetadataFilter, RootMessageFilter, MessageFilter, \
     ValueFilter, ListValueFilter, SimpleList, RootComparisonSettings
@@ -62,7 +63,7 @@ def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
            f'{sequences = }'.strip()
 
 
-def convert_message_value(value, message_type=None, session_alias=None):
+def convert_message_value(value):
     if isinstance(value, Value):
         return value
     elif isinstance(value, (str, int, float)):
@@ -70,10 +71,7 @@ def convert_message_value(value, message_type=None, session_alias=None):
     elif isinstance(value, list):
         return Value(list_value=ListValue(values=[convert_message_value(x) for x in value]))
     elif isinstance(value, dict):
-        return Value(message_value=Message(
-            metadata=MessageMetadata(id=MessageID(connection_id=ConnectionID(session_alias=session_alias)),
-                                     message_type=message_type),
-            fields={key: convert_message_value(value[key]) for key in value}))
+        return Value(message_value=Message(fields={key: convert_message_value(value[key]) for key in value}))
 
 
 def create_message(fields: dict, session_alias=None, message_type=None):
@@ -127,3 +125,23 @@ def create_root_message_filter(message_type=None,
                                  check_repeating_group_order=check_repeating_group_order,
                                  time_precision=time_precision,
                                  decimal_precision=decimal_precision))
+
+
+def convert_value_into_typed_field(field_value, typed_field_value):
+    if field_value.WhichOneof('kind') == 'simple_value':
+        return type(typed_field_value)(field_value.simple_value)
+    elif field_value.WhichOneof('kind') == 'list_value':
+        return [convert_value_into_typed_field(list_item, typed_field_value.add())
+                for list_item in field_value.list_value.values]
+    elif field_value.WhichOneof('kind') == 'message_value':
+        fields_typed = {field: convert_value_into_typed_field(field_value.message_value.fields[field],
+                                                              getattr(typed_field_value, field))
+                        for field in field_value.message_value.fields}
+        return type(typed_field_value)(**fields_typed)
+
+
+def create_typed_message_from_message(message, message_type):
+    response_fields = [field.name for field in message_type().DESCRIPTOR.fields]
+    fields_typed = {field: convert_value_into_typed_field(message.fields[field], getattr(message_type(), field))
+                    for field in response_fields}
+    return message_type(**fields_typed)
