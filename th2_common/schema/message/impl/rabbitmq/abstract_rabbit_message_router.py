@@ -21,8 +21,8 @@ from th2_common.schema.filter.strategy.impl.default_filter_strategy import Defau
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
-from th2_common.schema.message.message_queue import MessageQueue
 from th2_common.schema.message.message_router import MessageRouter
+from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
 
@@ -53,8 +53,10 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def __init__(self, connection_manager, configuration) -> None:
         super().__init__(connection_manager, configuration)
         self._filter_strategy = DefaultFilterStrategy()
-        self.queue_connections = dict()
+        self.queue_connections = list()
         self.queue_connections_lock = Lock()
+        self.subscriber = dict()
+        self.sender = dict()
 
     @property
     @abstractmethod
@@ -73,14 +75,13 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         return self.required_send_attributes.union(queue_attr)
 
     def _subscribe_by_alias(self, callback: MessageListener, queue_alias) -> SubscriberMonitor:
-        queue: MessageQueue = self._get_message_queue(queue_alias)
-        subscriber: MessageSubscriber = queue.get_subscriber()
+        subscriber: MessageSubscriber = self.get_subscriber(queue_alias)
         subscriber.add_listener(callback)
         try:
             subscriber.start()
         except Exception as e:
             raise RuntimeError('Can not start subscriber', e)
-        return SubscriberMonitorImpl(subscriber, queue.subscriber_lock)
+        return SubscriberMonitorImpl(subscriber, Lock())
 
     def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
         attrs = self.add_subscribe_attributes(queue_attr)
@@ -103,8 +104,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def unsubscribe_all(self):
         with self.queue_connections_lock:
-            for queue in self.queue_connections.values():
-                queue.close()
+            for queue in self.queue_connections:
+                self.close_queue(queue)
             self.queue_connections.clear()
 
     def close(self):
@@ -133,27 +134,60 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self._filter_strategy = filter_strategy
 
     @abstractmethod
-    def _create_queue(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageQueue:
-        pass
-
-    @abstractmethod
     def _find_by_filter(self, queues: {str: QueueConfiguration}, msg) -> dict:
         pass
 
     def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
         for queue_alias, message in aliases_and_messages_to_send.items():
             try:
-                sender = self._get_message_queue(queue_alias).get_sender()
+                sender = self.get_sender(queue_alias)
                 sender.start()
                 sender.send(message)
             except Exception:
                 raise RouterError('Can not start sender')
 
-    def _get_message_queue(self, queue_alias) -> MessageQueue:
+    def get_subscriber(self, queue_alias) -> MessageSubscriber:
+        queue_configuration = self.configuration.get_queue_by_alias(queue_alias)
         with self.queue_connections_lock:
             if queue_alias not in self.queue_connections:
-                self.queue_connections[queue_alias] = self._create_queue(self.connection_manager,
-                                                                         self.configuration.get_queue_by_alias(
-                                                                             queue_alias))
-            return self.queue_connections[queue_alias]
+                self.queue_connections.append(queue_alias)
+        if self.connection_manager is None or queue_configuration is None:
+            raise RouterError('Queue not yet init')
+        if not queue_configuration.can_read:
+            raise RouterError('Queue can not read')
+        with self.subscriber_lock:
+            if queue_alias not in self.subscriber or self.subscriber[queue_alias].is_close():
+                self.subscriber[queue_alias] = self.create_subscriber(self.connection_manager, queue_configuration)
+            return self.subscriber[queue_alias]
+
+    def get_sender(self, queue_alias) -> MessageSender:
+        queue_configuration = self.configuration.get_queue_by_alias(queue_alias)
+        with self.queue_connections_lock:
+            if queue_alias not in self.queue_connections:
+                self.queue_connections.append(queue_alias)
+        if self.connection_manager is None or queue_configuration is None:
+            raise RouterError('Queue not yet init')
+        if not queue_configuration.can_write:
+            raise RouterError('Queue can not write')
+        with self.sender_lock:
+            if queue_alias not in self.sender or self.sender[queue_alias].is_close():
+                self.sender[queue_alias] = self.create_sender(self.connection_manager, queue_configuration)
+            return self.sender[queue_alias]
+
+    def close_queue(self, queue_alias):
+        with self.subscriber_lock:
+            if queue_alias in self.subscriber and not self.subscriber[queue_alias].is_close():
+                self.subscriber[queue_alias].close()
+        with self.sender_lock:
+            if queue_alias in self.sender and not self.sender[queue_alias].is_close():
+                self.sender[queue_alias].close()
+
+    @abstractmethod
+    def create_sender(self, connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration) -> MessageSender:
+        pass
+
+    @abstractmethod
+    def create_subscriber(self, connection_manager: ConnectionManager,
+                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+        pass

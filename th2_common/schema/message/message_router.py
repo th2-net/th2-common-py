@@ -13,10 +13,13 @@
 #   limitations under the License.
 
 from abc import ABC, abstractmethod
+from threading import Lock
 
-from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration
+from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
+from th2_common.schema.message.message_sender import MessageSender
+from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
 
 
@@ -29,6 +32,8 @@ class MessageRouter(ABC):
                  configuration: MessageRouterConfiguration) -> None:
         self.configuration = configuration
         self.connection_manager = connection_manager
+        self.subscriber_lock = Lock()
+        self.sender_lock = Lock()
 
     @abstractmethod
     def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
@@ -63,4 +68,16 @@ class MessageRouter(ABC):
 
     @abstractmethod
     def send_all(self, message, *queue_attr):
+        pass
+
+    @abstractmethod
+    def get_subscriber(self, queue_alias) -> MessageSubscriber:
+        pass
+
+    @abstractmethod
+    def get_sender(self, queue_alias) -> MessageSender:
+        pass
+
+    @abstractmethod
+    def close(self):
         pass
