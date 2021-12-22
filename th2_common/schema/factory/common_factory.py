@@ -72,7 +72,8 @@ class CommonFactory(AbstractCommonFactory):
                  message_raw_batch_router_class=RabbitRawBatchRouter,
                  message_group_batch_router_class=RabbitMessageGroupBatchRouter,
                  event_batch_router_class=EventBatchRouter,
-                 grpc_router_class=DefaultGrpcRouter) -> None:
+                 grpc_router_class=DefaultGrpcRouter,
+                 logging_conf_path=None) -> None:
 
         if config_path is not None:
             self.CONFIG_DEFAULT_PATH = Path(config_path)
@@ -96,7 +97,8 @@ class CommonFactory(AbstractCommonFactory):
         self.custom_config_filepath = Path(custom_config_filepath)
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
-                         message_group_batch_router_class, event_batch_router_class, grpc_router_class)
+                         message_group_batch_router_class, event_batch_router_class, grpc_router_class,
+                         logging_conf_path)
 
     @staticmethod
     def calculate_path(parsed_args, name_attr, path_default) -> Path:
