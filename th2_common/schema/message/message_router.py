@@ -79,5 +79,5 @@ class MessageRouter(ABC):
         pass
 
     @abstractmethod
-    def close(self):
+    def close_connection(self, queue_alias):
         pass

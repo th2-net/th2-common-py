@@ -53,10 +53,10 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def __init__(self, connection_manager, configuration) -> None:
         super().__init__(connection_manager, configuration)
         self._filter_strategy = DefaultFilterStrategy()
-        self.queue_connections = list()
+        self.queue_connections = list()  # List of queue aliases, which configurations we used to create senders/subs.
         self.queue_connections_lock = Lock()
-        self.subscriber = dict()
-        self.sender = dict()
+        self.subscribers = dict()  # queue_alias: subscriber-like objects.
+        self.senders = dict()
 
     @property
     @abstractmethod
@@ -90,7 +90,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             raise RouterError(
                 f'Wrong amount of queues for subscribe. '
                 f'Found {len(queues)} queues, but must be only 1. Search was done by {queue_attr} attributes')
-        return self._subscribe_by_alias(callback, queues.keys().__iter__().__next__())
+        return self._subscribe_by_alias(callback, next(iter(queues.keys())))
 
     def subscribe_all(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
         attrs = self.add_subscribe_attributes(queue_attr)
@@ -105,7 +105,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def unsubscribe_all(self):
         with self.queue_connections_lock:
             for queue in self.queue_connections:
-                self.close_queue(queue)
+                self.close_connection(queue)
             self.queue_connections.clear()
 
     def close(self):
@@ -130,7 +130,12 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                             f'Search was done by {attrs} attributes')
         self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
 
-    def set_filter_strategy(self, filter_strategy: FilterStrategy):
+    @property
+    def filter_strategy(self):
+        return self._filter_strategy
+
+    @filter_strategy.setter
+    def filter_strategy(self, filter_strategy: FilterStrategy):
         self._filter_strategy = filter_strategy
 
     @abstractmethod
@@ -147,40 +152,38 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                 raise RouterError('Can not start sender')
 
     def get_subscriber(self, queue_alias) -> MessageSubscriber:
-        queue_configuration = self.configuration.get_queue_by_alias(queue_alias)
+        queue_configuration = self.configuration.get_queue_by_alias(queue_alias)  # If alias is nonexistent, throws,
+        # ergo, it is always valid.
         with self.queue_connections_lock:
             if queue_alias not in self.queue_connections:
                 self.queue_connections.append(queue_alias)
-        if self.connection_manager is None or queue_configuration is None:
-            raise RouterError('Queue not yet init')
         if not queue_configuration.can_read:
-            raise RouterError('Queue can not read')
+            raise RouterError('Reading from this queue is not allowed')
         with self.subscriber_lock:
-            if queue_alias not in self.subscriber or self.subscriber[queue_alias].is_close():
-                self.subscriber[queue_alias] = self.create_subscriber(self.connection_manager, queue_configuration)
-            return self.subscriber[queue_alias]
+            if queue_alias not in self.subscribers or self.subscribers[queue_alias].is_close():
+                self.subscribers[queue_alias] = self.create_subscriber(self.connection_manager, queue_configuration)
+                # Connection_manager should be created at this point, so unless something modifies it, we're alright.
+            return self.subscribers[queue_alias]
 
     def get_sender(self, queue_alias) -> MessageSender:
         queue_configuration = self.configuration.get_queue_by_alias(queue_alias)
         with self.queue_connections_lock:
             if queue_alias not in self.queue_connections:
                 self.queue_connections.append(queue_alias)
-        if self.connection_manager is None or queue_configuration is None:
-            raise RouterError('Queue not yet init')
         if not queue_configuration.can_write:
-            raise RouterError('Queue can not write')
+            raise RouterError('Writing to this queue is not allowed')
         with self.sender_lock:
-            if queue_alias not in self.sender or self.sender[queue_alias].is_close():
-                self.sender[queue_alias] = self.create_sender(self.connection_manager, queue_configuration)
-            return self.sender[queue_alias]
+            if queue_alias not in self.senders or self.senders[queue_alias].is_close():
+                self.senders[queue_alias] = self.create_sender(self.connection_manager, queue_configuration)
+            return self.senders[queue_alias]
 
-    def close_queue(self, queue_alias):
+    def close_connection(self, queue_alias):
         with self.subscriber_lock:
-            if queue_alias in self.subscriber and not self.subscriber[queue_alias].is_close():
-                self.subscriber[queue_alias].close()
+            if queue_alias in self.subscribers and not self.subscribers[queue_alias].is_close():
+                self.subscribers[queue_alias].close()
         with self.sender_lock:
-            if queue_alias in self.sender and not self.sender[queue_alias].is_close():
-                self.sender[queue_alias].close()
+            if queue_alias in self.senders and not self.senders[queue_alias].is_close():
+                self.senders[queue_alias].close()
 
     @abstractmethod
     def create_sender(self, connection_manager: ConnectionManager,
