@@ -12,11 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_common.schema.event.event_batch_queue import EventBatchQueue
+from th2_common.schema.event.event_batch_sender import EventBatchSender
+from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
+from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.message_queue import MessageQueue
+from th2_common.schema.message.message_sender import MessageSender
+from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
@@ -30,9 +33,14 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
     def required_send_attributes(self):
         return {QueueAttribute.PUBLISH.value, QueueAttribute.EVENT.value}
 
-    def _create_queue(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageQueue:
-        return EventBatchQueue(connection_manager, queue_configuration)
-
     def _find_by_filter(self, queues: {str: QueueConfiguration}, msg) -> dict:
         return {key: msg for key in queues.keys()}
+
+    def create_sender(self, connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration) -> MessageSender:
+        return EventBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.routing_key)
+
+    def create_subscriber(self, connection_manager: ConnectionManager,
+                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+        subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
+        return EventBatchSubscriber(connection_manager, queue_configuration, subscribe_target)

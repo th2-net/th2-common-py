@@ -14,12 +14,18 @@
 from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
+from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
+from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_queue import RabbitMessageGroupBatchQueue
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_sender import \
+    RabbitMessageGroupBatchSender
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_subscriber import \
+    RabbitMessageGroupBatchSubscriber
 from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
     AbstractRabbitBatchMessageRouter
-from th2_common.schema.message.message_queue import MessageQueue
+from th2_common.schema.message.message_sender import MessageSender
+from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 from th2_common.schema.metrics.common_metrics import DEFAULT_LABELS, DEFAULT_MESSAGE_TYPE_LABEL_NAME
 from th2_common.schema.util.util import get_session_alias_and_direction_group
@@ -60,6 +66,15 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitBatchMessageRouter):
     def _add_message(self, batch: MessageGroupBatch, group):
         batch.groups.append(group)
 
-    def _create_queue(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageQueue:
-        return RabbitMessageGroupBatchQueue(connection_manager, queue_configuration)
+    def create_sender(self, connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration) -> MessageSender:
+        return RabbitMessageGroupBatchSender(connection_manager, queue_configuration.exchange,
+                                             queue_configuration.routing_key)
+
+    def create_subscriber(self, connection_manager: ConnectionManager,
+                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+        subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
+        return RabbitMessageGroupBatchSubscriber(connection_manager,
+                                                 queue_configuration,
+                                                 DefaultFilterStrategy(),
+                                                 subscribe_target)

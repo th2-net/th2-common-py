@@ -15,25 +15,20 @@
 
 from th2_grpc_common.common_pb2 import MessageBatch
 
+from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
+from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
-    RabbitMessageGroupBatchRouter
-from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_queue import RabbitParsedBatchQueue
+from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_sender import RabbitParsedBatchSender
+from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_subscriber import RabbitParsedBatchSubscriber
 from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
     AbstractRabbitBatchMessageRouter
-from th2_common.schema.message.message_queue import MessageQueue
+from th2_common.schema.message.message_sender import MessageSender
+from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_common.schema.util.util import get_session_alias_and_direction
 
 
-class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouter):
-
-    def update_dropped_metrics(self, batch, modded_batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        for nonraw_msg in batch.messages:
-            if nonraw_msg not in modded_batch.messages:
-                self.OUTGOING_MSG_DROPPED.labels(*labels, 'MESSAGE').inc()
+class RabbitParsedBatchRouter(AbstractRabbitBatchMessageRouter):
 
     @property
     def required_subscribe_attributes(self):
@@ -52,6 +47,15 @@ class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouter):
     def _add_message(self, batch: MessageBatch, message):
         batch.messages.append(message)
 
-    def _create_queue(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageQueue:
-        return RabbitParsedBatchQueue(connection_manager, queue_configuration)
+    def create_sender(self, connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration) -> MessageSender:
+        return RabbitParsedBatchSender(connection_manager, queue_configuration.exchange,
+                                       queue_configuration.routing_key)
+
+    def create_subscriber(self, connection_manager: ConnectionManager,
+                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+        subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
+        return RabbitParsedBatchSubscriber(connection_manager,
+                                           queue_configuration,
+                                           DefaultFilterStrategy(),
+                                           subscribe_target)
