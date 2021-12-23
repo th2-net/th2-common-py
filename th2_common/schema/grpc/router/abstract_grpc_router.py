@@ -31,15 +31,23 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
         self.servers = []
         self.channels = {}
 
-    def start_server(self, *services) -> grpc.Server:
-        server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers))
-
+    def __add_insecure_port(self, server):
         if self.grpc_configuration.serverConfiguration.host is None:
             server.add_insecure_port(f'[::]:{self.grpc_configuration.serverConfiguration.port}')
         else:
             server.add_insecure_port(
                 f'{self.grpc_configuration.serverConfiguration.host}:{self.grpc_configuration.serverConfiguration.port}')
 
+    def server(self, *services) -> grpc.Server:
+        server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers))
+        self.__add_insecure_port(server)
+        self.servers.append(server)
+
+        return server
+
+    def async_server(self, *services) -> grpc.Server:
+        server = grpc.aio.server()
+        self.__add_insecure_port(server)
         self.servers.append(server)
 
         return server
