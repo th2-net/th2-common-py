@@ -25,9 +25,9 @@ class GrpcRouter(ABC):
         pass
 
     @abstractmethod
-    def server(self, *services) -> grpc.Server:
+    def server(self) -> grpc.Server:
         pass
 
     @abstractmethod
-    def async_server(self, *services) -> grpc.aio.Server:
+    def async_server(self) -> grpc.aio.Server:
         pass
