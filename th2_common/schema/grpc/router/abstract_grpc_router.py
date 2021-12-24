@@ -40,6 +40,12 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
     
     @property
     def server(self) -> grpc.Server:
+        """
+        Creates gRPC server.
+
+            Returns:
+                grpc.Server: A server object.
+        """
         server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers))
         self.__add_insecure_port(server)
         self.servers.append(server)
@@ -47,7 +53,13 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
         return server
     
     @property
-    def async_server(self) -> grpc.Server:
+    def async_server(self) -> grpc.aio.Server:
+        """
+        Creates asynchronous gRPC server.
+
+            Returns:
+                grpc.aio.Server: An asynchronous server object.
+        """
         server = grpc.aio.server()
         self.__add_insecure_port(server)
         self.servers.append(server)
