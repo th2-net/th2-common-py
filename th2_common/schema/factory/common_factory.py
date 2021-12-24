@@ -73,7 +73,7 @@ class CommonFactory(AbstractCommonFactory):
                  message_group_batch_router_class=RabbitMessageGroupBatchRouter,
                  event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter,
-                 logging_conf_path=None) -> None:
+                 logging_conf_filepath=None) -> None:
 
         if config_path is not None:
             self.CONFIG_DEFAULT_PATH = Path(config_path)
@@ -98,7 +98,7 @@ class CommonFactory(AbstractCommonFactory):
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
                          message_group_batch_router_class, event_batch_router_class, grpc_router_class,
-                         logging_conf_path)
+                         logging_conf_filepath)
 
     @staticmethod
     def calculate_path(parsed_args, name_attr, path_default) -> Path:
@@ -132,6 +132,8 @@ class CommonFactory(AbstractCommonFactory):
                             help='context name to choose the context from Kube config')
         parser.add_argument('--customConfiguration',
                             help='path to json file with custom configuration')
+        parser.add_argument('--loggingConfiguration',
+                            help='path to logging configuration file')
         result = parser.parse_args(args)
 
         if hasattr(result, 'namespace') and hasattr(result, 'boxName'):
@@ -160,7 +162,8 @@ class CommonFactory(AbstractCommonFactory):
                 prometheus_config_filepath=CommonFactory.calculate_path(result, 'prometheusConfiguration',
                                                                         CommonFactory.PROMETHEUS_CONFIG_FILENAME),
                 custom_config_filepath=CommonFactory.calculate_path(result, 'customConfiguration',
-                                                                    CommonFactory.CUSTOM_CONFIG_FILENAME)
+                                                                    CommonFactory.CUSTOM_CONFIG_FILENAME),
+                logging_conf_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf')
             )
 
     @staticmethod
