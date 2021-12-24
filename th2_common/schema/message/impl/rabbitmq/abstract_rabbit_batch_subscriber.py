@@ -34,8 +34,8 @@ class Metadata:
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
     def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
-                 filter_strategy=DefaultFilterStrategy(), *subscribe_targets) -> None:
-        super().__init__(connection_manager, queue_configuration, *subscribe_targets)
+                 filter_strategy=DefaultFilterStrategy(), *subscribe_targets, th2_pin='') -> None:
+        super().__init__(connection_manager, queue_configuration, *subscribe_targets, th2_pin=th2_pin)
         self.filters = queue_configuration.filters
         self.filter_strategy = filter_strategy
 

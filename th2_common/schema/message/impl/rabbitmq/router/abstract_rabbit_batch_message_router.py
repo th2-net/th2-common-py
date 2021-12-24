@@ -11,8 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
+import copy
 from abc import ABC, abstractmethod
 
 from google.protobuf.message import Message
@@ -25,9 +24,15 @@ class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
 
     def _find_by_filter(self, queues: {str: QueueConfiguration}, batch) -> dict:
         result = dict()
+        modded_batch = copy.deepcopy(batch)
         for message in self._get_messages(batch):
+            verified = False
             for queue_alias in self._filter(queues, message):
                 self._add_message(result.setdefault(queue_alias, self._create_batch()), message)
+                verified = True
+            if not verified:
+                self._get_messages(modded_batch).remove(message)
+        self.update_dropped_metrics(batch, modded_batch)
         return result
 
     def _filter(self, queues: {str: QueueConfiguration}, message: Message) -> {str}:
@@ -49,4 +54,8 @@ class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
 
     @abstractmethod
     def _add_message(self, batch, message):
+        pass
+
+    @abstractmethod
+    def update_dropped_metrics(self, batch, modded_batch):
         pass
