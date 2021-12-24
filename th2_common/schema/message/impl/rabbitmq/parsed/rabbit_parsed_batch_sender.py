@@ -17,26 +17,18 @@ from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import MessageBatch, MessageGroupBatch, MessageGroup, AnyMessage
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
-from th2_common.schema.util.util import get_debug_string
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_sender import \
+    RabbitMessageGroupBatchSender
+from th2_common.schema.util.util import get_debug_string, get_session_alias_and_direction
 
 
-class RabbitParsedBatchSender(AbstractRabbitSender):
-    OUTGOING_PARSED_MSG_BATCH_QUANTITY = Counter('th2_mq_outgoing_parsed_msg_batch_quantity',
-                                                 'Quantity of outgoing parsed message batches')
-    OUTGOING_PARSED_MSG_QUANTITY = Counter('th2_mq_outgoing_parsed_msg_quantity',
-                                           'Quantity of outgoing parsed messages')
+class RabbitParsedBatchSender(RabbitMessageGroupBatchSender):
 
-    def get_delivery_counter(self) -> Counter:
-        return self.OUTGOING_PARSED_MSG_BATCH_QUANTITY
-
-    def get_content_counter(self) -> Counter:
-        return self.OUTGOING_PARSED_MSG_QUANTITY
-
-    def extract_count_from(self, batch: MessageBatch):
-        return len(self.get_messages(batch))
-
-    def get_messages(self, batch: MessageBatch) -> list:
-        return batch.messages
+    def update_metrics(self, batch):
+        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
+        nonraw_count = len(batch.messages)
+        self.OUTGOING_MSG_QUANTITY.labels(*labels, 'MESSAGE').inc(nonraw_count)
+        self.OUTGOING_MSG_GROUP_QUANTITY.labels(*labels).inc()
 
     @staticmethod
     def value_to_bytes(value: MessageBatch):

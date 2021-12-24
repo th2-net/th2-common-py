@@ -23,6 +23,16 @@ from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage,
 import th2_common.schema.metrics.common_metrics as common_metrics
 
 
+def get_sequence(batch):
+    if batch.HasField('groups'):
+        if batch.groups[0].messages[0].HasField('raw_message'):
+            return batch.groups[0].messages[0].raw_message.metadata.id.sequence
+        elif batch.groups[0].messages[0].HasField('message'):
+            return batch.groups[0].messages[0].message.metadata.id.sequence
+    else:
+        return batch.messages[0].metadata.id.sequence
+
+
 def get_session_alias_and_direction(message_id: MessageID) -> Tuple[str, str]:
     return message_id.connection_id.session_alias, Direction.Name(message_id.direction)
 

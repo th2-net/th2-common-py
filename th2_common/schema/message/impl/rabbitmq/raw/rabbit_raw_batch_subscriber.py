@@ -19,33 +19,22 @@ from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage, MessageGroup
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_subscriber import \
+    RabbitMessageGroupBatchSubscriber
 from th2_common.schema.util.util import get_debug_string, get_session_alias_and_direction
 
 
-class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
-    INCOMING_RAW_MSG_BATCH_QUANTITY = Counter('th2_mq_incoming_raw_msg_batch_quantity',
-                                              'Quantity of incoming raw message batches',
-                                              common_metrics.DEFAULT_LABELS)
-    INCOMING_RAW_MSG_QUANTITY = Counter('th2_mq_incoming_raw_msg_quantity',
-                                        'Quantity of incoming raw messages',
-                                        common_metrics.DEFAULT_LABELS)
-    RAW_MSG_PROCESSING_TIME = Histogram('th2_mq_raw_msg_processing_time',
-                                        'Time of processing raw messages',
-                                        buckets=common_metrics.DEFAULT_BUCKETS)
+class RabbitRawBatchSubscriber(RabbitMessageGroupBatchSubscriber):
 
     __MESSAGE_TYPE = 'raw'
 
-    def get_delivery_counter(self) -> Counter:
-        return self.INCOMING_RAW_MSG_BATCH_QUANTITY
+    def update_metrics(self, batch):
+        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
+        self.INCOMING_MSG_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(len(batch.messages))
 
-    def get_content_counter(self) -> Counter:
-        return self.INCOMING_RAW_MSG_QUANTITY
-
-    def get_processing_timer(self) -> Histogram:
-        return self.RAW_MSG_PROCESSING_TIME
-
-    def extract_count_from(self, batch: RawMessageBatch):
-        return len(self.get_messages(batch))
+    def update_dropped_metrics(self, batch):
+        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
+        self.INCOMING_MSG_DROPPED_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(len(batch.messages))
 
     def get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
@@ -71,9 +60,6 @@ class RabbitRawBatchSubscriber(AbstractRabbitBatchSubscriber):
                         direction=metadata.id.direction,
                         sequence=metadata.id.sequence,
                         session_alias=metadata.id.connection_id.session_alias)
-
-    def extract_labels(self, batch):
-        return get_session_alias_and_direction(self.get_messages(batch)[0].metadata.id)
 
     def to_trace_string(self, value):
         return MessageToJson(value)

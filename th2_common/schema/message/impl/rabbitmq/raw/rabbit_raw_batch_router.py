@@ -16,14 +16,23 @@ from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage
 
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
+    RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_queue import RabbitRawBatchQueue
 from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
     AbstractRabbitBatchMessageRouter
 from th2_common.schema.message.message_queue import MessageQueue
 from th2_common.schema.message.queue_attribute import QueueAttribute
+from th2_common.schema.util.util import get_session_alias_and_direction
 
 
-class RabbitRawBatchRouter(AbstractRabbitBatchMessageRouter):
+class RabbitRawBatchRouter(RabbitMessageGroupBatchRouter):
+
+    def update_dropped_metrics(self, batch, modded_batch):
+        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
+        for raw_msg in batch.messages:
+            if raw_msg not in modded_batch.messages:
+                self.OUTGOING_MSG_DROPPED.labels(*labels, 'RAW_MESSAGE').inc()
 
     @property
     def required_subscribe_attributes(self):

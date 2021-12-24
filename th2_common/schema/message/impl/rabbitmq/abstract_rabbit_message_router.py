@@ -50,9 +50,10 @@ class MultiplySubscribeMonitorImpl(SubscriberMonitor):
 
 class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
-    def __init__(self, connection_manager, configuration) -> None:
+    def __init__(self, connection_manager, configuration, th2_pin) -> None:
         super().__init__(connection_manager, configuration)
         self._filter_strategy = DefaultFilterStrategy()
+        self.th2_pin = th2_pin
         self.queue_connections = dict()
         self.queue_connections_lock = Lock()
 
