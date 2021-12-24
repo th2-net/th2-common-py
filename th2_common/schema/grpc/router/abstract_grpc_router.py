@@ -47,7 +47,7 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
         return server
     
     @property
-    def async_server(self) -> grpc.Server:
+    def async_server(self) -> grpc.aio.Server:
         server = grpc.aio.server()
         self.__add_insecure_port(server)
         self.servers.append(server)
