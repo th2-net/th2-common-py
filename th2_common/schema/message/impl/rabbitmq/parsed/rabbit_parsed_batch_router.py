@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 
-from th2_grpc_common.common_pb2 import MessageBatch
+from th2_grpc_common.common_pb2 import MessageBatch, AnyMessage, MessageGroup, MessageGroupBatch
 
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
@@ -33,12 +33,6 @@ from th2_common.schema.util.util import get_session_alias_and_direction
 
 class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouter):
 
-    def update_dropped_metrics(self, batch, modded_batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        for nonraw_msg in batch.messages:
-            if nonraw_msg not in modded_batch.messages:
-                self.OUTGOING_MSG_DROPPED.labels(*labels, 'MESSAGE').inc()
-
     @property
     def required_subscribe_attributes(self):
         return {QueueAttribute.SUBSCRIBE.value, QueueAttribute.PARSED.value}
@@ -46,15 +40,6 @@ class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouter):
     @property
     def required_send_attributes(self):
         return {QueueAttribute.PUBLISH.value, QueueAttribute.PARSED.value}
-
-    def _get_messages(self, batch):
-        return batch.messages
-
-    def _create_batch(self):
-        return MessageBatch()
-
-    def _add_message(self, batch: MessageBatch, message):
-        batch.messages.append(message)
 
     def create_sender(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:
@@ -69,3 +54,9 @@ class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouter):
                                            self.filter_strategy,
                                            subscribe_target,
                                            th2_pin=th2_pin)
+
+    def send(self, message, *queue_attr):
+        messages = [AnyMessage(message=msg) for msg in message.messages]
+        group = MessageGroup(messages=messages)
+        group_batch = MessageGroupBatch(groups=[group])
+        super().send(group_batch, *queue_attr)

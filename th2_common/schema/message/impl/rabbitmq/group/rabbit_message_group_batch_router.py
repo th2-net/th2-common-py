@@ -40,8 +40,9 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitBatchMessageRouter):
                                          'Quantity of message groups dropped on sending',
                                          common_metrics.DEFAULT_LABELS)
 
-    def update_dropped_metrics(self, batch, pin):
-        util_dropped(batch, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED, pin)
+    def update_dropped_metrics(self, batch, pins):
+        for p in pins:
+            util_dropped(batch, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED, p)
 
     @property
     def required_subscribe_attributes(self):

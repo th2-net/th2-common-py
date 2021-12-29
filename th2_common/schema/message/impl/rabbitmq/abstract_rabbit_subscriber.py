@@ -81,6 +81,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             for value in values:
                 if value is None:
                     raise ValueError('Received value is null')
+                self.update_total_metrics(value)
 
                 if logger.isEnabledFor(logging.TRACE):
                     logger.trace(f'Received message: {self.to_trace_string(value)}')
@@ -159,4 +160,8 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
     @abstractmethod
     def update_dropped_metrics(self, batch):
+        pass
+
+    @abstractmethod
+    def update_total_metrics(self, batch):
         pass

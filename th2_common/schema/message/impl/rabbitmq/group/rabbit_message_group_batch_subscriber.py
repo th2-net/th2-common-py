@@ -21,6 +21,7 @@ from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber im
     Metadata
 from th2_common.schema.util.util import get_debug_string_group, get_session_alias_and_direction_group, get_sequence
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
+from th2_common.schema.metrics.metric_utils import update_total_metrics as util_total
 
 
 class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
@@ -61,3 +62,6 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
 
     def to_debug_string(self, value):
         return get_debug_string_group(value)
+
+    def update_total_metrics(self, batch):
+        util_total(batch, self.INCOMING_MSG_QUANTITY, self.INCOMING_MSG_GROUP_QUANTITY, self.INCOMING_MSG_SEQUENCE, self.th2_pin)
