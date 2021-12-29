@@ -110,6 +110,8 @@ class CommonFactory(AbstractCommonFactory):
             args = sys.argv[1:]
 
         parser = argparse.ArgumentParser()
+        parser.add_argument('--configPath',
+                            help='path to directory with config files')
         parser.add_argument('--rabbitConfiguration',
                             help='path to json file with RabbitMQ configuration')
         parser.add_argument('--messageRouterConfiguration',
@@ -124,28 +126,26 @@ class CommonFactory(AbstractCommonFactory):
                             help='path to json file with configuration for cradle')
         parser.add_argument('--prometheusConfiguration',
                             help='path to json file with configuration for prometheus metrics server')
+        parser.add_argument('--customConfiguration',
+                            help='path to json file with custom configuration')
+        parser.add_argument('--loggingConfiguration',
+                            help='path to logging configuration file')
         parser.add_argument('--namespace',
                             help='namespace in Kubernetes to find config maps related to the target')
         parser.add_argument('--boxName',
                             help='name of the target th2 box placed in the specified namespace in Kubernetes')
         parser.add_argument('--contextName',
                             help='context name to choose the context from Kube config')
-        parser.add_argument('--customConfiguration',
-                            help='path to json file with custom configuration')
-        parser.add_argument('--loggingConfiguration',
-                            help='path to logging configuration file')
-        parser.add_argument('--configFolderPath',
-                            help='path to search for config files')
         result = parser.parse_args(args)
 
-        if hasattr(result, 'namespace') and hasattr(result, 'boxName'):
-            if hasattr(result, 'contextName'):
+        if 'namespace' in result and 'boxName' in result:
+            if 'contextName' in result:
                 return CommonFactory.create_from_kubernetes(result.namespace, result.boxName, result.contextName)
             else:
                 return CommonFactory.create_from_kubernetes(result.namespace, result.boxName)
-
+        elif 'configPath' in result:
+            return CommonFactory(config_path=result.configPath)
         else:
-
             return CommonFactory(
                 rabbit_mq_config_filepath=CommonFactory.calculate_path(result, 'rabbitConfiguration',
                                                                        CommonFactory.RABBIT_MQ_CONFIG_FILENAME),
