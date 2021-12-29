@@ -13,9 +13,8 @@
 #   limitations under the License.
 
 
-from th2_grpc_common.common_pb2 import MessageBatch, AnyMessage, MessageGroup, MessageGroupBatch
+from th2_grpc_common.common_pb2 import AnyMessage, MessageGroup, MessageGroupBatch
 
-from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
@@ -23,12 +22,9 @@ from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_ro
     RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_sender import RabbitParsedBatchSender
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_subscriber import RabbitParsedBatchSubscriber
-from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
-    AbstractRabbitBatchMessageRouter
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_common.schema.util.util import get_session_alias_and_direction
 
 
 class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouter):
