@@ -20,8 +20,8 @@ from prometheus_client import Counter
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
 from th2_common.schema.message.message_sender import MessageSender
-from th2_common.schema.metrics.common_metrics import DEFAULT_TH2_PIN_LABEL_NAME, DEFAULT_TH2_TYPE_LABEL_NAME, \
-    DEFAULT_EXCHANGE_LABEL_NAME, DEFAULT_ROUTING_KEY_LABEL_NAME
+import th2_common.schema.metrics.common_metrics as common_metrics
+from th2_common.schema.metrics.metric_utils import update_total_metrics, to_group_batch
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,12 @@ class AbstractRabbitSender(MessageSender, ABC):
 
     OUTGOING_MSG_SIZE = Counter('th2_rabbitmq_message_size_publish_bytes',
                                 'Amount of bytes sent',
-                                (DEFAULT_TH2_PIN_LABEL_NAME, )+(DEFAULT_TH2_TYPE_LABEL_NAME, )+
-                                (DEFAULT_EXCHANGE_LABEL_NAME, )+(DEFAULT_ROUTING_KEY_LABEL_NAME, ))
+                                common_metrics.SENDER_LABELS)
     OUTGOING_MSG_QUANTITY = Counter('th2_rabbitmq_message_publish_total',
                                     'Amount of messages sent',
-                                    (DEFAULT_TH2_PIN_LABEL_NAME, ) + (DEFAULT_TH2_TYPE_LABEL_NAME, ) +
-                                    (DEFAULT_EXCHANGE_LABEL_NAME, ) + (DEFAULT_ROUTING_KEY_LABEL_NAME, ))
+                                    common_metrics.SENDER_LABELS)
+
+    _TH2_TYPE = 'unknown'
 
     def __init__(self, connection_manager: ConnectionManager, exchange_name: str, send_queue: str, th2_pin='') -> None:
         self.__publisher: ReconnectingPublisher = connection_manager.publisher
@@ -56,8 +56,7 @@ class AbstractRabbitSender(MessageSender, ABC):
         self.__closed = True
 
     def send(self, message):
-        labels = (self.th2_pin, )+('EVENT' if message.HasField('events') else 'MESSAGE_GROUP', )+\
-                 (self.__exchange_name, )+(self.__send_queue, )
+        labels = self.th2_pin, self._TH2_TYPE, self.__exchange_name, self.__send_queue
         if message is None:
             raise ValueError('Value for send can not be null')
         try:
@@ -79,18 +78,12 @@ class AbstractRabbitSender(MessageSender, ABC):
                              f'routing_key = "{self.__send_queue}", '
                              f'message = {self.to_debug_string(message)}')
 
-            self.update_metrics(message)
-
         except Exception:
             logger.exception('Can not send')
 
     @staticmethod
     @abstractmethod
     def value_to_bytes(value):
-        pass
-
-    @abstractmethod
-    def update_metrics(self, batch):
         pass
 
     @abstractmethod

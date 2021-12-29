@@ -27,8 +27,14 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
                                        'Amount of events received',
                                        (common_metrics.DEFAULT_TH2_PIN_LABEL_NAME, ))
 
-    def update_metrics(self, batch):
-        self.INCOMING_EVENTS_QUANTITY.labels(self.th2_pin).inc(len(batch.events))
+    def handle(self, channel, method, properties, body):
+        try:
+            batches = self.value_from_bytes(body)
+            for batch in batches:
+                self.INCOMING_EVENTS_QUANTITY.labels(self.th2_pin).inc(len(batch.events))
+        except Exception:
+            pass
+        super().handle(channel, method, properties, body)
 
     def get_events(self, batch: EventBatch) -> list:
         return batch.events

@@ -37,10 +37,11 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
         return {key: msg for key in queues.keys()}
 
     def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageSender:
-        return EventBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.routing_key)
+                      queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:
+        return EventBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.routing_key,
+                                th2_pin=th2_pin)
 
     def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+                          queue_configuration: QueueConfiguration, th2_pin) -> MessageSubscriber:
         subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
-        return EventBatchSubscriber(connection_manager, queue_configuration, subscribe_target)
+        return EventBatchSubscriber(connection_manager, queue_configuration, subscribe_target, th2_pin=th2_pin)

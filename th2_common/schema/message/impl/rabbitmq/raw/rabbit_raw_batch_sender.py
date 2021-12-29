@@ -24,12 +24,6 @@ from th2_common.schema.util.util import get_debug_string, get_session_alias_and_
 
 class RabbitRawBatchSender(RabbitMessageGroupBatchSender):
 
-    def update_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        raw_count = len(batch.messages)
-        self.OUTGOING_MSG_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(raw_count)
-        self.OUTGOING_MSG_GROUP_QUANTITY.labels(*labels).inc()
-
     @staticmethod
     def value_to_bytes(value: RawMessageBatch):
         messages = [AnyMessage(raw_message=msg) for msg in value.messages]
@@ -41,4 +35,4 @@ class RabbitRawBatchSender(RabbitMessageGroupBatchSender):
         return MessageToJson(value)
 
     def to_debug_string(self, value):
-        return get_debug_string(self.__class__.__name__, [message.metadata.id for message in self.get_messages(value)])
+        return get_debug_string(self.__class__.__name__, [message.metadata.id for message in value.messages])

@@ -20,6 +20,7 @@ import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
 from th2_common.schema.util.util import get_debug_string_group, get_session_alias_and_direction_group, get_sequence
+from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
 
 
 class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
@@ -40,22 +41,8 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
                                                   'Amount of message groups dropped after filters',
                                                   common_metrics.DEFAULT_LABELS)
 
-    def update_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction_group(batch.groups[0].messages[0])
-        raw_count = sum(1 for group in batch.groups for anymsg in group.messages if anymsg.HasField('raw_message'))
-        nonraw_count = sum(len(group.messages) for group in batch.groups) - raw_count
-        self.INCOMING_MSG_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(raw_count)
-        self.INCOMING_MSG_QUANTITY.labels(*labels, 'MESSAGE').inc(nonraw_count)
-        self.INCOMING_MSG_GROUP_QUANTITY.labels(*labels).inc(len(batch.groups))
-        self.INCOMING_MSG_SEQUENCE.labels(*labels).set(get_sequence(batch))
-
     def update_dropped_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction_group(batch.groups[0].messages[0])
-        raw_count = sum(1 for group in batch.groups for anymsg in group.messages if anymsg.HasField('raw_message'))
-        nonraw_count = sum(len(group.messages) for group in batch.groups) - raw_count
-        self.INCOMING_MSG_DROPPED_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(raw_count)
-        self.INCOMING_MSG_DROPPED_QUANTITY.labels(*labels, 'MESSAGE').inc(nonraw_count)
-        self.INCOMING_MSG_GROUP_DROPPED_QUANTITY.labels(*labels).inc(len(batch.groups))
+        util_dropped(batch, self.INCOMING_MSG_DROPPED_QUANTITY, self.INCOMING_MSG_GROUP_DROPPED_QUANTITY, self.th2_pin)
 
     def get_messages(self, batch) -> list:
         return batch.groups

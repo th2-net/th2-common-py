@@ -31,6 +31,9 @@ DEFAULT_TH2_TYPE_LABEL_NAME: str = 'th2_type'
 DEFAULT_LABELS: Tuple[str, str, str] = (DEFAULT_TH2_PIN_LABEL_NAME, DEFAULT_SESSION_ALIAS_LABEL_NAME, DEFAULT_DIRECTION_LABEL_NAME)
 EMPTY_LABELS: Tuple[str, str] = ('', '')
 UNKNOWN_LABELS: Tuple[str, str] = ('unknown', 'unknown')
+SENDER_LABELS = DEFAULT_TH2_PIN_LABEL_NAME, DEFAULT_TH2_TYPE_LABEL_NAME, DEFAULT_EXCHANGE_LABEL_NAME, DEFAULT_ROUTING_KEY_LABEL_NAME
+SUBSCRIBER_LABELS = DEFAULT_TH2_PIN_LABEL_NAME, DEFAULT_TH2_TYPE_LABEL_NAME, DEFAULT_QUEUE_LABEL_NAME
+TH2_MESSAGE_TYPES: dict = {'raw': 'RAW_MESSAGE', 'parsed': 'MESSAGE'}
 
 LIVENESS_ARBITER = AggregatingMetric([PrometheusMetric("th2_liveness", "Service liveness"), FileMetric('healthy')])
 READINESS_ARBITER = AggregatingMetric([PrometheusMetric("th2_readiness", "Service readiness"), FileMetric('ready')])

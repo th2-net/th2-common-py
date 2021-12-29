@@ -27,8 +27,7 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
-from th2_common.schema.metrics.common_metrics import HealthMetrics, DEFAULT_TH2_PIN_LABEL_NAME, \
-    DEFAULT_TH2_TYPE_LABEL_NAME, DEFAULT_QUEUE_LABEL_NAME, DEFAULT_BUCKETS
+import th2_common.schema.metrics.common_metrics as common_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +36,16 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
     INCOMING_MESSAGE_SIZE = Counter('th2_rabbitmq_message_size_subscribe_bytes',
                                     'Amount of bytes received',
-                                    (DEFAULT_TH2_PIN_LABEL_NAME, )+(DEFAULT_TH2_TYPE_LABEL_NAME, )+
-                                    (DEFAULT_QUEUE_LABEL_NAME, ))
+                                    common_metrics.SUBSCRIBER_LABELS)
     HANDLING_DURATION = Histogram('th2_rabbitmq_message_process_duration_seconds',
                                   'Duration of one subscriber\'s handling process',
-                                  (DEFAULT_TH2_PIN_LABEL_NAME, ) + (DEFAULT_TH2_TYPE_LABEL_NAME, ) +
-                                  (DEFAULT_QUEUE_LABEL_NAME, ), buckets=DEFAULT_BUCKETS)
+                                  common_metrics.SUBSCRIBER_LABELS,
+                                  buckets=common_metrics.DEFAULT_BUCKETS)
 
     def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
                  subscribe_target: SubscribeTarget, th2_pin='') -> None:
 
+        self._th2_type = 'unknown'
         self.__subscribe_target = subscribe_target
         self.__attributes = tuple(set(queue_configuration.attributes))
         self.th2_pin = th2_pin
@@ -58,7 +57,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.__consumer_tag = None
         self.__closed = True
 
-        self.__metrics = HealthMetrics(self)
+        self.__metrics = common_metrics.HealthMetrics(self)
 
     def start(self):
         if self.__subscribe_target is None:
@@ -73,20 +72,15 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.__metrics.enable()
 
     def handle(self, channel, method, properties, body):
-        start_time = time.time()  # We can use context clause or decorator, but we don't know labels yet. Let it be.
-        labels = (self.th2_pin, ) + ('unknown', ) + (self.__subscribe_target.get_queue(), )  # In case we'll run into
-        # error on value_from_bytes, labels have to be defined.
+        start_time = time.time()
+        labels = self.th2_pin, self._th2_type, self.__subscribe_target.get_queue()
         try:
 
             values = self.value_from_bytes(body)
-            labels = (self.th2_pin, ) + ('EVENT' if values[0].HasField('events') else 'MESSAGE_GROUP', ) + \
-                     (self.__subscribe_target.get_queue(), )
             self.INCOMING_MESSAGE_SIZE.labels(*labels).inc(len(body))
             for value in values:
                 if value is None:
                     raise ValueError('Received value is null')
-
-                self.update_metrics(value)
 
                 if logger.isEnabledFor(logging.TRACE):
                     logger.trace(f'Received message: {self.to_trace_string(value)}')
@@ -161,10 +155,6 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
     @abstractmethod
     def to_debug_string(self, value):
-        pass
-
-    @abstractmethod
-    def update_metrics(self, batch):
         pass
 
     @abstractmethod
