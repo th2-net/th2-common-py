@@ -67,25 +67,25 @@ class CommonFactory(AbstractCommonFactory):
                  cradle_config_filepath=CONFIG_DEFAULT_PATH / CRADLE_CONFIG_FILENAME,
                  prometheus_config_filepath=CONFIG_DEFAULT_PATH / PROMETHEUS_CONFIG_FILENAME,
                  custom_config_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
+                 logging_config_filepath=None,
 
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
                  message_group_batch_router_class=RabbitMessageGroupBatchRouter,
                  event_batch_router_class=EventBatchRouter,
-                 grpc_router_class=DefaultGrpcRouter,
-                 logging_conf_filepath=None) -> None:
+                 grpc_router_class=DefaultGrpcRouter) -> None:
 
         if config_path is not None:
-            self.CONFIG_DEFAULT_PATH = Path(config_path)
-            rabbit_mq_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
-            mq_router_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
-            connection_manager_config_filepath = self.CONFIG_DEFAULT_PATH / \
+            config_path = Path(config_path)
+            rabbit_mq_config_filepath = config_path / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
+            mq_router_config_filepath = config_path / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
+            connection_manager_config_filepath = config_path / \
                                                  CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME
-            grpc_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.GRPC_CONFIG_FILENAME
-            grpc_router_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
-            cradle_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.CRADLE_CONFIG_FILENAME
-            prometheus_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.PROMETHEUS_CONFIG_FILENAME
-            custom_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.CUSTOM_CONFIG_FILENAME
+            grpc_config_filepath = config_path / CommonFactory.GRPC_CONFIG_FILENAME
+            grpc_router_config_filepath = config_path / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
+            cradle_config_filepath = config_path / CommonFactory.CRADLE_CONFIG_FILENAME
+            prometheus_config_filepath = config_path / CommonFactory.PROMETHEUS_CONFIG_FILENAME
+            custom_config_filepath = config_path / CommonFactory.CUSTOM_CONFIG_FILENAME
 
         self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
         self.mq_router_config_filepath = Path(mq_router_config_filepath)
@@ -98,7 +98,7 @@ class CommonFactory(AbstractCommonFactory):
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
                          message_group_batch_router_class, event_batch_router_class, grpc_router_class,
-                         logging_conf_filepath)
+                         logging_config_filepath)
 
     @staticmethod
     def calculate_path(parsed_args, name_attr, path_default) -> Path:
@@ -134,6 +134,8 @@ class CommonFactory(AbstractCommonFactory):
                             help='path to json file with custom configuration')
         parser.add_argument('--loggingConfiguration',
                             help='path to logging configuration file')
+        parser.add_argument('--configFolderPath',
+                            help='path to search for config files')
         result = parser.parse_args(args)
 
         if hasattr(result, 'namespace') and hasattr(result, 'boxName'):
@@ -163,7 +165,8 @@ class CommonFactory(AbstractCommonFactory):
                                                                         CommonFactory.PROMETHEUS_CONFIG_FILENAME),
                 custom_config_filepath=CommonFactory.calculate_path(result, 'customConfiguration',
                                                                     CommonFactory.CUSTOM_CONFIG_FILENAME),
-                logging_conf_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf')
+                logging_config_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf'),
+                config_path=getattr(result, 'configFolderPath', None)
             )
 
     @staticmethod
