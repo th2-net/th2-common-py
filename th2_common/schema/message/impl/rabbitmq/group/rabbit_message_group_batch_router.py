@@ -14,7 +14,6 @@
 from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
-from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
@@ -22,13 +21,12 @@ from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_se
     RabbitMessageGroupBatchSender
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_subscriber import \
     RabbitMessageGroupBatchSubscriber
-from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
+from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_message_router import \
     AbstractRabbitBatchMessageRouter
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 import th2_common.schema.metrics.common_metrics as common_metrics
-from th2_common.schema.util.util import get_session_alias_and_direction_group
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
 
 
