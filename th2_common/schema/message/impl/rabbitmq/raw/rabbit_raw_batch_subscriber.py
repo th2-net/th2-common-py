@@ -28,14 +28,6 @@ class RabbitRawBatchSubscriber(RabbitMessageGroupBatchSubscriber):
 
     __MESSAGE_TYPE = 'raw'
 
-    def update_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        self.INCOMING_MSG_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(len(batch.messages))
-
-    def update_dropped_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        self.INCOMING_MSG_DROPPED_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(len(batch.messages))
-
     def get_messages(self, batch: RawMessageBatch) -> list:
         return batch.messages
 

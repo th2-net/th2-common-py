@@ -15,24 +15,24 @@ import copy
 from abc import ABC, abstractmethod
 
 from google.protobuf.message import Message
+from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
+from th2_common.schema.metrics.metric_utils import to_group_batch
 
 
 class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
 
     def _find_by_filter(self, queues: {str: QueueConfiguration}, batch) -> dict:
         result = dict()
-        modded_batch = copy.deepcopy(batch)
+        all_aliases = set(queues.keys)
         for message in self._get_messages(batch):
-            verified = False
+            sent_to = set()
             for queue_alias in self._filter(queues, message):
                 self._add_message(result.setdefault(queue_alias, self._create_batch()), message)
-                verified = True
-            if not verified:
-                self._get_messages(modded_batch).remove(message)
-        self.update_dropped_metrics(batch, modded_batch)
+                sent_to.add(queue_alias)
+            self.update_dropped_metrics(MessageGroupBatch(groups=[message]), all_aliases - sent_to)
         return result
 
     def _filter(self, queues: {str: QueueConfiguration}, message: Message) -> {str}:
@@ -57,5 +57,5 @@ class AbstractRabbitBatchMessageRouter(AbstractRabbitMessageRouter, ABC):
         pass
 
     @abstractmethod
-    def update_dropped_metrics(self, batch, modded_batch):
+    def update_dropped_metrics(self, batch, pin):
         pass

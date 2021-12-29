@@ -26,14 +26,6 @@ from th2_common.schema.util.util import get_debug_string, get_session_alias_and_
 
 class RabbitParsedBatchSubscriber(RabbitMessageGroupBatchSubscriber):
 
-    def update_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        self.INCOMING_MSG_QUANTITY.labels(*labels, 'MESSAGE').inc(len(batch.messages))
-
-    def update_dropped_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        self.INCOMING_MSG_DROPPED_QUANTITY.labels(*labels, 'MESSAGE').inc(len(batch.messages))
-
     def get_messages(self, batch: MessageBatch) -> list:
         return batch.messages
 

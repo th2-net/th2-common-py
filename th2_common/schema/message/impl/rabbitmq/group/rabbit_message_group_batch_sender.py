@@ -17,29 +17,23 @@ from prometheus_client import Counter, Gauge
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
-from th2_common.schema.metrics.common_metrics import DEFAULT_LABELS, DEFAULT_MESSAGE_TYPE_LABEL_NAME
+import th2_common.schema.metrics.common_metrics as common_metrics
+from th2_common.schema.metrics.metric_utils import update_total_metrics
 from th2_common.schema.util.util import get_debug_string_group, get_session_alias_and_direction_group, get_sequence
 
 
 class RabbitMessageGroupBatchSender(AbstractRabbitSender):
     OUTGOING_MSG_QUANTITY = Counter('th2_message_publish_total',
                                     'Amount of individual messages sent',
-                                    DEFAULT_LABELS+(DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
+                                    common_metrics.DEFAULT_LABELS+(common_metrics.DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
     OUTGOING_MSG_GROUP_QUANTITY = Counter('th2_message_group_publish_total',
                                           'Quantity of outgoing message groups',
-                                          DEFAULT_LABELS)
+                                          common_metrics.DEFAULT_LABELS)
     OUTGOING_GROUP_SEQUENCE = Gauge('th2_message_group_sequence_publish',
                                     'Last sequence sent',
-                                    DEFAULT_LABELS)
+                                    common_metrics.DEFAULT_LABELS)
 
-    def update_metrics(self, batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction_group(batch.groups[0].messages[0])
-        raw_count = sum(1 for group in batch.groups for anymsg in group.messages if anymsg.HasField('raw_message'))
-        nonraw_count = sum(len(group.messages) for group in batch.groups) - raw_count
-        self.OUTGOING_MSG_QUANTITY.labels(*labels, 'RAW_MESSAGE').inc(raw_count)
-        self.OUTGOING_MSG_QUANTITY.labels(*labels, 'MESSAGE').inc(nonraw_count)
-        self.OUTGOING_MSG_GROUP_QUANTITY.labels(*labels).inc(len(batch.groups))
-        self.OUTGOING_GROUP_SEQUENCE.labels(*labels).set(get_sequence(batch))
+    _TH2_TYPE = 'MESSAGE_GROUP'
 
     @staticmethod
     def value_to_bytes(value: MessageGroupBatch):
@@ -50,3 +44,8 @@ class RabbitMessageGroupBatchSender(AbstractRabbitSender):
 
     def to_debug_string(self, value):
         return get_debug_string_group(value)
+
+    def send(self, message):
+        update_total_metrics(message, self.OUTGOING_MSG_QUANTITY, self.OUTGOING_MSG_GROUP_QUANTITY,
+                             self.OUTGOING_GROUP_SEQUENCE, self.th2_pin)
+        super().send(message)

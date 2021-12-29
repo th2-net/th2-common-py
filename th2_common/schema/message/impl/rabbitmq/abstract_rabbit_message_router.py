@@ -161,7 +161,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             raise RouterError('Reading from this queue is not allowed')
         with self.subscriber_lock:
             if queue_alias not in self.subscribers or self.subscribers[queue_alias].is_close():
-                self.subscribers[queue_alias] = self.create_subscriber(self.connection_manager, queue_configuration)
+                self.subscribers[queue_alias] = self.create_subscriber(self.connection_manager, queue_configuration,
+                                                                       th2_pin=queue_alias)
                 # Connection_manager should be created at this point, so unless something modifies it, we're alright.
             return self.subscribers[queue_alias]
 
@@ -174,7 +175,8 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             raise RouterError('Writing to this queue is not allowed')
         with self.sender_lock:
             if queue_alias not in self.senders or self.senders[queue_alias].is_close():
-                self.senders[queue_alias] = self.create_sender(self.connection_manager, queue_configuration)
+                self.senders[queue_alias] = self.create_sender(self.connection_manager, queue_configuration,
+                                                               th2_pin=queue_alias)
             return self.senders[queue_alias]
 
     def close_connection(self, queue_alias):
@@ -187,10 +189,10 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     @abstractmethod
     def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageSender:
+                      queue_configuration: QueueConfiguration, th2_pin: str) -> MessageSender:
         pass
 
     @abstractmethod
     def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+                          queue_configuration: QueueConfiguration, th2_pin: str) -> MessageSubscriber:
         pass

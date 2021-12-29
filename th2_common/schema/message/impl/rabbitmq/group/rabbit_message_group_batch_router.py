@@ -27,27 +27,21 @@ from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_messag
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_common.schema.metrics.common_metrics import DEFAULT_LABELS, DEFAULT_MESSAGE_TYPE_LABEL_NAME
+import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.util.util import get_session_alias_and_direction_group
+from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
 
 
 class RabbitMessageGroupBatchRouter(AbstractRabbitBatchMessageRouter):
     OUTGOING_MSG_DROPPED = Counter('th2_message_dropped_publish_total',
                                    'Quantity of messages dropped on sending',
-                                   DEFAULT_LABELS + (DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
+                                   common_metrics.DEFAULT_LABELS + (common_metrics.DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
     OUTGOING_MSG_GROUP_DROPPED = Counter('th2_message_group_dropped_publish_total',
                                          'Quantity of message groups dropped on sending',
-                                         DEFAULT_LABELS)
+                                         common_metrics.DEFAULT_LABELS)
 
-    def update_dropped_metrics(self, batch, modded_batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction_group(batch.groups[0].messages[0])
-        for group in batch.groups:
-            if group not in modded_batch.groups:
-                self.OUTGOING_MSG_GROUP_DROPPED.labels(*labels).inc()
-                raw_count = sum(1 for message in group.messages if message.HasField('raw_message'))
-                nonraw_count = len(group.messages) - raw_count
-                self.OUTGOING_MSG_DROPPED.labels(*labels, 'RAW_MESSAGE').inc(raw_count)
-                self.OUTGOING_MSG_DROPPED.labels(*labels, 'MESSAGE').inc(nonraw_count)
+    def update_dropped_metrics(self, batch, pin):
+        util_dropped(batch, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED, pin)
 
     @property
     def required_subscribe_attributes(self):
@@ -67,14 +61,15 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitBatchMessageRouter):
         batch.groups.append(group)
 
     def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageSender:
+                      queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:
         return RabbitMessageGroupBatchSender(connection_manager, queue_configuration.exchange,
-                                             queue_configuration.routing_key)
+                                             queue_configuration.routing_key, th2_pin=th2_pin)
 
     def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
+                          queue_configuration: QueueConfiguration, th2_pin) -> MessageSubscriber:
         subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
         return RabbitMessageGroupBatchSubscriber(connection_manager,
                                                  queue_configuration,
-                                                 DefaultFilterStrategy(),
-                                                 subscribe_target)
+                                                 self.filter_strategy,
+                                                 subscribe_target,
+                                                 th2_pin=th2_pin)

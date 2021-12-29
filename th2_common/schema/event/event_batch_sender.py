@@ -17,17 +17,21 @@ from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
-from th2_common.schema.metrics.common_metrics import DEFAULT_TH2_PIN_LABEL_NAME
+import th2_common.schema.metrics.common_metrics as common_metrics
+from th2_common.schema.metrics.metric_utils import update_total_metrics
 from th2_common.schema.util.util import get_debug_string_event
 
 
 class EventBatchSender(AbstractRabbitSender):
     OUTGOING_EVENT_QUANTITY = Counter('th2_event_publish_total',
                                       'Quantity of outgoing events',
-                                      (DEFAULT_TH2_PIN_LABEL_NAME, ))
+                                      (common_metrics.DEFAULT_TH2_PIN_LABEL_NAME, ))
 
-    def update_metrics(self, batch):
-        self.OUTGOING_EVENT_QUANTITY.labels(self.th2_pin).inc(len(batch.events))
+    _TH2_TYPE = 'EVENT'
+
+    def send(self, message):
+        self.OUTGOING_EVENT_QUANTITY.labels(self.th2_pin).inc(len(message.events))
+        super().send(message)
 
     def get_events(self, batch: EventBatch) -> list:
         return batch.events
