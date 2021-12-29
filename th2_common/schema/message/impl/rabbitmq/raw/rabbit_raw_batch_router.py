@@ -32,12 +32,6 @@ from th2_common.schema.util.util import get_session_alias_and_direction
 
 class RabbitRawBatchRouter(RabbitMessageGroupBatchRouter):
 
-    def update_dropped_metrics(self, batch, modded_batch):
-        labels = (self.th2_pin, ) + get_session_alias_and_direction(batch.messages[0].metadata.id)
-        for raw_msg in batch.messages:
-            if raw_msg not in modded_batch.messages:
-                self.OUTGOING_MSG_DROPPED.labels(*labels, 'RAW_MESSAGE').inc()
-
     @property
     def required_subscribe_attributes(self):
         return {QueueAttribute.SUBSCRIBE.value, QueueAttribute.RAW.value}
@@ -45,15 +39,6 @@ class RabbitRawBatchRouter(RabbitMessageGroupBatchRouter):
     @property
     def required_send_attributes(self):
         return {QueueAttribute.PUBLISH.value, QueueAttribute.RAW.value}
-
-    def _get_messages(self, batch: RawMessageBatch) -> list:
-        return batch.messages
-
-    def _create_batch(self):
-        return RawMessageBatch()
-
-    def _add_message(self, batch: RawMessageBatch, message: RawMessage):
-        batch.messages.append(message)
 
     def create_sender(self, connection_manager: ConnectionManager,
                       queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:

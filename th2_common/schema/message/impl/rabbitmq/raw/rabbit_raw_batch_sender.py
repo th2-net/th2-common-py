@@ -23,16 +23,4 @@ from th2_common.schema.util.util import get_debug_string, get_session_alias_and_
 
 
 class RabbitRawBatchSender(RabbitMessageGroupBatchSender):
-
-    @staticmethod
-    def value_to_bytes(value: RawMessageBatch):
-        messages = [AnyMessage(raw_message=msg) for msg in value.messages]
-        group = MessageGroup(messages=messages)
-        value = MessageGroupBatch(groups=[group])
-        return value.SerializeToString()
-
-    def to_trace_string(self, value):
-        return MessageToJson(value)
-
-    def to_debug_string(self, value):
-        return get_debug_string(self.__class__.__name__, [message.metadata.id for message in value.messages])
+    pass
