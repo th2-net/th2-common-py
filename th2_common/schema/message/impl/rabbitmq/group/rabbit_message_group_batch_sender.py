@@ -46,6 +46,6 @@ class RabbitMessageGroupBatchSender(AbstractRabbitSender):
         return get_debug_string_group(value)
 
     def send(self, message):
-        update_total_metrics(message, self.OUTGOING_MSG_QUANTITY, self.OUTGOING_MSG_GROUP_QUANTITY,
-                             self.OUTGOING_GROUP_SEQUENCE, self.th2_pin)
+        update_total_metrics(message, self.th2_pin, self.OUTGOING_MSG_QUANTITY, self.OUTGOING_MSG_GROUP_QUANTITY,
+                             self.OUTGOING_GROUP_SEQUENCE)
         super().send(message)

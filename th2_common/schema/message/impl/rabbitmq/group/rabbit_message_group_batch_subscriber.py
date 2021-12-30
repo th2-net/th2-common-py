@@ -43,7 +43,7 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
                                                   common_metrics.DEFAULT_LABELS)
 
     def update_dropped_metrics(self, batch):
-        util_dropped(batch, self.INCOMING_MSG_DROPPED_QUANTITY, self.INCOMING_MSG_GROUP_DROPPED_QUANTITY, self.th2_pin)
+        util_dropped(batch, self.th2_pin, self.INCOMING_MSG_DROPPED_QUANTITY, self.INCOMING_MSG_GROUP_DROPPED_QUANTITY)
 
     def get_messages(self, batch) -> list:
         return batch.groups
@@ -64,4 +64,4 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
         return get_debug_string_group(value)
 
     def update_total_metrics(self, batch):
-        util_total(batch, self.INCOMING_MSG_QUANTITY, self.INCOMING_MSG_GROUP_QUANTITY, self.INCOMING_MSG_SEQUENCE, self.th2_pin)
+        util_total(batch, self.th2_pin, self.INCOMING_MSG_QUANTITY, self.INCOMING_MSG_GROUP_QUANTITY, self.INCOMING_MSG_SEQUENCE)
