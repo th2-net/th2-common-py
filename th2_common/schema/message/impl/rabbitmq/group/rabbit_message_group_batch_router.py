@@ -15,14 +15,13 @@ from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
+from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_sender import \
     RabbitMessageGroupBatchSender
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_subscriber import \
     RabbitMessageGroupBatchSubscriber
-from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_message_router import \
-    AbstractRabbitBatchMessageRouter
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
@@ -30,7 +29,7 @@ import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
 
 
-class RabbitMessageGroupBatchRouter(AbstractRabbitBatchMessageRouter):
+class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
     OUTGOING_MSG_DROPPED = Counter('th2_message_dropped_publish_total',
                                    'Quantity of messages dropped on sending',
                                    common_metrics.DEFAULT_LABELS + (common_metrics.DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
@@ -40,7 +39,7 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitBatchMessageRouter):
 
     def update_dropped_metrics(self, batch, pins):
         for p in pins:
-            util_dropped(batch, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED, p)
+            util_dropped(batch, p, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED)
 
     @property
     def required_subscribe_attributes(self):

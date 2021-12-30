@@ -21,7 +21,6 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
 from th2_common.schema.message.message_sender import MessageSender
 import th2_common.schema.metrics.common_metrics as common_metrics
-from th2_common.schema.metrics.metric_utils import update_total_metrics, to_group_batch
 
 logger = logging.getLogger(__name__)
 

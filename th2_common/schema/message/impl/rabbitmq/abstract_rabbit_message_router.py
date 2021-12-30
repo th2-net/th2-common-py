@@ -14,6 +14,9 @@
 
 from abc import ABC, abstractmethod
 from threading import Lock
+from typing import Callable
+
+from th2_grpc_common.common_pb2 import MessageGroupBatch, Message
 
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
@@ -113,22 +116,40 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def send(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
-        filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
-        filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
-        if len(filtered_by_attr_and_filter) != 1:
-            raise Exception(f'Wrong amount of queues for send. Must be equal to 1. '
-                            f'Found {len(filtered_by_attr_and_filter)} queues, but must be only 1. '
-                            f'Search was done by {attrs} attributes')
-        self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
+        self.filter_and_send(message, attrs, lambda x: len(x) == 1)
 
     def send_all(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
-        filtered_by_attr = self.configuration.find_queues_by_attr(attrs)
-        filtered_by_attr_and_filter = self._find_by_filter(filtered_by_attr, message)
-        if len(filtered_by_attr_and_filter) == 0:
-            raise Exception(f'Wrong amount of queues for send_all. Must not be equal to 0. '
-                            f'Search was done by {attrs} attributes')
-        self._send_by_aliases_and_messages_to_send(filtered_by_attr_and_filter)
+        self.filter_and_send(message, attrs, lambda x: len(x) != 0)
+
+    def filter_and_send(self, message, attrs, check: Callable):
+        aliases_found_by_attrs = self.configuration.find_queues_by_attr(attrs)
+        aliases_to_messages = self.split_and_filter(aliases_found_by_attrs, message)
+        if not check(aliases_to_messages):
+            raise Exception('Possible queues check has failed')
+        for alias, message in aliases_to_messages.items():
+            try:
+                sender = self.get_sender(alias)
+                sender.start()
+                sender.send(message)
+            except Exception:
+                raise RouterError('Can not start sender')
+
+    def split_and_filter(self, queue_aliases_to_configs, batch) -> dict:
+        result = dict()
+        for message in self._get_messages(batch):
+            dropped_on_aliases = set()
+            aliases_suitable_for_message_part = set()
+            for queue_alias, queue_config in queue_aliases_to_configs.items():
+                filters = queue_config.filters
+                if len(filters) == 0 or self._filter_strategy.verify(message, router_filters=filters):
+                    aliases_suitable_for_message_part.add(queue_alias)
+                else:
+                    dropped_on_aliases.add(queue_alias)
+            for queue_alias in aliases_suitable_for_message_part:
+                self._add_message(result.setdefault(queue_alias, self._create_batch()), message)
+            self.update_dropped_metrics(MessageGroupBatch(groups=[message]), dropped_on_aliases)
+        return result
 
     @property
     def filter_strategy(self):
@@ -137,19 +158,6 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     @filter_strategy.setter
     def filter_strategy(self, filter_strategy: FilterStrategy):
         self._filter_strategy = filter_strategy
-
-    @abstractmethod
-    def _find_by_filter(self, queues: {str: QueueConfiguration}, msg) -> dict:
-        pass
-
-    def _send_by_aliases_and_messages_to_send(self, aliases_and_messages_to_send: dict):
-        for queue_alias, message in aliases_and_messages_to_send.items():
-            try:
-                sender = self.get_sender(queue_alias)
-                sender.start()
-                sender.send(message)
-            except Exception:
-                raise RouterError('Can not start sender')
 
     def get_subscriber(self, queue_alias) -> MessageSubscriber:
         queue_configuration = self.configuration.get_queue_by_alias(queue_alias)  # If alias is nonexistent, throws,
@@ -195,4 +203,20 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     @abstractmethod
     def create_subscriber(self, connection_manager: ConnectionManager,
                           queue_configuration: QueueConfiguration, th2_pin: str) -> MessageSubscriber:
+        pass
+
+    @abstractmethod
+    def _get_messages(self, batch) -> list:
+        pass
+
+    @abstractmethod
+    def _create_batch(self):
+        pass
+
+    @abstractmethod
+    def _add_message(self, batch, message):
+        pass
+
+    @abstractmethod
+    def update_dropped_metrics(self, batch, pin):
         pass
