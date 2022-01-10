@@ -26,7 +26,7 @@ from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 import th2_common.schema.metrics.common_metrics as common_metrics
-from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
+from th2_common.schema.metrics.metric_utils import update_dropped_metrics as dropped_metrics_updater
 
 
 class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
@@ -38,8 +38,8 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
                                          common_metrics.DEFAULT_LABELS)
 
     def update_dropped_metrics(self, batch, pins):
-        for p in pins:
-            util_dropped(batch, p, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED)
+        for pin in pins:
+            dropped_metrics_updater(batch, pin, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED)
 
     @property
     def required_subscribe_attributes(self):

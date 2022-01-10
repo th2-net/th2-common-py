@@ -19,6 +19,8 @@ from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target impo
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
     RabbitMessageGroupBatchRouter
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
+    RabbitMessageGroupBatchRouterAdapter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_sender import RabbitRawBatchSender
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_subscriber import RabbitRawBatchSubscriber
 from th2_common.schema.message.message_listener import MessageListener
@@ -28,7 +30,7 @@ from th2_common.schema.message.queue_attribute import QueueAttribute
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
 
 
-class RabbitRawBatchRouter(RabbitMessageGroupBatchRouter):
+class RabbitRawBatchRouter(RabbitMessageGroupBatchRouterAdapter):
 
     @property
     def required_subscribe_attributes(self):
@@ -52,18 +54,6 @@ class RabbitRawBatchRouter(RabbitMessageGroupBatchRouter):
                                         subscribe_target,
                                         th2_pin=th2_pin)
 
-    def send(self, message, *queue_attr):
-        super().send(self.to_group_batch(message), *queue_attr)
-
-    def send_all(self, message, *queue_attr):
-        super().send_all(self.to_group_batch(message), *queue_attr)
-
-    def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
-        return super().subscribe(raw_converter(callback), *queue_attr)
-
-    def subscribe_all(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
-        return super().subscribe_all(raw_converter(callback), *queue_attr)
-
     @staticmethod
     def to_group_batch(message):
         messages = [AnyMessage(raw_message=msg) for msg in message.messages]
@@ -79,13 +69,3 @@ class RabbitRawBatchRouter(RabbitMessageGroupBatchRouter):
                 if anymsg.HasField('raw_message'):
                     result.messages.append(anymsg.raw_message)
         return result
-
-
-def raw_converter(listener: MessageListener):
-    old_handler = listener.handler
-    def new_handler(attributes, message):
-        old_handler(attributes, message)
-        msg = RabbitRawBatchRouter.to_group_batch(message)
-        message = msg
-    listener.handler = new_handler
-    return listener
