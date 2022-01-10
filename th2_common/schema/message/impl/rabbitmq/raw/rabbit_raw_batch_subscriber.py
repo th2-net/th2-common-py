@@ -33,18 +33,12 @@ class RabbitRawBatchSubscriber(RabbitMessageGroupBatchSubscriber):
 
     @staticmethod
     def value_from_bytes(body):
-        message_group_batch = MessageGroupBatch()
-        message_group_batch.ParseFromString(body)
-
-        message_batches = []
-        for message_group in message_group_batch.groups:
-            messages = []
-            for any_message in message_group.messages:
-                any_message.HasField('raw_message')
-                messages.append(any_message.raw_message)
-            message_batches.append(RawMessageBatch(messages=messages))
-
-        return message_batches
+        message_group_batch = super().value_from_bytes(body)[0]
+        raw_batches = []
+        for group in message_group_batch.groups:
+            messages = [any_msg.raw_message for any_msg in group.messages if any_msg.HasField('raw_message')]
+            raw_batches.append(RawMessageBatch(messages=messages))
+        return raw_batches
 
     def extract_metadata(self, message: RawMessage) -> Metadata:
         metadata = message.metadata
@@ -52,9 +46,6 @@ class RabbitRawBatchSubscriber(RabbitMessageGroupBatchSubscriber):
                         direction=metadata.id.direction,
                         sequence=metadata.id.sequence,
                         session_alias=metadata.id.connection_id.session_alias)
-
-    def to_trace_string(self, value):
-        return MessageToJson(value)
 
     def to_debug_string(self, value):
         return get_debug_string(self.__class__.__name__, [message.metadata.id for message in self.get_messages(value)])

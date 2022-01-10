@@ -38,21 +38,12 @@ class RabbitParsedBatchSubscriber(RabbitMessageGroupBatchSubscriber):
 
     @staticmethod
     def value_from_bytes(body):
-        message_group_batch = MessageGroupBatch()
-        message_group_batch.ParseFromString(body)
-
-        message_batches = []
-        for message_group in message_group_batch.groups:
-            messages = []
-            for any_message in message_group.messages:
-                any_message.HasField('message')
-                messages.append(any_message.message)
-            message_batches.append(MessageBatch(messages=messages))
-
-        return message_batches
-
-    def to_trace_string(self, value):
-        return MessageToJson(value)
+        message_group_batch = super().value_from_bytes(body)[0]
+        parsed_batches = []
+        for group in message_group_batch.groups:
+            messages = [any_msg.message for any_msg in group.messages if any_msg.HasField('message')]
+            parsed_batches.append(MessageBatch(messages=messages))
+        return parsed_batches
 
     def to_debug_string(self, value):
         return get_debug_string(self.__class__.__name__, [message.metadata.id for message in self.get_messages(value)])

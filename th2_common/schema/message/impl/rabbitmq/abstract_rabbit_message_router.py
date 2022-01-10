@@ -116,17 +116,24 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def send(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
-        self.filter_and_send(message, attrs, lambda x: len(x) == 1)
+        self.filter_and_send(message, attrs, lambda x: None if len(x) == 1 else Exception(f'More than one suitable '
+                                                                                          f'queue was found for '
+                                                                                          f'"send" command by '
+                                                                                          f'attributes {attrs}'))
 
     def send_all(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
-        self.filter_and_send(message, attrs, lambda x: len(x) != 0)
+        self.filter_and_send(message, attrs, lambda x: None if len(x) != 0 else Exception(f'No suitable '
+                                                                                          f'queue was found for '
+                                                                                          f'"send_all" command by '
+                                                                                          f'attributes {attrs}'))
 
     def filter_and_send(self, message, attrs, check: Callable):
         aliases_found_by_attrs = self.configuration.find_queues_by_attr(attrs)
         aliases_to_messages = self.split_and_filter(aliases_found_by_attrs, message)
-        if not check(aliases_to_messages):
-            raise Exception('Possible queues check has failed')
+        result_check = check(aliases_to_messages)
+        if result_check is not None:
+            raise result_check
         for alias, message in aliases_to_messages.items():
             try:
                 sender = self.get_sender(alias)
