@@ -25,25 +25,4 @@ from th2_common.schema.util.util import get_debug_string, get_session_alias_and_
 
 
 class RabbitParsedBatchSubscriber(RabbitMessageGroupBatchSubscriber):
-
-    def get_messages(self, batch: MessageBatch) -> list:
-        return batch.messages
-
-    def extract_metadata(self, message) -> Metadata:
-        metadata = message.metadata
-        return Metadata(message_type=metadata.message_type,
-                        direction=metadata.id.direction,
-                        sequence=metadata.id.sequence,
-                        session_alias=metadata.id.connection_id.session_alias)
-
-    @staticmethod
-    def value_from_bytes(body):
-        message_group_batch = super().value_from_bytes(body)[0]
-        parsed_batches = []
-        for group in message_group_batch.groups:
-            messages = [any_msg.message for any_msg in group.messages if any_msg.HasField('message')]
-            parsed_batches.append(MessageBatch(messages=messages))
-        return parsed_batches
-
-    def to_debug_string(self, value):
-        return get_debug_string(self.__class__.__name__, [message.metadata.id for message in self.get_messages(value)])
+    pass
