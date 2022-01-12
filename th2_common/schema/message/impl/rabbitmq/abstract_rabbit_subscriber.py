@@ -75,24 +75,21 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         start_time = time.time()
         labels = self.th2_pin, self._th2_type, self.__subscribe_target.get_queue()
         try:
-
-            values = self.value_from_bytes(body)
+            value = self.value_from_bytes(body)
             self.INCOMING_MESSAGE_SIZE.labels(*labels).inc(len(body))
-            for value in values:
-                if value is None:
-                    raise ValueError('Received value is null')
-                self.update_total_metrics(value)
+            if value is None:
+                raise ValueError('Received value is null')
+            self.update_total_metrics(value)
+            if logger.isEnabledFor(logging.TRACE):
+                logger.trace(f'Received message: {self.to_trace_string(value)}')
+            elif logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f'Received message: {self.to_debug_string(value)}')
 
-                if logger.isEnabledFor(logging.TRACE):
-                    logger.trace(f'Received message: {self.to_trace_string(value)}')
-                elif logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f'Received message: {self.to_debug_string(value)}')
+            if not self.filter(value):
+                self.update_dropped_metrics(value)
+                return
 
-                if not self.filter(value):
-                    self.update_dropped_metrics(value)
-                    return
-
-                self.handle_with_listener(value, channel, method)
+            self.handle_with_listener(value, channel, method)
 
         except DecodeError as e:
             logger.exception(

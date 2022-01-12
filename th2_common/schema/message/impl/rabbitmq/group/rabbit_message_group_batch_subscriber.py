@@ -55,7 +55,7 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
     def value_from_bytes(body):
         message_group_batch = MessageGroupBatch()
         message_group_batch.ParseFromString(body)
-        return [message_group_batch]
+        return message_group_batch
 
     def to_trace_string(self, value):
         return MessageToJson(value)
