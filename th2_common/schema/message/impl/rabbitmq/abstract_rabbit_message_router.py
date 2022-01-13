@@ -28,6 +28,7 @@ from th2_common.schema.message.message_router import MessageRouter
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
+from th2_common.schema.util.util import get_debug_string_group
 
 
 class SubscriberMonitorImpl(SubscriberMonitor):
@@ -117,18 +118,22 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def send(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
         self.filter_and_send(message, attrs, lambda x: None if len(x) == 1 else Exception(f'Found incorrect number of '
-                                                                                          f'pins {len(x)} to the send'
+                                                                                          f'pins {list(x.keys())} to the send'
                                                                                           f'operation by attributes '
                                                                                           f'{attrs} and filters, '
-                                                                                          f'expected 1, actual {len(x)}'))
+                                                                                          f'expected 1, actual {len(x)}. '
+                                                                                          f'Message: {get_debug_string_group(message)}.'
+                                                                                          f'Filter strategy: {self._filter_strategy.__class__.__name__}'))
 
     def send_all(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
         self.filter_and_send(message, attrs, lambda x: None if len(x) != 0 else Exception(f'Found incorrect number of '
-                                                                                          f'pins {len(x)} to the send_all '
+                                                                                          f'pins {list(x.keys())} to the send_all '
                                                                                           f'operation by attributes '
                                                                                           f'{attrs} and filters, '
-                                                                                          f'expected non-zero, actual {len(x)}'))
+                                                                                          f'expected non-zero, actual {len(x)}. '
+                                                                                          f'Message: {get_debug_string_group(message)}.'
+                                                                                          f'Filter strategy: {self._filter_strategy.__class__.__name__}'))
 
     def filter_and_send(self, message, attrs, check: Callable):
         aliases_found_by_attrs = self.configuration.find_queues_by_attr(attrs)
