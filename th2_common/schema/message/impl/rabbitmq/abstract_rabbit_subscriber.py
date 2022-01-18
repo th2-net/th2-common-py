@@ -42,10 +42,11 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                                   common_metrics.SUBSCRIBER_LABELS,
                                   buckets=common_metrics.DEFAULT_BUCKETS)
 
+    _th2_type = 'unknown'
+
     def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
                  subscribe_target: SubscribeTarget, th2_pin='') -> None:
 
-        self._th2_type = 'unknown'
         self.__subscribe_target = subscribe_target
         self.__attributes = tuple(set(queue_configuration.attributes))
         self.th2_pin = th2_pin

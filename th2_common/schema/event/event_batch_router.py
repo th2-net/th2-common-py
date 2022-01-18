@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.event.event_batch_sender import EventBatchSender
 from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
@@ -24,6 +25,25 @@ from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
+
+    def _get_messages(self, batch) -> list:
+        return batch.events
+
+    def _create_batch(self):
+        return EventBatch()
+
+    def _add_message(self, batch, message):
+        batch.events.append(message)
+
+    def update_dropped_metrics(self, batch, pin):
+        pass
+
+    def split_and_filter(self, queue_aliases_to_configs, batch) -> dict:
+        result = dict()
+        for message in self._get_messages(batch):
+            for queue_alias in queue_aliases_to_configs.keys():
+                self._add_message(result.setdefault(queue_alias, self._create_batch()), message)
+        return result
 
     @property
     def required_subscribe_attributes(self):

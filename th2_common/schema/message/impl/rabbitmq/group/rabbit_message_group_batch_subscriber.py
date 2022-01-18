@@ -42,6 +42,8 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
                                                   'Amount of message groups dropped after filters',
                                                   common_metrics.DEFAULT_LABELS)
 
+    _th2_type = 'MESSAGE_GROUP'
+
     def update_dropped_metrics(self, batch):
         util_dropped(batch, self.th2_pin, self.INCOMING_MSG_DROPPED_QUANTITY, self.INCOMING_MSG_GROUP_DROPPED_QUANTITY)
 

@@ -33,6 +33,6 @@ class RabbitMessageGroupBatchRouterAdapter(RabbitMessageGroupBatchRouter, ABC):
     def get_converter(self, callback: MessageListener):
         old_handler = callback.handler
         def new_handler(attributes, message):
+            message = self.from_group_batch(message)
             old_handler(attributes, message)
-            message = self.to_group_batch(message)
         return type('MessageListenerConverter', (callback.__class__, ), {'handler': new_handler})
