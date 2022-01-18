@@ -21,8 +21,6 @@ from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_ro
     RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
     RabbitMessageGroupBatchRouterAdapter
-from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_sender import RabbitRawBatchSender
-from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_subscriber import RabbitRawBatchSubscriber
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
@@ -39,20 +37,6 @@ class RabbitRawBatchRouter(RabbitMessageGroupBatchRouterAdapter):
     @property
     def required_send_attributes(self):
         return {QueueAttribute.PUBLISH.value, QueueAttribute.RAW.value}
-
-    def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:
-        return RabbitRawBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.routing_key,
-                                    th2_pin=th2_pin)
-
-    def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration, th2_pin) -> MessageSubscriber:
-        subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
-        return RabbitRawBatchSubscriber(connection_manager,
-                                        queue_configuration,
-                                        self.filter_strategy,
-                                        subscribe_target,
-                                        th2_pin=th2_pin)
 
     @staticmethod
     def to_group_batch(message):
