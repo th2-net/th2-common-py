@@ -30,8 +30,8 @@ class AbstractRabbitSender(MessageSender, ABC):
     OUTGOING_MSG_SIZE = Counter('th2_rabbitmq_message_size_publish_bytes',
                                 'Amount of bytes sent',
                                 common_metrics.SENDER_LABELS)
-    OUTGOING_MSG_QUANTITY = Counter('th2_rabbitmq_message_publish_total',
-                                    'Amount of messages sent',
+    OUTGOING_MSG_QUANTITY_ABSTRACT = Counter('th2_rabbitmq_message_publish_total',
+                                    'Amount of batches sent',
                                     common_metrics.SENDER_LABELS)
 
     _TH2_TYPE = 'unknown'
@@ -64,7 +64,7 @@ class AbstractRabbitSender(MessageSender, ABC):
                                              routing_key=self.__send_queue,
                                              message=byted_message)
 
-            self.OUTGOING_MSG_QUANTITY.labels(*labels).inc()  # For now it counts batch as one message.
+            self.OUTGOING_MSG_QUANTITY_ABSTRACT.labels(*labels).inc()  # For now it counts batch as one message.
             # Probably we should make it count separate messages inside groups.
             self.OUTGOING_MSG_SIZE.labels(*labels).inc(len(byted_message))
 

@@ -27,6 +27,8 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
                                        'Amount of events received',
                                        (common_metrics.DEFAULT_TH2_PIN_LABEL_NAME, ))
 
+    _th2_type = 'EVENT'
+
     def get_events(self, batch: EventBatch) -> list:
         return batch.events
 
@@ -34,7 +36,7 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
     def value_from_bytes(body):
         event_batch = EventBatch()
         event_batch.ParseFromString(body)
-        return [event_batch]
+        return event_batch
 
     def filter(self, value) -> bool:
         return True
