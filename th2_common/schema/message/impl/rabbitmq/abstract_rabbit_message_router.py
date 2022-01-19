@@ -174,8 +174,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         self._filter_strategy = filter_strategy
 
     def get_subscriber(self, queue_alias) -> MessageSubscriber:
-        queue_configuration = self.configuration.get_queue_by_alias(queue_alias)  # If alias is nonexistent, throws,
-        # ergo, it is always valid.
+        queue_configuration = self.configuration.get_queue_by_alias(queue_alias)
         with self.queue_connections_lock:
             if queue_alias not in self.queue_connections:
                 self.queue_connections.append(queue_alias)
@@ -185,7 +184,6 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
             if queue_alias not in self.subscribers or self.subscribers[queue_alias].is_close():
                 self.subscribers[queue_alias] = self.create_subscriber(self.connection_manager, queue_configuration,
                                                                        th2_pin=queue_alias)
-                # Connection_manager should be created at this point, so unless something modifies it, we're alright.
             return self.subscribers[queue_alias]
 
     def get_sender(self, queue_alias) -> MessageSender:

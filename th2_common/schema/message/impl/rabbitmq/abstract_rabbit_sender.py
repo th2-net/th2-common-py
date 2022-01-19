@@ -64,8 +64,7 @@ class AbstractRabbitSender(MessageSender, ABC):
                                              routing_key=self.__send_queue,
                                              message=byted_message)
 
-            self.OUTGOING_MSG_QUANTITY_ABSTRACT.labels(*labels).inc()  # For now it counts batch as one message.
-            # Probably we should make it count separate messages inside groups.
+            self.OUTGOING_MSG_QUANTITY_ABSTRACT.labels(*labels).inc()
             self.OUTGOING_MSG_SIZE.labels(*labels).inc(len(byted_message))
 
             if logger.isEnabledFor(logging.TRACE):
