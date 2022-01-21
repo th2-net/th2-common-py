@@ -11,6 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+from collections import defaultdict
+
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.event.event_batch_sender import EventBatchSender
@@ -39,10 +41,10 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
         pass
 
     def split_and_filter(self, queue_aliases_to_configs, batch) -> dict:
-        result = dict()
+        result = defaultdict(EventBatch)
         for message in self._get_messages(batch):
             for queue_alias in queue_aliases_to_configs.keys():
-                self._add_message(result.setdefault(queue_alias, self._create_batch()), message)
+                self._add_message(result[queue_alias], message)
         return result
 
     @property

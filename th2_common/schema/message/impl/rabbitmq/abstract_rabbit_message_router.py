@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from threading import Lock
 from typing import Callable
 
@@ -150,7 +151,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                 raise RouterError('Can not start sender')
 
     def split_and_filter(self, queue_aliases_to_configs, batch) -> dict:
-        result = dict()
+        result = defaultdict(MessageGroupBatch)
         for message in self._get_messages(batch):
             dropped_on_aliases = set()
             aliases_suitable_for_message_part = set()
@@ -161,7 +162,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                 else:
                     dropped_on_aliases.add(queue_alias)
             for queue_alias in aliases_suitable_for_message_part:
-                self._add_message(result.setdefault(queue_alias, self._create_batch()), message)
+                self._add_message(result[queue_alias], message)
             self.update_dropped_metrics(MessageGroupBatch(groups=[message]), dropped_on_aliases)
         return result
 
