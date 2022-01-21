@@ -22,6 +22,8 @@ from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage,
 
 import th2_common.schema.metrics.common_metrics as common_metrics
 
+def get_filters(aliases, router):
+    return [router.configuration.queues[alias].filters for alias in aliases]
 
 def get_sequence(group):
     if group.messages[0].HasField('raw_message'):

@@ -1,3 +1,17 @@
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
     RabbitMessageGroupBatchRouter
 from abc import ABC, abstractmethod
@@ -31,8 +45,4 @@ class RabbitMessageGroupBatchRouterAdapter(RabbitMessageGroupBatchRouter, ABC):
         pass
 
     def get_converter(self, callback: MessageListener):
-        old_handler = callback.handler
-        def new_handler(attributes, message):
-            message = self.from_group_batch(message)
-            old_handler(attributes, message)
-        return type('MessageListenerConverter', (callback.__class__, ), {'handler': new_handler})
+        return type('MessageListenerConverter', (callback.__class__, ), {'handler': lambda attributes, message: callback.handler(attributes, self.from_group_batch(message))})

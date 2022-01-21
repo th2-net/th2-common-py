@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ from th2_common.schema.message.message_router import MessageRouter
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
-from th2_common.schema.util.util import get_debug_string_group
+from th2_common.schema.util.util import get_debug_string_group, get_filters
 
 
 class SubscriberMonitorImpl(SubscriberMonitor):
@@ -123,7 +123,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                                                                                           f'{attrs} and filters, '
                                                                                           f'expected 1, actual {len(x)}. '
                                                                                           f'Message: {get_debug_string_group(message)}.'
-                                                                                          f'Filter strategy: {self._filter_strategy.__class__.__name__}'))
+                                                                                          f'Filters: {get_filters(x.keys(), self)}'))
 
     def send_all(self, message, *queue_attr):
         attrs = self.add_send_attributes(queue_attr)
@@ -133,7 +133,7 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
                                                                                           f'{attrs} and filters, '
                                                                                           f'expected non-zero, actual {len(x)}. '
                                                                                           f'Message: {get_debug_string_group(message)}.'
-                                                                                          f'Filter strategy: {self._filter_strategy.__class__.__name__}'))
+                                                                                          f'Filters: {get_filters(x.keys(), self)}'))
 
     def filter_and_send(self, message, attrs, check: Callable):
         aliases_found_by_attrs = self.configuration.find_queues_by_attr(attrs)
