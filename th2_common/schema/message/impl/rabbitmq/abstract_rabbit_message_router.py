@@ -55,8 +55,8 @@ class MultiplySubscribeMonitorImpl(SubscriberMonitor):
 
 class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
-    def __init__(self, connection_manager, configuration) -> None:
-        super().__init__(connection_manager, configuration)
+    def __init__(self, connection_manager, configuration, box_configuration) -> None:
+        super().__init__(connection_manager, configuration, box_configuration)
         self._filter_strategy = DefaultFilterStrategy()
         self.queue_connections = list()  # List of queue aliases, which configurations we used to create senders/subs.
         self.queue_connections_lock = Lock()

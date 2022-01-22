@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 from threading import Lock
 
+from th2_common.schema.box.configuration.box_configuration import BoxConfiguration
 from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
@@ -29,11 +30,13 @@ class MessageRouter(ABC):
     """
 
     def __init__(self, connection_manager: ConnectionManager,
-                 configuration: MessageRouterConfiguration) -> None:
+                 configuration: MessageRouterConfiguration,
+                 box_configuration: BoxConfiguration) -> None:
         self.configuration = configuration
         self.connection_manager = connection_manager
         self.subscriber_lock = Lock()
         self.sender_lock = Lock()
+        self.box_configuration = box_configuration
 
     @abstractmethod
     def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:

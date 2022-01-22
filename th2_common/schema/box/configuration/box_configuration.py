@@ -16,6 +16,7 @@ from th2_common.schema.configuration.abstract_configuration import AbstractConfi
 
 
 class BoxConfiguration(AbstractConfiguration):
-    def __init__(self, box_name, **kwargs):
-        self.boxName = box_name
+    def __init__(self, boxName, bookName, **kwargs):
+        self.box_name = boxName
+        self.book_name = bookName
         self.check_unexpected_args(kwargs)

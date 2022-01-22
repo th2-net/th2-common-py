@@ -68,6 +68,7 @@ class CommonFactory(AbstractCommonFactory):
                  prometheus_config_filepath=CONFIG_DEFAULT_PATH / PROMETHEUS_CONFIG_FILENAME,
                  custom_config_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
                  logging_config_filepath=None,
+                 box_configuration_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
 
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
@@ -86,6 +87,7 @@ class CommonFactory(AbstractCommonFactory):
             cradle_config_filepath = config_path / CommonFactory.CRADLE_CONFIG_FILENAME
             prometheus_config_filepath = config_path / CommonFactory.PROMETHEUS_CONFIG_FILENAME
             custom_config_filepath = config_path / CommonFactory.CUSTOM_CONFIG_FILENAME
+            box_configuration_filepath = config_path / CommonFactory.BOX_FILE_NAME
 
         self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
         self.mq_router_config_filepath = Path(mq_router_config_filepath)
@@ -95,6 +97,7 @@ class CommonFactory(AbstractCommonFactory):
         self.cradle_config_filepath = Path(cradle_config_filepath)
         self.prometheus_config_filepath = Path(prometheus_config_filepath)
         self.custom_config_filepath = Path(custom_config_filepath)
+        self.box_configuration_filepath = Path(box_configuration_filepath)
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
                          message_group_batch_router_class, event_batch_router_class, grpc_router_class,
@@ -136,6 +139,8 @@ class CommonFactory(AbstractCommonFactory):
                             help='name of the target th2 box placed in the specified namespace in Kubernetes')
         parser.add_argument('--contextName',
                             help='context name to choose the context from Kube config')
+        parser.add_argument('--boxConfiguration',
+                            help='path to json file with box configuration')
         result = parser.parse_args(args)
 
         if 'namespace' in result and 'boxName' in result:
@@ -165,7 +170,9 @@ class CommonFactory(AbstractCommonFactory):
                                                                         CommonFactory.PROMETHEUS_CONFIG_FILENAME),
                 custom_config_filepath=CommonFactory.calculate_path(result, 'customConfiguration',
                                                                     CommonFactory.CUSTOM_CONFIG_FILENAME),
-                logging_config_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf')
+                logging_config_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf'),
+                box_configuration_filepath=CommonFactory.calculate_path(result, 'boxConfiguration',
+                                                                        CommonFactory.BOX_FILE_NAME)
             )
 
     @staticmethod
@@ -243,7 +250,8 @@ class CommonFactory(AbstractCommonFactory):
             grpc_router_config_filepath=grpc_router_path,
             cradle_config_filepath=cradle_path,
             prometheus_config_filepath=prometheus_path,
-            custom_config_filepath=custom_path
+            custom_config_filepath=custom_path,
+            box_configuration_filepath=box_configuration_path
         )
 
     @staticmethod
@@ -333,3 +341,6 @@ class CommonFactory(AbstractCommonFactory):
     @property
     def _path_to_custom_configuration(self) -> Path:
         return self.custom_config_filepath
+
+    def _path_to_box_configuration(self) -> Path:
+        return self.box_configuration_filepath

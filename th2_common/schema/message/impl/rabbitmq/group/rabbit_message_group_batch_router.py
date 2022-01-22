@@ -41,6 +41,21 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
         for pin in pins:
             dropped_metrics_updater(batch, pin, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED)
 
+    def send(self, message, *queue_attr):
+        for group in message.groups:
+            for anymsg in group.messages:
+                if anymsg.HasField('raw_message'):
+                    msg = anymsg.raw_message
+                elif anymsg.HasField('message'):
+                    msg = anymsg.message
+                book = msg.metadata.id.book_name
+                if book == '':
+                    if self.box_configuration is None or self.box_configuration.book_name is None:
+                        raise Exception('Book name is undefined both explicitly in message IDs and implicitly in box configuration')
+                    book = self.box_configuration.book_name
+                    msg.metadata.id.book_name = book
+        super().send(message, *queue_attr)
+
     @property
     def required_subscribe_attributes(self):
         return {QueueAttribute.SUBSCRIBE.value}
