@@ -342,5 +342,6 @@ class CommonFactory(AbstractCommonFactory):
     def _path_to_custom_configuration(self) -> Path:
         return self.custom_config_filepath
 
+    @property
     def _path_to_box_configuration(self) -> Path:
         return self.box_configuration_filepath
