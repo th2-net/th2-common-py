@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,22 +13,14 @@
 #   limitations under the License.
 
 
-from th2_grpc_common.common_pb2 import MessageBatch
+from th2_grpc_common.common_pb2 import AnyMessage, MessageGroup, MessageGroupBatch, MessageBatch
 
-from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
-from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
-from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_sender import RabbitParsedBatchSender
-from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_subscriber import RabbitParsedBatchSubscriber
-from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
-    AbstractRabbitBatchMessageRouter
-from th2_common.schema.message.message_sender import MessageSender
-from th2_common.schema.message.message_subscriber import MessageSubscriber
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
+    RabbitMessageGroupBatchRouterAdapter
 from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
-class RabbitParsedBatchRouter(AbstractRabbitBatchMessageRouter):
+class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouterAdapter):
 
     @property
     def required_subscribe_attributes(self):
@@ -38,24 +30,14 @@ class RabbitParsedBatchRouter(AbstractRabbitBatchMessageRouter):
     def required_send_attributes(self):
         return {QueueAttribute.PUBLISH.value, QueueAttribute.PARSED.value}
 
-    def _get_messages(self, batch):
-        return batch.messages
+    @staticmethod
+    def to_group_batch(message):
+        messages = [AnyMessage(message=msg) for msg in message.messages]
+        group = MessageGroup(messages=messages)
+        value = MessageGroupBatch(groups=[group])
+        return value
 
-    def _create_batch(self):
-        return MessageBatch()
-
-    def _add_message(self, batch: MessageBatch, message):
-        batch.messages.append(message)
-
-    def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageSender:
-        return RabbitParsedBatchSender(connection_manager, queue_configuration.exchange,
-                                       queue_configuration.routing_key)
-
-    def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration) -> MessageSubscriber:
-        subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
-        return RabbitParsedBatchSubscriber(connection_manager,
-                                           queue_configuration,
-                                           DefaultFilterStrategy(),
-                                           subscribe_target)
+    @staticmethod
+    def from_group_batch(message):
+        return MessageBatch(messages=[anymsg.message for group in message.groups for anymsg in group.messages if
+                                         anymsg.HasField('message')])
