@@ -28,7 +28,7 @@ from th2_common.schema.message.queue_attribute import QueueAttribute
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
 
-    def send(self, message, *queue_attr):
+    def check_book_name(self, message):
         for event in message.events:
             book = event.id.book_name
             if not book:
@@ -38,7 +38,13 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
                 event.id.book_name = book
             if any(message_id.book_name != book for message_id in event.attached_message_ids):
                 raise Exception('MessageID attached to event has different book name')
-        super().send(message, *queue_attr)
+        return message
+
+    def send(self, message, *queue_attr):
+        super().send(self.check_book_name(message), *queue_attr)
+
+    def send_all(self, message, *queue_attr):
+        super().send_all(self.check_book_name(message), *queue_attr)
 
     def _get_messages(self, batch) -> list:
         return batch.events
