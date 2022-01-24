@@ -18,14 +18,17 @@ from google.protobuf.duration_pb2 import Duration
 from google.protobuf.pyext._message import RepeatedCompositeContainer
 from th2_grpc_common.common_pb2 import MessageID, MessageGroupBatch, AnyMessage, EventBatch, Direction, Value, \
     ListValue, Message, MessageMetadata, ConnectionID, MetadataFilter, RootMessageFilter, MessageFilter, \
-    ValueFilter, ListValueFilter, SimpleList, RootComparisonSettings
+    ValueFilter, ListValueFilter, SimpleList, RootComparisonSettings, MessageGroup
 
 import th2_common.schema.metrics.common_metrics as common_metrics
+from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration
 
-def get_filters(aliases, router):
-    return [router.configuration.queues[alias].filters for alias in aliases]
 
-def get_sequence(group):
+def get_filters(configuration: MessageRouterConfiguration, aliases: List[str]):
+    return [configuration.queues[alias].filters for alias in aliases]
+
+
+def get_sequence(group: MessageGroup):
     if group.messages[0].HasField('raw_message'):
         return group.messages[0].raw_message.metadata.id.sequence
     elif group.messages[0].HasField('message'):

@@ -76,7 +76,7 @@ class MqRouterFilterConfiguration(RouterFilterConfiguration):
         return self.message
 
     def __str__(self):
-        return self.metadata+self.message
+        return self.metadata + self.message
 
 
 class QueueConfiguration(AbstractConfiguration):
