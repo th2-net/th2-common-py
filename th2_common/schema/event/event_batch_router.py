@@ -31,14 +31,13 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
     def send(self, message, *queue_attr):
         for event in message.events:
             book = event.id.book_name
-            if book == '':
-                if self.box_configuration is None or self.box_configuration.book_name is None:
+            if not book:
+                if self.box_configuration.book_name is None:
                     raise Exception('Book name is undefined both explicitly in message IDs and implicitly in box configuration')
                 book = self.box_configuration.book_name
                 event.id.book_name = book
-            for message_id in event.attached_message_ids:
-                if message_id.book_name != book:
-                    raise Exception('MessageID attached to event has different book name')
+            if any(message_id.book_name != book for message_id in event.attached_message_ids):
+                raise Exception('MessageID attached to event has different book name')
         super().send(message, *queue_attr)
 
     def _get_messages(self, batch) -> list:

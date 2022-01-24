@@ -49,8 +49,8 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
                 elif anymsg.HasField('message'):
                     msg = anymsg.message
                 book = msg.metadata.id.book_name
-                if book == '':
-                    if self.box_configuration is None or self.box_configuration.book_name is None:
+                if not book:
+                    if self.box_configuration.book_name is None:
                         raise Exception('Book name is undefined both explicitly in message IDs and implicitly in box configuration')
                     book = self.box_configuration.book_name
                     msg.metadata.id.book_name = book

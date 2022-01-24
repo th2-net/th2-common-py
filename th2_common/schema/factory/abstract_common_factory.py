@@ -260,7 +260,7 @@ class AbstractCommonFactory(ABC):
         if self._path_to_box_configuration.exists():
             return BoxConfiguration(**self.read_configuration(self._path_to_box_configuration))
         else:
-            return None
+            return BoxConfiguration()
 
     def create_custom_configuration(self) -> dict:
         return self.read_configuration(self._path_to_custom_configuration)

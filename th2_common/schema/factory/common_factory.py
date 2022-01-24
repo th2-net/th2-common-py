@@ -68,7 +68,7 @@ class CommonFactory(AbstractCommonFactory):
                  prometheus_config_filepath=CONFIG_DEFAULT_PATH / PROMETHEUS_CONFIG_FILENAME,
                  custom_config_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
                  logging_config_filepath=None,
-                 box_configuration_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
+                 box_configuration_filepath=CONFIG_DEFAULT_PATH / BOX_FILE_NAME,
 
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
