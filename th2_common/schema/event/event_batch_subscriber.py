@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,25 +22,12 @@ from th2_common.schema.util.util import get_debug_string_event
 
 
 class EventBatchSubscriber(AbstractRabbitSubscriber):
-    INCOMING_EVENT_BATCH_QUANTITY = Counter('th2_mq_incoming_event_batch_quantity',
-                                            'Quantity of incoming event batches')
-    INCOMING_EVENT_QUANTITY = Counter('th2_mq_incoming_event_quantity',
-                                      'Quantity of incoming events')
-    EVENT_PROCESSING_TIME = Histogram('th2_mq_event_processing_time',
-                                      'Time of processing events',
-                                      buckets=common_metrics.DEFAULT_BUCKETS)
 
-    def get_delivery_counter(self) -> Counter:
-        return self.INCOMING_EVENT_BATCH_QUANTITY
+    INCOMING_EVENTS_QUANTITY = Counter('th2_event_subscribe_total',
+                                       'Amount of events received',
+                                       (common_metrics.DEFAULT_TH2_PIN_LABEL_NAME, ))
 
-    def get_content_counter(self) -> Counter:
-        return self.INCOMING_EVENT_QUANTITY
-
-    def get_processing_timer(self) -> Histogram:
-        return self.EVENT_PROCESSING_TIME
-
-    def extract_count_from(self, batch: EventBatch):
-        return len(self.get_events(batch))
+    _th2_type = 'EVENT'
 
     def get_events(self, batch: EventBatch) -> list:
         return batch.events
@@ -49,16 +36,19 @@ class EventBatchSubscriber(AbstractRabbitSubscriber):
     def value_from_bytes(body):
         event_batch = EventBatch()
         event_batch.ParseFromString(body)
-        return [event_batch]
+        return event_batch
 
     def filter(self, value) -> bool:
         return True
-
-    def extract_labels(self, batch):
-        return []
 
     def to_trace_string(self, value):
         return MessageToJson(value)
 
     def to_debug_string(self, value):
         return get_debug_string_event(value)
+
+    def update_dropped_metrics(self, batch):
+        pass
+
+    def update_total_metrics(self, batch):
+        self.INCOMING_EVENTS_QUANTITY.labels(self.th2_pin).inc(len(batch.events))

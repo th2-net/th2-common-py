@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,18 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_grpc_common.common_pb2 import RawMessageBatch, RawMessage
+from th2_grpc_common.common_pb2 import AnyMessage, MessageGroup, MessageGroupBatch, RawMessageBatch
 
-from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
-from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_queue import RabbitRawBatchQueue
-from th2_common.schema.message.impl.rabbitmq.router.abstract_rabbit_batch_message_router import \
-    AbstractRabbitBatchMessageRouter
-from th2_common.schema.message.message_queue import MessageQueue
+from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
+    RabbitMessageGroupBatchRouterAdapter
 from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
-class RabbitRawBatchRouter(AbstractRabbitBatchMessageRouter):
+class RabbitRawBatchRouter(RabbitMessageGroupBatchRouterAdapter):
 
     @property
     def required_subscribe_attributes(self):
@@ -33,15 +29,14 @@ class RabbitRawBatchRouter(AbstractRabbitBatchMessageRouter):
     def required_send_attributes(self):
         return {QueueAttribute.PUBLISH.value, QueueAttribute.RAW.value}
 
-    def _get_messages(self, batch: RawMessageBatch) -> list:
-        return batch.messages
+    @staticmethod
+    def to_group_batch(message):
+        messages = [AnyMessage(raw_message=msg) for msg in message.messages]
+        group = MessageGroup(messages=messages)
+        value = MessageGroupBatch(groups=[group])
+        return value
 
-    def _create_batch(self):
-        return RawMessageBatch()
-
-    def _add_message(self, batch: RawMessageBatch, message: RawMessage):
-        batch.messages.append(message)
-
-    def _create_queue(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration) -> MessageQueue:
-        return RabbitRawBatchQueue(connection_manager, queue_configuration)
+    @staticmethod
+    def from_group_batch(message):
+        return RawMessageBatch(messages=[anymsg.raw_message for group in message.groups for anymsg in group.messages if
+                                         anymsg.HasField('raw_message')])

@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,23 +17,21 @@ from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
+import th2_common.schema.metrics.common_metrics as common_metrics
+from th2_common.schema.metrics.metric_utils import update_total_metrics
 from th2_common.schema.util.util import get_debug_string_event
 
 
 class EventBatchSender(AbstractRabbitSender):
-    OUTGOING_EVENT_BATCH_QUANTITY = Counter('th2_mq_outgoing_event_batch_quantity',
-                                            'Quantity of outgoing event batches')
-    OUTGOING_EVENT_QUANTITY = Counter('th2_mq_outgoing_event_quantity',
-                                      'Quantity of outgoing events')
+    OUTGOING_EVENT_QUANTITY = Counter('th2_event_publish_total',
+                                      'Quantity of outgoing events',
+                                      (common_metrics.DEFAULT_TH2_PIN_LABEL_NAME, ))
 
-    def get_delivery_counter(self) -> Counter:
-        return self.OUTGOING_EVENT_BATCH_QUANTITY
+    _TH2_TYPE = 'EVENT'
 
-    def get_content_counter(self) -> Counter:
-        return self.OUTGOING_EVENT_QUANTITY
-
-    def extract_count_from(self, batch: EventBatch):
-        return len(self.get_events(batch))
+    def send(self, message):
+        self.OUTGOING_EVENT_QUANTITY.labels(self.th2_pin).inc(len(message.events))
+        super().send(message)
 
     def get_events(self, batch: EventBatch) -> list:
         return batch.events

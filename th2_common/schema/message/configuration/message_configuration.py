@@ -37,6 +37,9 @@ class FieldFilterConfiguration(AbstractConfiguration):
         self.operation = FieldFilterOperation[operation]
         self.check_unexpected_args(kwargs)
 
+    def __str__(self):
+        return f'Value: {self.value} Field name: {self.field_name} Operation: {self.operation}'
+
 
 class RouterFilterConfiguration(AbstractConfiguration, ABC):
 
@@ -71,6 +74,9 @@ class MqRouterFilterConfiguration(RouterFilterConfiguration):
 
     def get_message(self) -> List[FieldFilterConfiguration]:
         return self.message
+
+    def __str__(self):
+        return self.metadata + self.message
 
 
 class QueueConfiguration(AbstractConfiguration):

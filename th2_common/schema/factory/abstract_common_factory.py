@@ -52,7 +52,8 @@ class AbstractCommonFactory(ABC):
                  message_raw_batch_router_class=RabbitRawBatchRouter,
                  message_group_batch_router_class=RabbitMessageGroupBatchRouter,
                  event_batch_router_class=EventBatchRouter,
-                 grpc_router_class=DefaultGrpcRouter) -> None:
+                 grpc_router_class=DefaultGrpcRouter,
+                 logging_config_filepath=None) -> None:
 
         self.rabbit_mq_configuration = None
         self.message_router_configuration = None
@@ -76,7 +77,11 @@ class AbstractCommonFactory(ABC):
 
         install_trace_logger()
 
-        if AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH.exists():
+        if logging_config_filepath is not None and Path(logging_config_filepath).exists():
+            logging.config.fileConfig(fname=Path(logging_config_filepath),
+                                      disable_existing_loggers=False)
+            logger.info(f'Using logging config file from {logging_config_filepath}')
+        elif AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH.exists():
             logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
                                       disable_existing_loggers=False)
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')

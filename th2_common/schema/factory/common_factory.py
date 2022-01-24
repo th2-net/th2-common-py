@@ -67,6 +67,7 @@ class CommonFactory(AbstractCommonFactory):
                  cradle_config_filepath=CONFIG_DEFAULT_PATH / CRADLE_CONFIG_FILENAME,
                  prometheus_config_filepath=CONFIG_DEFAULT_PATH / PROMETHEUS_CONFIG_FILENAME,
                  custom_config_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
+                 logging_config_filepath=None,
 
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
@@ -75,16 +76,16 @@ class CommonFactory(AbstractCommonFactory):
                  grpc_router_class=DefaultGrpcRouter) -> None:
 
         if config_path is not None:
-            self.CONFIG_DEFAULT_PATH = Path(config_path)
-            rabbit_mq_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
-            mq_router_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
-            connection_manager_config_filepath = self.CONFIG_DEFAULT_PATH / \
+            config_path = Path(config_path)
+            rabbit_mq_config_filepath = config_path / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
+            mq_router_config_filepath = config_path / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
+            connection_manager_config_filepath = config_path / \
                                                  CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME
-            grpc_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.GRPC_CONFIG_FILENAME
-            grpc_router_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
-            cradle_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.CRADLE_CONFIG_FILENAME
-            prometheus_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.PROMETHEUS_CONFIG_FILENAME
-            custom_config_filepath = self.CONFIG_DEFAULT_PATH / CommonFactory.CUSTOM_CONFIG_FILENAME
+            grpc_config_filepath = config_path / CommonFactory.GRPC_CONFIG_FILENAME
+            grpc_router_config_filepath = config_path / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
+            cradle_config_filepath = config_path / CommonFactory.CRADLE_CONFIG_FILENAME
+            prometheus_config_filepath = config_path / CommonFactory.PROMETHEUS_CONFIG_FILENAME
+            custom_config_filepath = config_path / CommonFactory.CUSTOM_CONFIG_FILENAME
 
         self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
         self.mq_router_config_filepath = Path(mq_router_config_filepath)
@@ -96,7 +97,8 @@ class CommonFactory(AbstractCommonFactory):
         self.custom_config_filepath = Path(custom_config_filepath)
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
-                         message_group_batch_router_class, event_batch_router_class, grpc_router_class)
+                         message_group_batch_router_class, event_batch_router_class, grpc_router_class,
+                         logging_config_filepath)
 
     @staticmethod
     def calculate_path(parsed_args, name_attr, path_default) -> Path:
@@ -108,6 +110,8 @@ class CommonFactory(AbstractCommonFactory):
             args = sys.argv[1:]
 
         parser = argparse.ArgumentParser()
+        parser.add_argument('--configPath',
+                            help='path to directory with config files')
         parser.add_argument('--rabbitConfiguration',
                             help='path to json file with RabbitMQ configuration')
         parser.add_argument('--messageRouterConfiguration',
@@ -122,24 +126,26 @@ class CommonFactory(AbstractCommonFactory):
                             help='path to json file with configuration for cradle')
         parser.add_argument('--prometheusConfiguration',
                             help='path to json file with configuration for prometheus metrics server')
+        parser.add_argument('--customConfiguration',
+                            help='path to json file with custom configuration')
+        parser.add_argument('--loggingConfiguration',
+                            help='path to logging configuration file')
         parser.add_argument('--namespace',
                             help='namespace in Kubernetes to find config maps related to the target')
         parser.add_argument('--boxName',
                             help='name of the target th2 box placed in the specified namespace in Kubernetes')
         parser.add_argument('--contextName',
                             help='context name to choose the context from Kube config')
-        parser.add_argument('--customConfiguration',
-                            help='path to json file with custom configuration')
         result = parser.parse_args(args)
 
-        if hasattr(result, 'namespace') and hasattr(result, 'boxName'):
-            if hasattr(result, 'contextName'):
+        if 'namespace' in result and 'boxName' in result:
+            if 'contextName' in result:
                 return CommonFactory.create_from_kubernetes(result.namespace, result.boxName, result.contextName)
             else:
                 return CommonFactory.create_from_kubernetes(result.namespace, result.boxName)
-
+        elif 'configPath' in result:
+            return CommonFactory(config_path=result.configPath)
         else:
-
             return CommonFactory(
                 rabbit_mq_config_filepath=CommonFactory.calculate_path(result, 'rabbitConfiguration',
                                                                        CommonFactory.RABBIT_MQ_CONFIG_FILENAME),
@@ -158,7 +164,8 @@ class CommonFactory(AbstractCommonFactory):
                 prometheus_config_filepath=CommonFactory.calculate_path(result, 'prometheusConfiguration',
                                                                         CommonFactory.PROMETHEUS_CONFIG_FILENAME),
                 custom_config_filepath=CommonFactory.calculate_path(result, 'customConfiguration',
-                                                                    CommonFactory.CUSTOM_CONFIG_FILENAME)
+                                                                    CommonFactory.CUSTOM_CONFIG_FILENAME),
+                logging_config_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf')
             )
 
     @staticmethod
