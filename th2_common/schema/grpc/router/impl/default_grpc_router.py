@@ -40,19 +40,18 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
-        def __init__(self, service, strategy_obj, stub_class, channels, retry_policy: GrpcRetryPolicy):
+        def __init__(self, service, strategy_obj, stub_class, channels, options):
             self.service = service
             self.strategy_obj = strategy_obj
             self.stubClass = stub_class
             self.channels = channels
-            self.retry_policy = retry_policy
+            self.options = options
             self.stubs = {}
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
             socket = f"{config['host']}:{config['port']}"
-            options = [("grpc.enable_retries", 1), ("grpc.service_config", self.retry_policy.json_config)]
             if socket not in self.channels:
-                self.channels[socket] = grpc.insecure_channel(socket, options=options)
+                self.channels[socket] = grpc.insecure_channel(socket, options=self.options)
 
             if endpoint_name not in self.stubs:
                 self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
@@ -81,7 +80,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         if strategy_class is None:
             return None
         strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.retry_policy)
+        return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.retry_policy.options)
 
     def __load_strategies(self):
         package_dir = str(Path(route.__file__).resolve().parent)

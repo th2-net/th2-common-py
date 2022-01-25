@@ -99,7 +99,7 @@ class GrpcRetryPolicy:
         self.services = services  # List of dictionaries with keys 'service' and 'method', to which policy will apply. Empty one means it will apply to every one.
 
     @property
-    def json_config(self):
+    def options(self):
         if self.services is None:
             self.services = [{}]
         if self.status_codes is None:
@@ -116,4 +116,4 @@ class GrpcRetryPolicy:
                 },
             }]
         }
-        return json.dumps(service_config_json)
+        return [("grpc.enable_retries", 1), ("grpc.service_config", json.dumps(service_config_json))]
