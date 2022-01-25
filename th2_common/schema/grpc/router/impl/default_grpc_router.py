@@ -20,7 +20,8 @@ from pkgutil import iter_modules
 import grpc
 
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
-from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration, \
+    GrpcRetryPolicy
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
 import th2_common.schema.strategy.route.impl as route
 
@@ -30,6 +31,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
     def __init__(self, grpc_configuration: GrpcConfiguration,
                  grpc_router_configuration: GrpcRouterConfiguration) -> None:
         super().__init__(grpc_configuration, grpc_router_configuration)
+        self.retry_policy = GrpcRetryPolicy()
         self.strategies = dict()
         self.__load_strategies()
 
@@ -38,17 +40,19 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
-        def __init__(self, service, strategy_obj, stub_class, channels):
+        def __init__(self, service, strategy_obj, stub_class, channels, retry_policy: GrpcRetryPolicy):
             self.service = service
             self.strategy_obj = strategy_obj
             self.stubClass = stub_class
             self.channels = channels
+            self.retry_policy = retry_policy
             self.stubs = {}
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
             socket = f"{config['host']}:{config['port']}"
+            options = [("grpc.enable_retries", 1), ("grpc.service_config", self.retry_policy.json_config)]
             if socket not in self.channels:
-                self.channels[socket] = grpc.insecure_channel(socket)
+                self.channels[socket] = grpc.insecure_channel(socket, options=options)
 
             if endpoint_name not in self.stubs:
                 self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
@@ -77,7 +81,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         if strategy_class is None:
             return None
         strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class, self.channels)
+        return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.retry_policy)
 
     def __load_strategies(self):
         package_dir = str(Path(route.__file__).resolve().parent)
@@ -87,7 +91,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             for name in dir(module):
                 if not name.startswith('__'):
                     attr = getattr(module, name)
-                    if dir(attr).__contains__('get_endpoint'):
+                    if 'get_endpoint' in dir(attr):
                         self.strategies[name.lower()] = attr
 
         self.strategies.pop('routingstrategy', None)

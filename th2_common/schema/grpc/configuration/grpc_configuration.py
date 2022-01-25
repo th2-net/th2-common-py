@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import json
 
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
@@ -85,3 +86,34 @@ class GrpcRouterConfiguration(AbstractConfiguration):
     def __init__(self, workers=5, **kwargs):
         self.workers = int(workers)
         self.check_unexpected_args(kwargs)
+
+
+class GrpcRetryPolicy:
+
+    def __init__(self, max_attempts=5, initial_backoff=0.1, max_backoff=1., backoff_multiplier=2, status_codes=None, services=None):
+        self.max_attempts = max_attempts
+        self.initial_backoff = initial_backoff  # Duration in seconds before first retry
+        self.max_backoff = max_backoff
+        self.backoff_multiplier = backoff_multiplier  # Every consequent backoff time will be multiplied by this
+        self.status_codes = status_codes  # List of status code strings on which retry will be attempted
+        self.services = services  # List of dictionaries with keys 'service' and 'method', to which policy will apply. Empty one means it will apply to every one.
+
+    @property
+    def json_config(self):
+        if self.services is None:
+            self.services = [{}]
+        if self.status_codes is None:
+            self.status_codes = ["UNAVAILABLE"]
+        service_config_json = {
+            'methodConfig': [{
+                'name': self.services,
+                'retryPolicy': {
+                    'maxAttempts': self.max_attempts,
+                    'initialBackoff': str(self.initial_backoff) + 's',
+                    'maxBackoff': str(self.max_backoff) + 's',
+                    'backoffMultiplier': self.backoff_multiplier,
+                    'retryableStatusCodes': self.status_codes,
+                },
+            }]
+        }
+        return json.dumps(service_config_json)
