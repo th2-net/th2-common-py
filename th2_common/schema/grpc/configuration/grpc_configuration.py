@@ -91,15 +91,27 @@ class GrpcRouterConfiguration(AbstractConfiguration):
 class GrpcRetryPolicy:
 
     def __init__(self, max_attempts=5, initial_backoff=0.1, max_backoff=1., backoff_multiplier=2, status_codes=None, services=None):
+        """
+        Initializes retry policy for later usage of 'options' parameter.
+
+        Arguments:
+            max_attempts - maximum number of retries (defaults to 5)
+            initial_backoff - delay before the first retry in seconds (defaults to 0.1)
+            max_backoff - maximum delay before the retry (defaults to 1.)
+            backoff_multiplier - multiplier by which every subsequent delay is changed (defaults to 2)
+            status_codes - list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
+            services - list of dictionaries with keys 'service' and 'method', indicating where policy is applicable. (defaults to every)
+        """
         self.max_attempts = max_attempts
-        self.initial_backoff = initial_backoff  # Duration in seconds before first retry
+        self.initial_backoff = initial_backoff
         self.max_backoff = max_backoff
-        self.backoff_multiplier = backoff_multiplier  # Every consequent backoff time will be multiplied by this
-        self.status_codes = status_codes  # List of status code strings on which retry will be attempted
-        self.services = services  # List of dictionaries with keys 'service' and 'method', to which policy will apply. Empty one means it will apply to every one.
+        self.backoff_multiplier = backoff_multiplier
+        self.status_codes = status_codes
+        self.services = services
 
     @property
     def options(self):
+        """Returns the retry options for the channel constructor."""
         if self.services is None:
             self.services = [{}]
         if self.status_codes is None:
