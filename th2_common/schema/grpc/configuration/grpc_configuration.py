@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 import json
 
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
@@ -94,13 +95,12 @@ class GrpcRetryPolicy:
         """
         Initializes retry policy for later usage of 'options' parameter.
 
-        Arguments:
-            max_attempts - maximum number of retries (defaults to 5)
-            initial_backoff - delay before the first retry in seconds (defaults to 0.1)
-            max_backoff - maximum delay before the retry (defaults to 1.)
-            backoff_multiplier - multiplier by which every subsequent delay is changed (defaults to 2)
-            status_codes - list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
-            services - list of dictionaries with keys 'service' and 'method', indicating where policy is applicable. (defaults to every)
+        :param int max_attempts: maximum number of retries (defaults to 5)
+        :param float initial_backoff: delay before the first retry in seconds (defaults to 0.1)
+        :param float max_backoff: maximum delay before the retry (defaults to 1.)
+        :param int backoff_multiplier: multiplier by which every subsequent delay is changed (defaults to 2)
+        :param list status_codes: list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
+        :param list services: list of dictionaries with keys 'service' and 'method', indicating where policy is applicable (defaults to every)
         """
         self.max_attempts = max_attempts
         self.initial_backoff = initial_backoff
