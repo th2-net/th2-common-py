@@ -121,8 +121,8 @@ class GrpcRetryPolicy:
                 'name': self.services,
                 'retryPolicy': {
                     'maxAttempts': self.max_attempts,
-                    'initialBackoff': str(self.initial_backoff) + 's',
-                    'maxBackoff': str(self.max_backoff) + 's',
+                    'initialBackoff': f'{self.initial_backoff}s',
+                    'maxBackoff': f'{self.max_backoff}s',
                     'backoffMultiplier': self.backoff_multiplier,
                     'retryableStatusCodes': self.status_codes,
                 },
