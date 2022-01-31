@@ -45,4 +45,6 @@ class RabbitMessageGroupBatchRouterAdapter(RabbitMessageGroupBatchRouter, ABC):
         pass
 
     def get_converter(self, callback: MessageListener):
-        return type('MessageListenerConverter', (callback.__class__, ), {'handler': lambda attributes, message: callback.handler(attributes, self.from_group_batch(message))})
+        old_handler = callback.handler
+        callback.handler = lambda attributes, message: old_handler(attributes, self.from_group_batch(message))
+        return callback
