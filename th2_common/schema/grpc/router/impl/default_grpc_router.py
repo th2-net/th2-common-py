@@ -31,7 +31,6 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
     def __init__(self, grpc_configuration: GrpcConfiguration,
                  grpc_router_configuration: GrpcRouterConfiguration) -> None:
         super().__init__(grpc_configuration, grpc_router_configuration)
-        self.retry_policy = GrpcRetryPolicy()
         self.strategies = dict()
         self.__load_strategies()
 
@@ -80,7 +79,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         if strategy_class is None:
             return None
         strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.retry_policy.options)
+        return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.grpc_router_configuration.retry_policy.options)
 
     def __load_strategies(self):
         package_dir = str(Path(route.__file__).resolve().parent)

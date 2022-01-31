@@ -84,29 +84,32 @@ class GrpcRawFilterStrategy:
 
 class GrpcRouterConfiguration(AbstractConfiguration):
 
-    def __init__(self, workers=5, **kwargs):
+    def __init__(self, workers=5, retryPolicy=None, **kwargs):
+        if retryPolicy is None:
+            retryPolicy = dict()
         self.workers = int(workers)
+        self.retry_policy = GrpcRetryPolicy(**retryPolicy)
         self.check_unexpected_args(kwargs)
 
 
 class GrpcRetryPolicy:
 
-    def __init__(self, max_attempts=5, initial_backoff=0.1, max_backoff=1., backoff_multiplier=2, status_codes=None, services=None):
+    def __init__(self, maxAttemtps=5, initialBackoff=0.1, maxBackoff=1., backoffMultiplier=2, statusCodes=None, services=None):
         """
         Initializes retry policy for later usage of 'options' parameter.
 
-        :param int max_attempts: maximum number of retries (defaults to 5)
-        :param float initial_backoff: delay before the first retry in seconds (defaults to 0.1)
-        :param float max_backoff: maximum delay before the retry (defaults to 1.)
-        :param int backoff_multiplier: multiplier by which every subsequent delay is changed (defaults to 2)
-        :param list status_codes: list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
+        :param int maxAttemtps: maximum number of retries (defaults to 5)
+        :param float initialBackoff: delay before the first retry in seconds (defaults to 0.1)
+        :param float maxBackoff: maximum delay before the retry (defaults to 1.)
+        :param int backoffMultiplier: multiplier by which every subsequent delay is changed (defaults to 2)
+        :param list statusCodes: list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
         :param list services: list of dictionaries with keys 'service' and 'method', indicating where policy is applicable (defaults to every)
         """
-        self.max_attempts = max_attempts
-        self.initial_backoff = initial_backoff
-        self.max_backoff = max_backoff
-        self.backoff_multiplier = backoff_multiplier
-        self.status_codes = status_codes
+        self.max_attempts = maxAttemtps
+        self.initial_backoff = initialBackoff
+        self.max_backoff = maxBackoff
+        self.backoff_multiplier = backoffMultiplier
+        self.status_codes = statusCodes
         self.services = services
 
     @property
