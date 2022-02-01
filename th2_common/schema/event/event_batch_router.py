@@ -25,8 +25,17 @@ from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 
+DEFAULT_SCOPE_NAME = 'th2-scope'
+
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
+
+    @staticmethod
+    def check_scope(message):
+        for event in message.events:
+            if not event.id.scope:
+                event.id.scope = DEFAULT_SCOPE_NAME
+        return message
 
     def check_book_name(self, message):
         for event in message.events:
@@ -41,10 +50,10 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
         return message
 
     def send(self, message, *queue_attr):
-        super().send(self.check_book_name(message), *queue_attr)
+        super().send(self.check_book_name(self.check_scope(message)), *queue_attr)
 
     def send_all(self, message, *queue_attr):
-        super().send_all(self.check_book_name(message), *queue_attr)
+        super().send_all(self.check_book_name(self.check_scope(message)), *queue_attr)
 
     def _get_messages(self, batch) -> list:
         return batch.events
