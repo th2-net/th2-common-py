@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import json
+
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
 from typing import List
@@ -82,6 +84,51 @@ class GrpcRawFilterStrategy:
 
 class GrpcRouterConfiguration(AbstractConfiguration):
 
-    def __init__(self, workers=5, **kwargs):
+    def __init__(self, workers=5, retryPolicy=None, **kwargs):
+        if retryPolicy is None:
+            retryPolicy = dict()
         self.workers = int(workers)
+        self.retry_policy = GrpcRetryPolicy(**retryPolicy)
         self.check_unexpected_args(kwargs)
+
+
+class GrpcRetryPolicy:
+
+    def __init__(self, maxAttemtps=5, initialBackoff=0.1, maxBackoff=1., backoffMultiplier=2, statusCodes=None, services=None):
+        """
+        Initializes retry policy for later usage of 'options' parameter.
+
+        :param int maxAttemtps: maximum number of retries (defaults to 5)
+        :param float initialBackoff: delay before the first retry in seconds (defaults to 0.1)
+        :param float maxBackoff: maximum delay before the retry (defaults to 1.)
+        :param int backoffMultiplier: multiplier by which every subsequent delay is changed (defaults to 2)
+        :param list statusCodes: list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
+        :param list services: list of dictionaries with keys 'service' and 'method', indicating where policy is applicable (defaults to every)
+        """
+        self.max_attempts = maxAttemtps
+        self.initial_backoff = initialBackoff
+        self.max_backoff = maxBackoff
+        self.backoff_multiplier = backoffMultiplier
+        self.status_codes = statusCodes
+        self.services = services
+
+    @property
+    def options(self):
+        """Returns the retry options for the channel constructor."""
+        if self.services is None:
+            self.services = [{}]
+        if self.status_codes is None:
+            self.status_codes = ["UNAVAILABLE"]
+        service_config_json = {
+            'methodConfig': [{
+                'name': self.services,
+                'retryPolicy': {
+                    'maxAttempts': self.max_attempts,
+                    'initialBackoff': f'{self.initial_backoff}s',
+                    'maxBackoff': f'{self.max_backoff}s',
+                    'backoffMultiplier': self.backoff_multiplier,
+                    'retryableStatusCodes': self.status_codes,
+                },
+            }]
+        }
+        return [("grpc.enable_retries", 1), ("grpc.service_config", json.dumps(service_config_json))]

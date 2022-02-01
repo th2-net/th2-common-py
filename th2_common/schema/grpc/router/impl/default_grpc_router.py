@@ -20,7 +20,8 @@ from pkgutil import iter_modules
 import grpc
 
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
-from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration, \
+    GrpcRetryPolicy
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
 import th2_common.schema.strategy.route.impl as route
 
@@ -38,17 +39,18 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
-        def __init__(self, service, strategy_obj, stub_class, channels):
+        def __init__(self, service, strategy_obj, stub_class, channels, options):
             self.service = service
             self.strategy_obj = strategy_obj
             self.stubClass = stub_class
             self.channels = channels
+            self.options = options
             self.stubs = {}
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
             socket = f"{config['host']}:{config['port']}"
             if socket not in self.channels:
-                self.channels[socket] = grpc.insecure_channel(socket)
+                self.channels[socket] = grpc.insecure_channel(socket, options=self.options)
 
             if endpoint_name not in self.stubs:
                 self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
@@ -77,7 +79,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         if strategy_class is None:
             return None
         strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class, self.channels)
+        return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.grpc_router_configuration.retry_policy.options)
 
     def __load_strategies(self):
         package_dir = str(Path(route.__file__).resolve().parent)
@@ -87,7 +89,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             for name in dir(module):
                 if not name.startswith('__'):
                     attr = getattr(module, name)
-                    if dir(attr).__contains__('get_endpoint'):
+                    if 'get_endpoint' in dir(attr):
                         self.strategies[name.lower()] = attr
 
         self.strategies.pop('routingstrategy', None)
