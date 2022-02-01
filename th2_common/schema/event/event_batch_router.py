@@ -30,14 +30,7 @@ DEFAULT_SCOPE_NAME = 'th2-scope'
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
 
-    @staticmethod
-    def check_scope(message):
-        for event in message.events:
-            if not event.id.scope:
-                event.id.scope = DEFAULT_SCOPE_NAME
-        return message
-
-    def check_book_name(self, message):
+    def check_validity(self, message):
         for event in message.events:
             book = event.id.book_name
             if not book:
@@ -47,13 +40,15 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
                 event.id.book_name = book
             if any(message_id.book_name != book for message_id in event.attached_message_ids):
                 raise Exception('MessageID attached to event has different book name')
+            if not event.id.scope:
+                event.id.scope = DEFAULT_SCOPE_NAME
         return message
 
     def send(self, message, *queue_attr):
-        super().send(self.check_book_name(self.check_scope(message)), *queue_attr)
+        super().send(self.check_validity(message), *queue_attr)
 
     def send_all(self, message, *queue_attr):
-        super().send_all(self.check_book_name(self.check_scope(message)), *queue_attr)
+        super().send_all(self.check_validity(message), *queue_attr)
 
     def _get_messages(self, batch) -> list:
         return batch.events
