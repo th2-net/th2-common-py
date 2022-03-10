@@ -12,22 +12,24 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import functools
+
 import logging
 import time
 from abc import ABC, abstractmethod
 from threading import Lock
 
+import aio_pika
 from google.protobuf.message import DecodeError
 from prometheus_client import Histogram, Counter
 
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer
+from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 import th2_common.schema.metrics.common_metrics as common_metrics
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
         self.listeners = set()
         self.__lock_listeners = Lock()
 
-        self.__consumer: ReconnectingConsumer = connection_manager.consumer
+        self.__consumer: Consumer = connection_manager.consumer
         self.__consumer_tag = None
         self.__closed = True
 
@@ -72,12 +74,12 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         self.__metrics.enable()
 
-    def handle(self, channel, method, properties, body):
+    async def handle(self, message: aio_pika.IncomingMessage):
         start_time = time.time()
         labels = self.th2_pin, self._th2_type, self.__subscribe_target.get_queue()
         try:
-            value = self.value_from_bytes(body)
-            self.INCOMING_MESSAGE_SIZE.labels(*labels).inc(len(body))
+            value = self.value_from_bytes(message.body)
+            self.INCOMING_MESSAGE_SIZE.labels(*labels).inc(len(message.body))
             if value is None:
                 raise ValueError('Received value is null')
             self.update_total_metrics(value)
@@ -90,29 +92,23 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                 self.update_dropped_metrics(value)
                 return
 
-            self.handle_with_listener(value, channel, method)
+            self.handle_with_listener(value)
 
         except DecodeError as e:
             logger.exception(
-                f'Can not parse value from delivery for: {method.consumer_tag} due to DecodeError: {e}\n'
-                f'  body: {body}\n'
+                f'Can not parse value from delivery for: {message.consumer_tag} due to DecodeError: {e}\n'
+                f'  body: {message.body}\n'
                 f'  self: {self}\n')
             return
         except Exception as e:
-            logger.error(f'Can not parse value from delivery for: {method.consumer_tag}', e)
+            logger.error(f'Can not parse value from delivery for: {message.consumer_tag}', e)
             return
         finally:
             self.HANDLING_DURATION.labels(*labels).observe(time.time()-start_time)
-            cb = functools.partial(self.ack_message, channel, method.delivery_tag)
-            self.__consumer.add_callback_threadsafe(cb)
 
-    def ack_message(self, channel, delivery_tag):
-        if channel.is_open:
-            channel.basic_ack(delivery_tag)
-        else:
-            logger.error('Message acknowledgment failed due to the channel being closed')
+            await message.ack()
 
-    def handle_with_listener(self, value, channel, method):
+    def handle_with_listener(self, value):
         with self.__lock_listeners:
             for listener in self.listeners:
                 try:

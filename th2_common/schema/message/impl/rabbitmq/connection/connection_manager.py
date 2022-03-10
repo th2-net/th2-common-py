@@ -12,16 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
-import threading
 
-import pika
+import logging
+import asyncio
+from threading import Thread
+
+import uvloop
+import aiormq
+
 from google.protobuf.pyext._message import SetAllowOversizeProtos
 
 from th2_common.schema.message.configuration.message_configuration import ConnectionManagerConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
-from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer
-from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
+from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
+from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.metrics.common_metrics import HealthMetrics
 
 
@@ -29,37 +33,72 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
+    """Initializes RabbitMQ Publisher and Consumer.
+
+        Channel and connection are created for publisher and consumer during initialization.
+
+    :param :class: `RabbitMQConfiguration` configuration: Used as connection parameters to connect with RabbitMQ
+    :param :class: `ConnectionManagerConfiguration` connection_manager_configuration: Used to save configuration
+    parameters for Consumer
+    """
 
     def __init__(self, configuration: RabbitMQConfiguration,
                  connection_manager_configuration: ConnectionManagerConfiguration) -> None:
-        self.__credentials = pika.PlainCredentials(configuration.username,
-                                                   configuration.password)
-        self.__connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vhost,
-                                                                 host=configuration.host,
-                                                                 port=configuration.port,
-                                                                 credentials=self.__credentials)
 
         SetAllowOversizeProtos(connection_manager_configuration.message_recursion_limit > 100)
 
         self.__metrics = HealthMetrics(self)
 
-        self.consumer = ReconnectingConsumer(configuration,
-                                             connection_manager_configuration,
-                                             self.__connection_parameters)
-        threading.Thread(target=self.consumer.run).start()
+        self.connection_parameters = {
+            'host': configuration.host,
+            'port': configuration.port,
+            'login': configuration.username,
+            'password': configuration.password,
+            'virtualhost': configuration.vhost
+        }
 
-        self.publisher = ReconnectingPublisher(self.__connection_parameters)
-        threading.Thread(target=self.publisher.run).start()
+        self.consumer = Consumer(connection_manager_configuration,
+                                 self.connection_parameters)
+        self.publisher = Publisher(self.connection_parameters)
+
+        self._loop = uvloop.new_event_loop()
+        self.publisher_consumer_thread = Thread(target=self._start_background_loop, args=(self._loop,))
+        self.publisher_consumer_thread.start()
+
+        self.consumer_future = asyncio.run_coroutine_threadsafe(self.consumer.connect(), self._loop)
+        self.consumer_future.result()
+
+        self.publisher_future = asyncio.run_coroutine_threadsafe(self.publisher.connect(), self._loop)
+        self.publisher_future.result()
 
         self.__metrics.enable()
 
+    def _start_background_loop(self, loop):
+        """Set and run event loop in the thread forever"""
+
+        asyncio.set_event_loop(loop)
+        loop.set_exception_handler(self._handle_exception)
+        loop.run_forever()
+
+    def _handle_exception(self, loop, context):
+        if isinstance(context.get('exception'), (ConnectionResetError, aiormq.exceptions.ConnectionClosed)):
+            logger.info(f"Exception was raised due to rabbitMQ connection issues: {context['exception']}. "
+                        f"Some messages might not be sent as expected.")
+
     def close(self):
+        """Closing consumer's and publisher's channel and connection."""
+
         try:
-            self.consumer.stop()
-        except Exception:
-            logger.exception("Error while stopping Consumer")
+            logger.info('Closing Consumer')
+            stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
+            stopping_consumer.result()
+        except Exception as exc:
+            logger.exception(f'Error while stopping Consumer: {exc}')
         try:
-            self.publisher.stop()
-        except Exception:
-            logger.exception("Error while stopping Publisher")
-        self.__metrics.disable()
+            logger.info('Closing Publisher')
+            stopping_publisher = asyncio.run_coroutine_threadsafe(self.publisher.stop(), self._loop)
+            stopping_publisher.result()
+        except Exception as exc:
+            logger.exception(f'Error while stopping Publisher: {exc}')
+
+        self._loop.call_soon_threadsafe(self._loop.stop)

@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from prometheus_client import Counter
 
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
+from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.message.message_sender import MessageSender
 import th2_common.schema.metrics.common_metrics as common_metrics
 
@@ -37,7 +37,7 @@ class AbstractRabbitSender(MessageSender, ABC):
     _TH2_TYPE = 'unknown'
 
     def __init__(self, connection_manager: ConnectionManager, exchange_name: str, send_queue: str, th2_pin='') -> None:
-        self.__publisher: ReconnectingPublisher = connection_manager.publisher
+        self.__publisher: Publisher = connection_manager.publisher
         self.__exchange_name: str = exchange_name
         self.__send_queue: str = send_queue
         self.__closed = True
