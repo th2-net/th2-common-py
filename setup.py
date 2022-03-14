@@ -43,5 +43,5 @@ setup(
         'prometheus_client==0.11.0'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
-    package_data={'': ['package_info.json'], 'th2_common.schema.log': ['config.conf']}
+    package_data={'': ['package_info.json'], 'th2_common.schema.log': ['log4py.conf']}
 )

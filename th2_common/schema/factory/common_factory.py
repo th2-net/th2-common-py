@@ -86,8 +86,7 @@ class CommonFactory(AbstractCommonFactory):
             cradle_config_filepath = config_path / CommonFactory.CRADLE_CONFIG_FILENAME
             prometheus_config_filepath = config_path / CommonFactory.PROMETHEUS_CONFIG_FILENAME
             custom_config_filepath = config_path / CommonFactory.CUSTOM_CONFIG_FILENAME
-            if logging_config_filepath is not None:
-                logging_config_filepath = config_path / logging_config_filepath
+            logging_config_filepath = config_path / AbstractCommonFactory.LOGGING_CONFIG_FILENAME
 
         self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
         self.mq_router_config_filepath = Path(mq_router_config_filepath)
