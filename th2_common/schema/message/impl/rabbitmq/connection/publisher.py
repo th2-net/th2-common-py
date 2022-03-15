@@ -17,7 +17,7 @@ import asyncio
 import logging
 import time
 import functools
-from typing import List, Tuple
+from typing import List, Union, Optional, Dict
 
 import aio_pika
 import pamqp
@@ -35,39 +35,61 @@ class Publisher:
     """
 
     DELAY_FOR_RECONNECTION = 5
+    PUBLISHING_COROUTINE_NAME = 'publish'
+
+    class FailedMessage:
+        def __init__(self, exchange_name: str, routing_key: str, message: bytes, order: int):
+            self.exchange_name: str = exchange_name
+            self.routing_key: str = routing_key
+            self.message: bytes = message
+            self.order: int = order
 
     def __init__(self, connection_parameters: dict) -> None:
-        self._connection_parameters: dict = connection_parameters
-        self._connection: aio_pika.robust_connection.RobustConnection = None
-        self._channel: aio_pika.robust_channel.RobustChannel = None
-        self._exchange: aio_pika.robust_exchange.RobustExchange = None
-        self._exchange_dict: dict = dict()
+        self._connection_parameters: Dict[str, Union[str, int]] = connection_parameters
+        self._connection: Optional[aio_pika.robust_connection.RobustConnection] = None
+        self._channel: Optional[aio_pika.robust_channel.RobustChannel] = None
+        self._exchange: Optional[aio_pika.robust_exchange.RobustExchange] = None
+        self._exchange_dict: Dict[str, aio_pika.robust_exchange.RobustExchange] = {}
         self._asyncio_event: asyncio.Event = asyncio.Event()
-        self._not_sent: List[Tuple[str, str, bytes, int]] = []
-        self._coro_name: int = 0
-        self._ack: int = 0
-        self._nack: int = 0
+        self._not_sent: List[Publisher.FailedMessage] = []
+        self._connection_exceptions: List[Exception] = []
+        self._task_id: int = 0
+        self._message_ack: int = 0
+        self._message_nack: int = 0
 
     async def connect(self):
         """Coroutine that creates connection and channel for publisher"""
+
         loop = asyncio.get_event_loop()
 
         while not self._connection:
             try:
                 self._connection = await aio_pika.connect_robust(loop=loop, **self._connection_parameters)
-                logger.info("Publisher's connection has been opened")
-            except Exception as err:
-                logger.error(f'Error occurred while connecting {err}')
+            except Exception as exc:
+                logger.error(f'Exception was raised while connecting Publisher: {exc}')
                 time.sleep(Publisher.DELAY_FOR_RECONNECTION)
+        logger.info("Connection for Publisher has been created")
 
         while not self._channel:
             try:
                 self._channel = await self._connection.channel()
-                logger.info(f"Publisher's channel has been created")
             except Exception as exc:
-                logger.error(f"Error occurred while creating Publisher's channel {exc}")
+                logger.error(f"Exception was raised while creating channel for Publisher {exc}")
+                time.sleep(Publisher.DELAY_FOR_RECONNECTION)
+        logger.info("Channel for Publisher has been created")
 
         self._asyncio_event.set()
+
+    def _wait_for_reconnection(self):
+        """Main thread waits until connection is restored"""
+
+        while not self._asyncio_event.is_set():
+            logger.info('Delaying for reconnection')
+            time.sleep(Publisher.DELAY_FOR_RECONNECTION)
+
+            if self._connection.connected.is_set():
+                self._asyncio_event.set()
+                self._not_sent = sorted(self._not_sent, key=lambda failed_message: failed_message.order, reverse=True)
 
     def publish_message(self,
                         exchange_name: str,
@@ -80,16 +102,12 @@ class Publisher:
         :param bytes message: Message in bytes
         """
 
-        while not self._asyncio_event.is_set():
-            logger.info("Delaying for reconnection")
-            time.sleep(Publisher.DELAY_FOR_RECONNECTION)
+        if not self._asyncio_event.is_set():
+            self._wait_for_reconnection()
 
-            if self._connection.connected.is_set():
-                self._asyncio_event.set()
-                self._not_sent.sort(key=lambda tup: tup[-1], reverse=True)
-
-        if self._not_sent:
-            self._republish_message()
+            while self._not_sent:
+                asyncio.run_coroutine_threadsafe(self._publish_message(**self._get_failed_message_parameters()),
+                                                 self._connection.loop)
 
         exchange = self._get_exchange(exchange_name)
 
@@ -97,72 +115,90 @@ class Publisher:
                                          self._connection.loop)
 
     def _get_exchange(self, exchange_name: str) -> aio_pika.robust_exchange.RobustExchange:
+        """Returns an exchange object"""
 
         exchange = self._exchange_dict.get(exchange_name)
 
-        async def get_exchange_coro(name: str) -> aio_pika.robust_exchange.RobustExchange:
-            return await self._channel.get_exchange(name=name)
-
         while not exchange:
+            async def get_exchange_coroutine(name: str) -> aio_pika.robust_exchange.RobustExchange:
+                """Coroutine for getting exchange"""
+
+                return await self._channel.get_exchange(name=name)
+
             try:
-                exchange_future = asyncio.run_coroutine_threadsafe(get_exchange_coro(exchange_name),
+                exchange_future = asyncio.run_coroutine_threadsafe(get_exchange_coroutine(exchange_name),
                                                                    self._connection.loop)
                 exchange = exchange_future.result()
                 self._exchange_dict[exchange_name] = exchange
-                break
-            except Exception as exp:
-                logger.error(exp)
+            except Exception as exc:
+                logger.error(f'Exception was raised while getting exchange: {exc}')
 
         return exchange
 
     async def _publish_message(self, exchange, routing_key, message) -> None:
         """Coroutine for publishing messages"""
+
         message = Message(message, delivery_mode=DeliveryMode.PERSISTENT)
 
         publish = asyncio.create_task(exchange.publish(message=message, routing_key=routing_key),
-                                      name=f"{self._coro_ordering()}")
+                                      name=f'{self._task_ordering()}')
 
         publish.add_done_callback(functools.partial(self._done_callback, exchange, routing_key, message))
 
-    def _republish_message(self) -> None:
-        while self._not_sent:
-            failed_message = self._not_sent.pop()
-            exchange, routing_key, message = self._get_exchange(failed_message[0]), failed_message[1], failed_message[2]
+    def _task_ordering(self) -> int:
+        """Updates id of the task"""
 
-            asyncio.run_coroutine_threadsafe(self._publish_message(exchange, routing_key, message),
-                                             self._connection.loop)
-
-    def _coro_ordering(self) -> int:
-        self._coro_name += 1
-        return self._coro_name
+        self._task_id += 1
+        return self._task_id
 
     def _done_callback(self,
                        exchange: aio_pika.robust_exchange.RobustExchange,
                        routing_key: str,
                        message: Message, task: asyncio.Task) -> None:
+        """Callback that is run when asyncio.Task is done"""
+
         try:
             task_done_result = task.result()
             if isinstance(task_done_result, pamqp.specification.Basic.Ack):
-                self._ack += 1
+                self._message_ack += 1
             elif isinstance(task_done_result, (pamqp.specification.Basic.Nack, pamqp.specification.Basic.Reject)):
-                self._nack += 1
-        except aio_pika.exceptions.CONNECTION_EXCEPTIONS as ex:
+                self._message_nack += 1
+        except aio_pika.exceptions.CONNECTION_EXCEPTIONS as exc:
             self._asyncio_event.clear()
-            self._not_sent.append((exchange.name, routing_key, message.body, int(task.get_name())))
+            if exc.__class__.__name__ not in self._connection_exceptions:
+                logger.error(f"Connection issue: {exc}. "
+                             f"DELIVERY OF ALL ALREADY SENT MESSAGES IS NOT GUARANTEED")
+                self._connection_exceptions.append(exc.__class__.__name__)
+            failed_message = self.FailedMessage(exchange.name, routing_key, message.body, int(task.get_name()))
+            self._not_sent.append(failed_message)
 
-    async def stop(self) -> set:
-        """Coroutine for closing publisher's connection and channel
+    def _get_failed_message_parameters(self):
+        """Returns details of the failed message"""
 
-        :return: All unfinished tasks
-        :rtype: set(asyncio.Task)
-        """
+        failed_message = self._not_sent.pop()
+        exchange = self._get_exchange(failed_message.exchange_name)
+        routing_key = failed_message.routing_key
+        message = failed_message.message
 
-        if self._not_sent:
-            self._republish_message()
+        return {"exchange": exchange, 'routing_key': routing_key, 'message': message}
 
-        publishing_tasks = [task for task in asyncio.all_tasks() if task.get_coro().__name__ == 'publish']
+    async def stop(self) -> None:
+        """Coroutine for closing publisher's connection and channel"""
+
+        while not self._asyncio_event.is_set():
+            await asyncio.sleep(0)
+
+            if self._connection.connected.is_set():
+                self._asyncio_event.set()
+                self._not_sent = sorted(self._not_sent, key=lambda failed_message: failed_message.order, reverse=True)
+
+                while self._not_sent:
+                    await self._publish_message(**self._get_failed_message_parameters())
+
+        publishing_tasks = [
+            task for task in asyncio.all_tasks() if task.get_coro().__name__ == Publisher.PUBLISHING_COROUTINE_NAME
+        ]
         await asyncio.wait_for(asyncio.gather(*publishing_tasks), timeout=None)
+
         await self._channel.close()
         await self._connection.close()
-
-        return asyncio.all_tasks()

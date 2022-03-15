@@ -16,9 +16,10 @@
 import logging
 import asyncio
 from threading import Thread
+from contextlib import suppress
 
 import uvloop
-import aiormq
+import aio_pika
 
 from google.protobuf.pyext._message import SetAllowOversizeProtos
 
@@ -81,15 +82,16 @@ class ConnectionManager:
         loop.run_forever()
 
     def _handle_exception(self, loop, context):
-        if isinstance(context.get('exception'), (ConnectionResetError, aiormq.exceptions.ConnectionClosed)):
-            logger.info(f"Exception was raised due to rabbitMQ connection issues: {context['exception']}. "
-                        f"Some messages might not be sent as expected.")
+        msg = context.get('exception', context['message'])
+        if isinstance(msg, aio_pika.exceptions.CONNECTION_EXCEPTIONS):
+            pass
+        elif msg:
+            logger.error(msg)
 
     def close(self):
         """Closing consumer's and publisher's channel and connection."""
 
         try:
-            logger.info('Closing Consumer')
             stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
             stopping_consumer.result()
         except Exception as exc:
@@ -101,4 +103,15 @@ class ConnectionManager:
         except Exception as exc:
             logger.exception(f'Error while stopping Publisher: {exc}')
 
-        self._loop.call_soon_threadsafe(self._loop.stop)
+        graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
+        graceful_shutdown.result()
+
+    async def _cancel_pending_tasks(self):
+        """Coroutine that ensures graceful shutdown of event loop"""
+
+        for task in asyncio.all_tasks():
+            if task is not asyncio.current_task():
+                task.cancel()
+                with suppress(asyncio.exceptions.CancelledError):
+                    await task
+        self._loop.stop()
