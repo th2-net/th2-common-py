@@ -82,16 +82,16 @@ class ConnectionManager:
         loop.run_forever()
 
     def _handle_exception(self, loop, context):
-        msg = context.get('exception', context['message'])
-        if isinstance(msg, aio_pika.exceptions.CONNECTION_EXCEPTIONS):
+        if isinstance(context.get('exception'), aio_pika.exceptions.CONNECTION_EXCEPTIONS):
             pass
-        elif msg:
+        elif msg := context['message']:
             logger.error(msg)
 
     def close(self):
         """Closing consumer's and publisher's channel and connection."""
 
         try:
+            logger.info('Closing Consumer')
             stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
             stopping_consumer.result()
         except Exception as exc:
