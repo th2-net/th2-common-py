@@ -68,7 +68,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
 
         if self.__consumer_tag is None:
             queue = self.__subscribe_target.get_queue()
-            self.__consumer_tag = self.__consumer.add_subscriber(queue=queue,
+            self.__consumer_tag = self.__consumer.add_subscriber(queue_name=queue,
                                                                  on_message_callback=self.handle)
             self.__closed = False
 

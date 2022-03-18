@@ -63,7 +63,7 @@ class ConnectionManager:
         self.publisher = Publisher(self.connection_parameters)
 
         self._loop = uvloop.new_event_loop()
-        self.publisher_consumer_thread = Thread(target=self._start_background_loop, args=(self._loop,))
+        self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 
         self.consumer_future = asyncio.run_coroutine_threadsafe(self.consumer.connect(), self._loop)
@@ -74,39 +74,41 @@ class ConnectionManager:
 
         self.__metrics.enable()
 
-    def _start_background_loop(self, loop):
+    def _start_background_loop(self) -> None:
         """Set and run event loop in the thread forever"""
 
-        asyncio.set_event_loop(loop)
-        loop.set_exception_handler(self._handle_exception)
-        loop.run_forever()
+        asyncio.set_event_loop(self._loop)
+        self._loop.set_exception_handler(self._handle_exception)
+        self._loop.run_forever()
 
-    def _handle_exception(self, loop, context):
+    def _handle_exception(self, loop, context) -> None:
+        """Custom exception handling"""
+
         if isinstance(context.get('exception'), aio_pika.exceptions.CONNECTION_EXCEPTIONS):
             pass
-        elif msg := context['message']:
-            logger.error(msg)
+        elif context['message']:
+            logger.error(context['message'])
 
-    def close(self):
+    def close(self) -> None:
         """Closing consumer's and publisher's channel and connection."""
 
         try:
             logger.info('Closing Consumer')
             stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
             stopping_consumer.result()
-        except Exception as exc:
-            logger.exception(f'Error while stopping Consumer: {exc}')
+        except Exception as e:
+            logger.exception(f'Error while stopping Consumer: {e}')
         try:
             logger.info('Closing Publisher')
             stopping_publisher = asyncio.run_coroutine_threadsafe(self.publisher.stop(), self._loop)
             stopping_publisher.result()
-        except Exception as exc:
-            logger.exception(f'Error while stopping Publisher: {exc}')
+        except Exception as e:
+            logger.exception(f'Error while stopping Publisher: {e}')
 
         graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
         graceful_shutdown.result()
 
-    async def _cancel_pending_tasks(self):
+    async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
 
         for task in asyncio.all_tasks():

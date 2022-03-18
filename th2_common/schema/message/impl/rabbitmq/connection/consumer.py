@@ -19,8 +19,10 @@ import time
 from typing import Dict, Optional, Union, Callable, Any, Tuple
 
 import aio_pika
-from aio_pika.queue import Queue
+from aio_pika.robust_connection import RobustConnection
+from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_queue import RobustQueue
+from aio_pika.message import IncomingMessage
 from th2_common.schema.message.configuration.message_configuration import ConnectionManagerConfiguration
 
 
@@ -46,10 +48,10 @@ class Consumer:
 
         self._subscriber_name: str = connection_manager_configuration.subscriber_name
         self._prefetch_count: str = connection_manager_configuration.prefetch_count
-        self._subscribers: Dict[str, Tuple[Union[Queue, RobustQueue], Callable]] = dict()
+        self._subscribers: Dict[str, Tuple[RobustQueue, Callable]] = dict()
         self._connection_parameters: Dict[str, Union[str, int]] = connection_parameters
-        self._connection: Optional[aio_pika.robust_connection.RobustConnection] = None
-        self._channel: Optional[aio_pika.channel.Channel] = None
+        self._connection: Optional[RobustConnection] = None
+        self._channel: Optional[RobustChannel] = None
         self.__consumer_tag_id: int = -1
 
     async def connect(self) -> None:
@@ -59,8 +61,8 @@ class Consumer:
         while not self._connection:
             try:
                 self._connection = await aio_pika.connect_robust(loop=loop, **self._connection_parameters)
-            except Exception as exc:
-                logger.error(f"Exception was raised while connecting Consumer: {exc}")
+            except Exception as e:
+                logger.error(f"Exception was raised while connecting Consumer: {e}")
                 time.sleep(Consumer.DELAY_FOR_RECONNECTION)
         logger.info('Connection for Consumer has been created')
 
@@ -68,8 +70,8 @@ class Consumer:
             try:
                 self._channel = await self._connection.channel()
                 await self._channel.set_qos(prefetch_count=self._prefetch_count)
-            except Exception as exc:
-                logger.error(f"Exception was raised while creating channel for Consumer: {exc}")
+            except Exception as e:
+                logger.error(f"Exception was raised while creating channel for Consumer: {e}")
                 time.sleep(Consumer.DELAY_FOR_RECONNECTION)
         logger.info(f"Channel for Consumer has been created. QOS set to: {self._prefetch_count}")
 
@@ -79,12 +81,11 @@ class Consumer:
         self.__consumer_tag_id += 1
         return self.__consumer_tag_id
 
-    def add_subscriber(self, queue: str,
-                       on_message_callback: Callable[[aio_pika.message.IncomingMessage], Any]) -> str:
+    def add_subscriber(self, queue_name: str, on_message_callback: Callable[[IncomingMessage], Any]) -> str:
         """ Adding subscriber
 
-        :param str queue: Name of the queue from where messages will be consumed
-        :param :class: `Callable[[aio_pika.message.IncomingMessage], Any]` on_message_callback: Called for every
+        :param str queue_name: Name of the queue from where messages will be consumed
+        :param :class: `Callable[[IncomingMessage], Any]` on_message_callback: Called for every
         message consumed
 
         :return: consumer_tag
@@ -96,21 +97,22 @@ class Consumer:
             logger.info(f"Using default subscriber name: '{self._subscriber_name}'")
         consumer_tag = f'{self._subscriber_name}.{self.next_id()}.{datetime.datetime.now()}'
 
-        get_queue = asyncio.run_coroutine_threadsafe(self._get_queue_coroutine(queue),
-                                                     self._connection.loop)
-        queue_obj = get_queue.result()
-        self._subscribers[consumer_tag] = (queue_obj, on_message_callback)
+        queue = asyncio.run_coroutine_threadsafe(self._get_queue_coroutine(queue_name),
+                                                 self._connection.loop).result()
+
+        self._subscribers[consumer_tag] = (queue, on_message_callback)
 
         asyncio.run_coroutine_threadsafe(self._start_consuming(consumer_tag),
                                          self._connection.loop)
 
         return consumer_tag
 
-    async def _get_queue_coroutine(self, queue_name: str) -> Union[RobustQueue, Queue]:
+    async def _get_queue_coroutine(self, queue_name: str) -> RobustQueue:
+        """Coroutine that returns robust queue"""
+
         return await self._channel.get_queue(name=queue_name)
 
-    async def _start_consuming(self,
-                               consumer_tag: str) -> None:
+    async def _start_consuming(self, consumer_tag: str) -> None:
         """Coroutine for consuming messages from queue"""
 
         queue, callback = self._subscribers[consumer_tag]
@@ -134,7 +136,7 @@ class Consumer:
     async def stop(self) -> None:
         """Cancel consuming for every subscriber and close connection"""
 
-        for consumer_tag in self._subscribers.keys():
+        for consumer_tag in self._subscribers:
             await self._stop_consuming(consumer_tag)
 
         await self._connection.close()
