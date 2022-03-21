@@ -46,7 +46,7 @@ class CommonFactory(AbstractCommonFactory):
     PROMETHEUS_CONFIG_FILENAME = 'prometheus.json'
     CUSTOM_CONFIG_FILENAME = 'custom.json'
     DICTIONARY_FILENAME = 'dictionary.json'
-    BOX_FILE_NAME = 'box.json'
+    BOX_FILENAME = 'box.json'
 
     RABBITMQ_SECRET_NAME = 'rabbitmq'
     CASSANDRA_SECRET_NAME = 'cassandra'
@@ -86,6 +86,7 @@ class CommonFactory(AbstractCommonFactory):
             cradle_config_filepath = config_path / CommonFactory.CRADLE_CONFIG_FILENAME
             prometheus_config_filepath = config_path / CommonFactory.PROMETHEUS_CONFIG_FILENAME
             custom_config_filepath = config_path / CommonFactory.CUSTOM_CONFIG_FILENAME
+            logging_config_filepath = config_path / AbstractCommonFactory.LOGGING_CONFIG_FILENAME
 
         self.rabbit_mq_config_filepath = Path(rabbit_mq_config_filepath)
         self.mq_router_config_filepath = Path(mq_router_config_filepath)
@@ -189,7 +190,7 @@ class CommonFactory(AbstractCommonFactory):
         rabbit_path = config_dir / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
         dictionary_path = config_dir / CommonFactory.DICTIONARY_FILENAME
         prometheus_path = config_dir / CommonFactory.PROMETHEUS_CONFIG_FILENAME
-        box_configuration_path = config_dir / CommonFactory.BOX_FILE_NAME
+        box_configuration_path = config_dir / CommonFactory.BOX_FILENAME
 
         rabbit_mq_encoded_password = v1.read_namespaced_secret(CommonFactory.RABBITMQ_SECRET_NAME, namespace).data \
             .get(CommonFactory.RABBITMQ_PASSWORD_KEY)
@@ -233,7 +234,7 @@ class CommonFactory(AbstractCommonFactory):
         CommonFactory._get_dictionary(box_name, v1.list_config_map_for_all_namespaces(), dictionary_path)
 
         CommonFactory._get_box_config(config_maps_dict, f'{box_name}-app-config',
-                                      CommonFactory.BOX_FILE_NAME, box_configuration_path)
+                                      CommonFactory.BOX_FILENAME, box_configuration_path)
 
         return CommonFactory(
             rabbit_mq_config_filepath=rabbit_path,

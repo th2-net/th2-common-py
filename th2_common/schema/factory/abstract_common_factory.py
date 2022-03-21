@@ -44,8 +44,9 @@ logger = logging.getLogger(__name__)
 
 class AbstractCommonFactory(ABC):
 
-    DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/log4py.conf')
-    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent.joinpath('log/config.conf')
+    LOGGING_CONFIG_FILENAME = 'log4py.conf'
+    DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/') / LOGGING_CONFIG_FILENAME
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent / 'log' / LOGGING_CONFIG_FILENAME
 
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,

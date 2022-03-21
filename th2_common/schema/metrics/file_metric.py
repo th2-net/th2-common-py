@@ -22,7 +22,8 @@ class FileMetric(AbstractMetric):
 
     def __init__(self, filename: str) -> None:
         self.filename = Path(tempfile.gettempdir()) / filename
-        self.filename.unlink(missing_ok=True)
+        if self.filename.exists():
+            self.filename.unlink()
 
     def on_value_change(self, value: bool):
         if value:
@@ -31,4 +32,5 @@ class FileMetric(AbstractMetric):
             except Exception as e:
                 raise OSError(f'Can not create metric file with path = {self.filename}', e)
         else:
-            self.filename.unlink(missing_ok=True)
+            if self.filename.exists():
+                self.filename.unlink()

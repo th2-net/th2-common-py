@@ -37,11 +37,12 @@ setup(
     license='Apache License 2.0',
     python_requires='>=3.7',
     install_requires=[
-        'pika==1.2.0',
+        'aio_pika==6.8.2',
+        'uvloop==0.16.0',
         'th2-grpc-common~=3.8.0',
         'kubernetes==18.20.0',
         'prometheus_client==0.11.0'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
-    package_data={'': ['package_info.json'], 'th2_common.schema.log': ['config.conf']}
+    package_data={'': ['package_info.json'], 'th2_common.schema.log': ['log4py.conf']}
 )
