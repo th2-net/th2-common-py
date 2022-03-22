@@ -14,6 +14,8 @@
 
 from pkg_resources import get_distribution, DistributionNotFound
 
+from th2_common_utils.message_fields_access import *
+
 try:
     print(f"Using th2-common=={get_distribution('th2_common').version}")
 except DistributionNotFound:
