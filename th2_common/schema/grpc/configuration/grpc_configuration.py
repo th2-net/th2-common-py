@@ -94,7 +94,7 @@ class GrpcRouterConfiguration(AbstractConfiguration):
 
 class GrpcRetryPolicy:
 
-    def __init__(self, maxAttemtps=5, initialBackoff=0.1, maxBackoff=1., backoffMultiplier=2, statusCodes=None, services=None):
+    def __init__(self, maxAttemtps=5, initialBackoff=1., maxBackoff=30., backoffMultiplier=2, statusCodes=None, services=None):
         """
         Initializes retry policy for later usage of 'options' parameter.
 
