@@ -37,7 +37,7 @@ setup(
     license='Apache License 2.0',
     python_requires='>=3.7',
     install_requires=[
-        'aio_pika==6.8.2',
+        'aio_pika==7.1.0',
         'uvloop==0.16.0',
         'th2-grpc-common~=3.9.0',
         'kubernetes==18.20.0',
