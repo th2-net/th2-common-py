@@ -94,13 +94,13 @@ class GrpcRouterConfiguration(AbstractConfiguration):
 
 class GrpcRetryPolicy:
 
-    def __init__(self, maxAttemtps=5, initialBackoff=0.1, maxBackoff=1., backoffMultiplier=2, statusCodes=None, services=None):
+    def __init__(self, maxAttemtps=5, initialBackoff=5., maxBackoff=60., backoffMultiplier=2, statusCodes=None, services=None):
         """
         Initializes retry policy for later usage of 'options' parameter.
 
         :param int maxAttemtps: maximum number of retries (defaults to 5)
-        :param float initialBackoff: delay before the first retry in seconds (defaults to 0.1)
-        :param float maxBackoff: maximum delay before the retry (defaults to 1.)
+        :param float initialBackoff: delay before the first retry in seconds (defaults to 5.0)
+        :param float maxBackoff: maximum delay before the retry (defaults to 60.0)
         :param int backoffMultiplier: multiplier by which every subsequent delay is changed (defaults to 2)
         :param list statusCodes: list of status code strings which invoke retry attempt (defaults to ['UNAVAILABLE'])
         :param list services: list of dictionaries with keys 'service' and 'method', indicating where policy is applicable (defaults to every)
