@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-aio_pika==6.8.2
+aio_pika==7.1.1
 uvloop==0.16.0
 th2-grpc-common==3.9.0
 kubernetes==18.20.0
