@@ -41,7 +41,7 @@ setup(
         'uvloop==0.16.0',
         'th2-grpc-common~=3.9.0',
         'kubernetes==18.20.0',
-        'prometheus_client==0.11.0',
+        'prometheus_client==0.14.0',
         'th2-common-utils==1.1.0'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
