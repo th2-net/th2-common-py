@@ -166,7 +166,7 @@ class CommonFactory(AbstractCommonFactory):
                                                                         CommonFactory.PROMETHEUS_CONFIG_FILENAME),
                 custom_config_filepath=CommonFactory.calculate_path(result, 'customConfiguration',
                                                                     CommonFactory.CUSTOM_CONFIG_FILENAME),
-                logging_config_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log_config.json')
+                logging_config_filepath=CommonFactory.calculate_path(result, 'loggingConfiguration', 'log4py.conf')
             )
 
     @staticmethod

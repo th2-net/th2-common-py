@@ -44,9 +44,9 @@ logger = logging.getLogger(__name__)
 
 class AbstractCommonFactory(ABC):
 
-    LOGGING_CONFIG_FILENAME = 'log_config.json'
+    LOGGING_CONFIG_FILENAME = 'log4py.conf'
     DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/') / LOGGING_CONFIG_FILENAME
-    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent / 'log' / LOGGING_CONFIG_FILENAME
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent / 'log' / 'log_config.json'
 
     def __init__(self,
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
@@ -79,10 +79,12 @@ class AbstractCommonFactory(ABC):
         install_trace_logger()
 
         if logging_config_filepath is not None and Path(logging_config_filepath).exists():
-            logging.config.dictConfig(self.read_configuration(Path(logging_config_filepath)))
+            logging.config.fileConfig(fname=Path(logging_config_filepath),
+                                      disable_existing_loggers=False)
             logger.info(f'Using logging config file from {logging_config_filepath}')
         elif AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH.exists():
-            logging.config.dictConfig(self.read_configuration(Path(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH)))
+            logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH,
+                                      disable_existing_loggers=False)
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')
         elif AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH.exists():
             logging.config.dictConfig(self.read_configuration(Path(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH)))
