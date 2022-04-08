@@ -38,7 +38,7 @@
             "metricsHandler":
             {
                 "()": "th2_common.schema.log.handlers.MetricLogHandler",
-                "level": "DEBUG",
+                "level": "ERROR",
                 "metric_name": "th2_logging_metric"
             }
         },
