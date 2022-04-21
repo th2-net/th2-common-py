@@ -21,5 +21,5 @@ from google.protobuf.message import Message
 class RoutingStrategy(ABC):
 
     @abstractmethod
-    def get_endpoint(self, message: Message):
+    def get_endpoint(self, message: Message, properties=None):
         pass

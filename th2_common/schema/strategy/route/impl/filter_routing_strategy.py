@@ -11,31 +11,34 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
+from typing import Optional, Dict
 
 from google.protobuf.message import Message
 
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
+from th2_common.schema.filter.strategy.impl.default_grpc_filter_strategy import DefaultGrpcFilterStrategy
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcRawFilterStrategy
+from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration
 from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 
-class FilterRoutingStrategy(RoutingStrategy):
+class Filter(RoutingStrategy):
 
-    def __init__(self, configuration: GrpcRawFilterStrategy) -> None:
-        self.__filter_strategy = DefaultFilterStrategy()
-        self.__grpc_configuration = configuration
+    def __init__(self, service_configuration) -> None:
+        self.__filter_strategy = DefaultGrpcFilterStrategy()
+        self.service_configuration = service_configuration
+        self.filters = []
+        for filter_objects in service_configuration['filters']:
+            for property in filter_objects['properties']:
+                self.filters.append(FieldFilterConfiguration(expectedValue=property['expected-value'],
+                                                             operation=property['operation'],
+                                                             fieldName=property['field-name']))
 
-    def get_endpoint(self, message: Message):
-        endpoint: set = self.__filter(message)
-        if len(endpoint) != 1:
-            raise Exception('Wrong size of endpoints for send. Should be equal to 1')
-        return endpoint.__iter__().__next__()
+    def get_endpoint(self, message: Message, properties: Optional[Dict[str, str]] = None):
+        return self.__filter(properties)
 
-    def __filter(self, message: Message) -> {str}:
-        endpoints = set()
-        for fields_filter in self.__grpc_configuration.filters:
-            if len(fields_filter.message) == 0 and len(fields_filter.metadata) == 0 \
-                    or self.__filter_strategy.verify(message=message, router_filter=fields_filter):
-                endpoints.add(fields_filter.endpoint)
-        return endpoints
+    def __filter(self, message: Optional[Dict[str, str]]) -> {str}:
+        for fields_filter in self.filters:
+            if self.__filter_strategy.verify(message=message, router_filter=fields_filter):
+                return self.service_configuration['strategy']['endpoints'][0]
+        raise Exception('No property filters were passed')

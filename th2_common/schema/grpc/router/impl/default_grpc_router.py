@@ -16,6 +16,7 @@
 from importlib import import_module
 from pathlib import Path
 from pkgutil import iter_modules
+from typing import Optional, Dict
 
 import grpc
 
@@ -55,14 +56,14 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             if endpoint_name not in self.stubs:
                 self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
 
-        def create_request(self, request_name, request, timeout):
-            endpoint = self.strategy_obj.get_endpoint(request)
+        def create_request(self, request_name, request, timeout, properties: Optional[Dict[str, str]]):
+            endpoint = self.strategy_obj.get_endpoint(request, properties)
             endpoint_config = self.service['endpoints'][endpoint]
             if endpoint_config is not None:
                 self.__create_stub_if_not_exists(endpoint, endpoint_config)
             stub = self.stubs[endpoint]
             if stub is not None:
-                return getattr(stub, request_name)(request, timeout=timeout)
+                return getattr(stub, request_name)(request, timeout=timeout, properties=properties)
 
     def get_connection(self, service_class, stub_class):
         find_service = None
@@ -78,7 +79,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
         strategy_class = self.strategies[strategy_name]
         if strategy_class is None:
             return None
-        strategy_obj = strategy_class(find_service['strategy'])
+        strategy_obj = strategy_class(find_service)
         return self.Connection(find_service, strategy_obj, stub_class, self.channels, self.grpc_router_configuration.retry_policy.options)
 
     def __load_strategies(self):

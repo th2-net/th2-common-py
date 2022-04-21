@@ -14,6 +14,7 @@
 
 
 from threading import Lock
+from typing import Dict, Optional
 
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcRawRobinStrategy
 from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
@@ -21,12 +22,12 @@ from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 class Robin(RoutingStrategy):
 
-    def __init__(self, configuration) -> None:
-        self.endpoints = GrpcRawRobinStrategy(**configuration).endpoints
+    def __init__(self, service_configuration) -> None:
+        self.endpoints = GrpcRawRobinStrategy(**service_configuration['strategy']).endpoints
         self.index = 0
         self.lock = Lock()
 
-    def get_endpoint(self, request):
+    def get_endpoint(self, request, properties: Optional[Dict[str, str]] = None):
         with self.lock:
             result = self.endpoints[self.index % len(self.endpoints)]
             self.index = self.index + 1
