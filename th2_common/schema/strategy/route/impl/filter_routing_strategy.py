@@ -18,21 +18,19 @@ from google.protobuf.message import Message
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.filter.strategy.impl.default_grpc_filter_strategy import DefaultGrpcFilterStrategy
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcRawFilterStrategy
-from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration
+from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, ServiceConfiguration
 from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 
 class Filter(RoutingStrategy):
 
-    def __init__(self, service_configuration) -> None:
+    def __init__(self, service_configuration: ServiceConfiguration) -> None:
         self.__filter_strategy = DefaultGrpcFilterStrategy()
         self.service_configuration = service_configuration
         self.filters = []
-        for filter_objects in service_configuration['filters']:
-            for property in filter_objects['properties']:
-                self.filters.append(FieldFilterConfiguration(expectedValue=property['expected-value'],
-                                                             operation=property['operation'],
-                                                             fieldName=property['field-name']))
+        for filter_objects in service_configuration.filters:
+            for field_filter_cfg in filter_objects.properties:
+                self.filters.append(field_filter_cfg)
 
     def get_endpoint(self, message: Message, properties: Optional[Dict[str, str]] = None):
         return self.__filter(properties)
@@ -40,5 +38,5 @@ class Filter(RoutingStrategy):
     def __filter(self, message: Optional[Dict[str, str]]) -> {str}:
         for fields_filter in self.filters:
             if self.__filter_strategy.verify(message=message, router_filter=fields_filter):
-                return self.service_configuration['strategy']['endpoints'][0]
+                return self.service_configuration.strategy.endpoints[0]
         raise Exception('No property filters were passed')

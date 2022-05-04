@@ -25,6 +25,7 @@ from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfigur
     GrpcRetryPolicy
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
 import th2_common.schema.strategy.route.impl as route
+from th2_common.schema.message.configuration.message_configuration import ServiceConfiguration
 
 
 class DefaultGrpcRouter(AbstractGrpcRouter):
@@ -40,7 +41,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     class Connection:
 
-        def __init__(self, service, strategy_obj, stub_class, channels, options):
+        def __init__(self, service: ServiceConfiguration, strategy_obj, stub_class, channels, options):
             self.service = service
             self.strategy_obj = strategy_obj
             self.stubClass = stub_class
@@ -49,7 +50,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             self.stubs = {}
 
         def __create_stub_if_not_exists(self, endpoint_name, config):
-            socket = f"{config['host']}:{config['port']}"
+            socket = f"{config.host}:{config.port}"
             if socket not in self.channels:
                 self.channels[socket] = grpc.insecure_channel(socket, options=self.options)
 
@@ -58,7 +59,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
         def create_request(self, request_name, request, timeout, properties: Optional[Dict[str, str]]):
             endpoint = self.strategy_obj.get_endpoint(request, properties)
-            endpoint_config = self.service['endpoints'][endpoint]
+            endpoint_config = self.service.endpoints[endpoint]
             if endpoint_config is not None:
                 self.__create_stub_if_not_exists(endpoint, endpoint_config)
             stub = self.stubs[endpoint]
@@ -68,14 +69,14 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
     def get_connection(self, service_class, stub_class):
         find_service = None
         if self.grpc_configuration.services:
-            for service in self.grpc_configuration.services:
-                if self.grpc_configuration.services[service]['service-class'].split('.')[-1] == service_class.__name__:
-                    find_service = self.grpc_configuration.services[service]
+            for service_cfg in self.grpc_configuration.services.values():
+                if service_cfg.service_class.split('.')[-1] == service_class.__name__:
+                    find_service = service_cfg
                     break
         else:
             raise GrpcRouterError("Services list are empty in 'grpc.json'. Check your links")
 
-        strategy_name = find_service['strategy']['name']
+        strategy_name = find_service.strategy.name
         strategy_class = self.strategies[strategy_name]
         if strategy_class is None:
             return None

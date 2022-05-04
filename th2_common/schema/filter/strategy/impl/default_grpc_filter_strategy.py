@@ -10,8 +10,8 @@ from th2_common.schema.message.configuration.message_configuration import Router
 
 class DefaultGrpcFilterStrategy(FilterStrategy):
 
-    def verify(self, message: Optional[Dict[str, str]], router_filter: FieldFilterConfiguration = None,
-               router_filters: List[FieldFilterConfiguration] = None):
+    def verify(self, message: Optional[Dict[str, str]], router_filter: Optional[FieldFilterConfiguration] = None,
+               router_filters: Optional[List[FieldFilterConfiguration]] = None):
         if not router_filters and not router_filter:
             return True
         elif not router_filters:

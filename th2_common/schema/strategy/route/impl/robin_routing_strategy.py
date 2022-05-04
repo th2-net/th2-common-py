@@ -16,14 +16,14 @@
 from threading import Lock
 from typing import Dict, Optional
 
-from th2_common.schema.grpc.configuration.grpc_configuration import GrpcRawRobinStrategy
+from th2_common.schema.message.configuration.message_configuration import ServiceConfiguration
 from th2_common.schema.strategy.route.routing_strategy import RoutingStrategy
 
 
 class Robin(RoutingStrategy):
 
-    def __init__(self, service_configuration) -> None:
-        self.endpoints = GrpcRawRobinStrategy(**service_configuration['strategy']).endpoints
+    def __init__(self, service_configuration: ServiceConfiguration) -> None:
+        self.endpoints = service_configuration.strategy.endpoints
         self.index = 0
         self.lock = Lock()
 

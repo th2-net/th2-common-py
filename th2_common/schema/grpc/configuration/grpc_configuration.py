@@ -16,17 +16,10 @@ import json
 
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
-from typing import List
+from typing import List, Dict, Optional
 
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, \
-    RouterFilterConfiguration
-
-
-class GrpcRawRobinStrategy:
-
-    def __init__(self, endpoints, name) -> None:
-        self.endpoints = endpoints
-        self.name = name
+    RouterFilterConfiguration, ServiceConfiguration
 
 
 class GrpcServiceConfiguration(AbstractConfiguration):
@@ -54,8 +47,8 @@ class GrpcEndpointConfiguration(AbstractConfiguration):
 
 class GrpcConfiguration(AbstractConfiguration):
 
-    def __init__(self, services, server=None, **kwargs) -> None:
-        self.services = services
+    def __init__(self, services: Dict[str, Dict], server: Optional[Dict] = None, **kwargs) -> None:
+        self.services: Dict[str, ServiceConfiguration] = {name: ServiceConfiguration(**params) for name, params in services.items()}
         if server is not None:
             self.serverConfiguration = GrpcServerConfiguration(**server)
         self.check_unexpected_args(kwargs)

@@ -17,7 +17,40 @@ from enum import Enum, auto
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Dict
+
+
+class FilterObjectConfiguration(AbstractConfiguration):
+
+    def __init__(self, properties):
+        self.properties = [FieldFilterConfiguration(expectedValue=prop['expected-value'],
+                                                    fieldName=prop['field-name'],
+                                                    operation=prop['operation']) for prop in properties]
+
+
+class EndpointConfiguration(AbstractConfiguration):
+
+    def __init__(self, attributes: List, host: str, port: int):
+        self.attributes = attributes
+        self.host = host
+        self.port = port
+
+
+class DefaultStrategyConfiguration(AbstractConfiguration):
+
+    def __init__(self, endpoints: List[str], name: str):
+        self.endpoints = endpoints
+        self.name = name
+
+
+class ServiceConfiguration(AbstractConfiguration):
+
+    def __init__(self, attributes, endpoints, service_class, strategy, filters):
+        self.attributes: List = attributes
+        self.endpoints: Dict[str, EndpointConfiguration] = {k: EndpointConfiguration(**v) for k, v in endpoints.items()}
+        self.service_class: str = service_class
+        self.strategy = DefaultStrategyConfiguration(**strategy)
+        self.filters = [FilterObjectConfiguration(**filter_obj) for filter_obj in filters]
 
 
 class FieldFilterOperation(Enum):
