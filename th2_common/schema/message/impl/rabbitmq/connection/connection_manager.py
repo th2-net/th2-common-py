@@ -18,7 +18,6 @@ import asyncio
 from threading import Thread
 from contextlib import suppress
 
-import uvloop
 import aio_pika
 
 from google.protobuf.pyext._message import SetAllowOversizeProtos
@@ -62,7 +61,7 @@ class ConnectionManager:
                                  self.connection_parameters)
         self.publisher = Publisher(self.connection_parameters)
 
-        self._loop = uvloop.new_event_loop()
+        self._loop = asyncio.get_event_loop()
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 
