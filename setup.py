@@ -38,7 +38,6 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'aio_pika==6.8.2',
-        'uvloop==0.16.0',
         'th2-grpc-common==3.11.1',
         'kubernetes==18.20.0',
         'prometheus_client==0.11.0',
