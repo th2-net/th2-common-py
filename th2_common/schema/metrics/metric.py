@@ -1,4 +1,4 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,16 +12,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import th2_common.schema.metrics.metric_monitor as metric_monitor
 
 
 class Metric(ABC):
 
-    enabled: bool = None
+    @property
+    @abstractmethod
+    def enabled(self) -> bool:
+        pass
 
-    def create_monitor(self, name: str) -> 'metric_monitor.MetricMonitor':
+    def create_monitor(self, name: str) -> metric_monitor.MetricMonitor:
         """
         Creates new monitor for the metric
 
@@ -30,7 +33,7 @@ class Metric(ABC):
         """
         pass
 
-    def is_enabled(self, monitor: 'metric_monitor.MetricMonitor') -> bool:
+    def is_enabled(self, monitor: metric_monitor.MetricMonitor) -> bool:
         """
         Checks if status of a monitor is `enabled`
 
@@ -39,7 +42,7 @@ class Metric(ABC):
         """
         pass
 
-    def enable(self, monitor: 'metric_monitor.MetricMonitor'):
+    def enable(self, monitor: metric_monitor.MetricMonitor) -> None:
         """
         Changes status of a monitor to `enabled`
 
@@ -47,7 +50,7 @@ class Metric(ABC):
         """
         pass
 
-    def disable(self, monitor: 'metric_monitor.MetricMonitor'):
+    def disable(self, monitor: metric_monitor.MetricMonitor) -> None:
         """
         Changes status of a monitor to `disabled`
 

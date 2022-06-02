@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,22 +12,21 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-import logging
 import asyncio
-from threading import Thread
+from asyncio import AbstractEventLoop
 from contextlib import suppress
+import logging
+from threading import Thread
+from typing import Any, Dict
 
-import uvloop
 import aio_pika
-
-from google.protobuf.pyext._message import SetAllowOversizeProtos
-
-from th2_common.schema.message.configuration.message_configuration import ConnectionManagerConfiguration
+from google.protobuf.pyext._message import SetAllowOversizeProtos  # type: ignore
+from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
 from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.metrics.common_metrics import HealthMetrics
+import uvloop
 
 
 logger = logging.getLogger(__name__)
@@ -43,8 +42,9 @@ class ConnectionManager:
     parameters for Consumer
     """
 
-    def __init__(self, configuration: RabbitMQConfiguration,
-                 connection_manager_configuration: ConnectionManagerConfiguration) -> None:
+    def __init__(self,
+                 configuration: RabbitMQConfiguration,
+                 connection_manager_configuration: MqConnectionConfiguration) -> None:
 
         SetAllowOversizeProtos(connection_manager_configuration.message_recursion_limit > 100)
 
@@ -81,7 +81,7 @@ class ConnectionManager:
         self._loop.set_exception_handler(self._handle_exception)
         self._loop.run_forever()
 
-    def _handle_exception(self, loop, context) -> None:
+    def _handle_exception(self, loop: AbstractEventLoop, context: Dict[str, Any]) -> Any:
         """Custom exception handling"""
 
         if isinstance(context.get('exception'), aio_pika.exceptions.CONNECTION_EXCEPTIONS):

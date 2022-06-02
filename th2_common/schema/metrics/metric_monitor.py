@@ -1,4 +1,4 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -26,18 +26,18 @@ class MetricMonitor:
         return self.arbiter.is_enabled(self)
 
     @is_enabled.setter
-    def is_enabled(self, value):
+    def is_enabled(self, value: 'metric.Metric') -> None:
         if value:
             self.enable()
         else:
             self.disable()
 
     @property
-    def is_metric_enabled(self):
+    def is_metric_enabled(self) -> bool:
         return self.arbiter.enabled
 
-    def enable(self):
+    def enable(self) -> None:
         self.arbiter.enable(self)
 
-    def disable(self):
+    def disable(self) -> None:
         self.arbiter.disable(self)

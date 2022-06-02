@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,13 +12,21 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from typing import Any
+
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
 
 class CradleConfiguration(AbstractConfiguration):
 
-    def __init__(self, dataCenter: str, host: str, port: int,
-                 keyspace: str, username: str, password: str, **kwargs) -> None:
+    def __init__(self,
+                 dataCenter: str,
+                 host: str,
+                 port: int,
+                 keyspace: str,
+                 username: str,
+                 password: str,
+                 **kwargs: Any) -> None:
         self.data_center = dataCenter
         self.host = host
         self.port = port

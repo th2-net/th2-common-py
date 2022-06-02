@@ -1,4 +1,4 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -33,10 +33,10 @@ class AggregatingMetric(Metric):
     def is_enabled(self, monitor: MetricMonitor) -> bool:
         return all(metric.is_enabled(monitor) for metric in self.metrics)
 
-    def enable(self, monitor: MetricMonitor):
+    def enable(self, monitor: MetricMonitor) -> None:
         for metric in self.metrics:
             metric.enable(monitor)
 
-    def disable(self, monitor: MetricMonitor):
+    def disable(self, monitor: MetricMonitor) -> None:
         for metric in self.metrics:
             metric.disable(monitor)
