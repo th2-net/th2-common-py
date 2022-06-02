@@ -26,7 +26,6 @@ from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuratio
 from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
 from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.metrics.common_metrics import HealthMetrics
-import uvloop
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +61,7 @@ class ConnectionManager:
                                  self.connection_parameters)
         self.publisher = Publisher(self.connection_parameters)
 
-        self._loop = uvloop.new_event_loop()
+        self._loop = asyncio.get_event_loop()
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 
