@@ -53,19 +53,28 @@ class ServiceConfiguration(AbstractConfiguration):
     PropertiesType = List[Dict[str, str]]
 
     def __init__(self,
-                 attributes: List[str],
                  endpoints: Dict[str, Any],
                  service_class: str,
-                 filters: List[Dict[str, PropertiesType]],
+                 attributes: Optional[List[str]] = None,
+                 filters: Optional[List[Dict[str, PropertiesType]]] = None,
                  strategy: Optional[Dict[str, Any]] = None,
                  **kwargs: Any) -> None:
-        self.attributes: List[str] = attributes
-        self.strategy = strategy  # deprecated
         self.endpoints: Dict[str, GrpcEndpointConfiguration] = {
             k: GrpcEndpointConfiguration(**v) for k, v in endpoints.items()
         }
         self.service_class: str = service_class
-        self.filters = [FilterConfiguration(**filter_obj) for filter_obj in filters]
+
+        if attributes is not None:
+            self.attributes = attributes
+        else:
+            self.attributes = []
+
+        if filters is not None:
+            self.filters = [FilterConfiguration(**filter_obj) for filter_obj in filters]
+        else:
+            self.filters = []
+
+        self.strategy = strategy  # deprecated
 
         self.check_unexpected_args(kwargs)
 
