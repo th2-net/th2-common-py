@@ -25,6 +25,8 @@ class FileMetric(AbstractMetric):
         if self.filename.exists():
             self.filename.unlink()
 
+        super().__init__()
+
     def on_value_change(self, value: bool) -> None:
         if value:
             try:

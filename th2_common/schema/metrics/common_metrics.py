@@ -16,7 +16,7 @@ from typing import Tuple
 
 from th2_common.schema.metrics.aggregating_metric import AggregatingMetric
 from th2_common.schema.metrics.file_metric import FileMetric
-from th2_common.schema.metrics.metric_monitor import MetricMonitor
+from th2_common.schema.metrics.aggregating_metric_monitor import AggregatingMetricMonitor
 from th2_common.schema.metrics.prometheus_metric import PrometheusMetric
 
 DEFAULT_BUCKETS = [0.000_25, 0.000_5, 0.001, 0.005, 0.010, 0.015, 0.025, 0.050, 0.100, 0.250, 0.500, 1.0]
@@ -53,11 +53,11 @@ LIVENESS_ARBITER = AggregatingMetric([PrometheusMetric('th2_liveness', 'Service 
 READINESS_ARBITER = AggregatingMetric([PrometheusMetric('th2_readiness', 'Service readiness'), FileMetric('ready')])
 
 
-def register_liveness(name: str) -> MetricMonitor:
+def register_liveness(name: str) -> AggregatingMetricMonitor:
     return LIVENESS_ARBITER.create_monitor(name)
 
 
-def register_readiness(name: str) -> MetricMonitor:
+def register_readiness(name: str) -> AggregatingMetricMonitor:
     return READINESS_ARBITER.create_monitor(name)
 
 

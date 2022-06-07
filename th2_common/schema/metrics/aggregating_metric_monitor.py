@@ -12,32 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import th2_common.schema.metrics.metric as metric
+from th2_common.schema.metrics.metric import Metric
 
 
-class MetricMonitor:
+class AggregatingMetricMonitor(Metric):
 
-    def __init__(self, name: str, arbiter: 'metric.Metric') -> None:
+    def __init__(self, name: str, aggregating_metric: Metric) -> None:
         self.name = name
-        self.arbiter = arbiter
+        self.aggregating_metric = aggregating_metric
 
-    @property
     def is_enabled(self) -> bool:
-        return self.arbiter.is_enabled(self)
-
-    @is_enabled.setter
-    def is_enabled(self, value: 'metric.Metric') -> None:
-        if value:
-            self.enable()
-        else:
-            self.disable()
-
-    @property
-    def is_metric_enabled(self) -> bool:
-        return self.arbiter.enabled
+        return self.aggregating_metric.is_enabled()
 
     def enable(self) -> None:
-        self.arbiter.enable(self)
+        self.aggregating_metric.enable()
 
     def disable(self) -> None:
-        self.arbiter.disable(self)
+        self.aggregating_metric.disable()

@@ -21,5 +21,7 @@ class PrometheusMetric(AbstractMetric):
     def __init__(self, name: str, documentation: str) -> None:
         self.metric = Gauge(name=name, documentation=documentation)
 
+        super().__init__()
+
     def on_value_change(self, value: bool) -> None:
         self.metric.set(1.0 if value else 0.0)

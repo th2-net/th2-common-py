@@ -104,8 +104,9 @@ class ConnectionManager:
         except Exception as e:
             logger.exception(f'Error while stopping Publisher: {e}')
 
-        graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
-        graceful_shutdown.result()
+        self.__metrics.disable()
+
+        asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
 
     async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
