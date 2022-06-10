@@ -12,7 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+import itertools
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import google.protobuf.message
 import grpc
@@ -20,7 +21,7 @@ from grpc import _channel
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
 from th2_common.schema.filter.strategy.impl.default_grpc_filter_strategy import DefaultGrpcFilterStrategy
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration, \
-    GrpcEndpointConfiguration, ServiceConfiguration
+    GrpcEndpointConfiguration, GrpcServiceConfiguration
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
 
 
@@ -37,7 +38,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
     class Connection:
 
         def __init__(self,
-                     services: List[ServiceConfiguration],
+                     services: List[GrpcServiceConfiguration],
                      stub_class: Callable,
                      channels: Dict[str, _channel.Channel],
                      options: List[Tuple[str, Any]]) -> None:
@@ -47,7 +48,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             self.options = options
             self.stubs: Dict[str, Callable] = {}
             self._grpc_filter_strategy = DefaultGrpcFilterStrategy()
-            self._endpoint_generator: Optional[Generator] = None
+            self._endpoint_generator: Optional[itertools.cycle[str]] = None
 
         def __create_stub_if_not_exists(self, endpoint_name: str, config: GrpcEndpointConfiguration) -> None:
             socket = f'{config.host}:{config.port}'
@@ -75,7 +76,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
             return None
 
-        def _filter_services(self, properties: Optional[Dict[str, str]]) -> ServiceConfiguration:
+        def _filter_services(self, properties: Optional[Dict[str, str]]) -> GrpcServiceConfiguration:
             if not properties:
                 services = self.services
             else:
@@ -91,19 +92,11 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
             return services[0]
 
-        def _get_next_endpoint(self, service: ServiceConfiguration) -> str:
-            service_endpoints = list(service.endpoints)
+        def _get_next_endpoint(self, service: GrpcServiceConfiguration) -> str:
             if self._endpoint_generator is None:
-                self._endpoint_generator = self._get_endpoint_generator(service_endpoints)
+                self._endpoint_generator = itertools.cycle(service.endpoints)
 
             return next(self._endpoint_generator)  # type: ignore
-
-        def _get_endpoint_generator(self, endpoints: List[str]) -> Generator:
-            current_index = 0
-            endpoints_length = len(endpoints)
-            while True:
-                yield endpoints[current_index % endpoints_length]
-                current_index += 1
 
     def get_connection(self, service_class: Callable, stub_class: Callable) -> Optional[Connection]:
         if self.grpc_configuration.services:

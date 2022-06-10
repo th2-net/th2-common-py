@@ -25,8 +25,8 @@ class GrpcConfiguration(AbstractConfiguration):
                  services: Dict[str, Dict[str, Any]],
                  server: Optional[Dict[str, Any]] = None,
                  **kwargs: Any) -> None:
-        self.services: Dict[str, ServiceConfiguration] = {
-            name: ServiceConfiguration(**params) for name, params in services.items()
+        self.services: Dict[str, GrpcServiceConfiguration] = {
+            name: GrpcServiceConfiguration(**params) for name, params in services.items()
         }
         if server is not None:
             self.serverConfiguration = GrpcServerConfiguration(**server)
@@ -48,19 +48,20 @@ class GrpcConnectionConfiguration(AbstractConfiguration):
         self.check_unexpected_args(kwargs)
 
 
-class ServiceConfiguration(AbstractConfiguration):
+class GrpcServiceConfiguration(AbstractConfiguration):
 
     PropertiesType = List[Dict[str, str]]
+    FiltersType = List[Dict[str, PropertiesType]]
 
     def __init__(self,
                  endpoints: Dict[str, Any],
                  service_class: str,
                  attributes: Optional[List[str]] = None,
-                 filters: Optional[List[Dict[str, PropertiesType]]] = None,
+                 filters: Optional[FiltersType] = None,
                  strategy: Optional[Dict[str, Any]] = None,
                  **kwargs: Any) -> None:
         self.endpoints: Dict[str, GrpcEndpointConfiguration] = {
-            k: GrpcEndpointConfiguration(**v) for k, v in endpoints.items()
+            endpoint: GrpcEndpointConfiguration(**configuration) for endpoint, configuration in endpoints.items()
         }
         self.service_class: str = service_class
 

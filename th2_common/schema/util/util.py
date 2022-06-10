@@ -12,15 +12,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
-from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration
+from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, \
+    MqRouterFilterConfiguration
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_grpc_common.common_pb2 import AnyMessage, Direction, EventBatch, MessageGroup, MessageGroupBatch, MessageID
 
 
-def get_filters(configuration: MessageRouterConfiguration, aliases: List[str]) -> List[Any]:
-    # FIXME: determine filters type
+def get_filters(configuration: MessageRouterConfiguration,
+                aliases: List[str]) -> List[List[MqRouterFilterConfiguration]]:
     return [configuration.queues[alias].filters for alias in aliases]
 
 

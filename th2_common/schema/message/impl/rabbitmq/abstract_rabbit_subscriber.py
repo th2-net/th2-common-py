@@ -40,7 +40,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
                                     'Amount of bytes received',
                                     common_metrics.SUBSCRIBER_LABELS)
     HANDLING_DURATION = Histogram('th2_rabbitmq_message_process_duration_seconds',
-                                  "Duration of one subscriber\'s handling process",
+                                  "Subscriber's handling process duration",
                                   common_metrics.SUBSCRIBER_LABELS,
                                   buckets=common_metrics.DEFAULT_BUCKETS)
 

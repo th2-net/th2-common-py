@@ -235,13 +235,13 @@ class AbstractCommonFactory(ABC):
         logger.info('Common Factory is closed')
 
     @staticmethod
-    def read_configuration(filepath: Path) -> Any:
+    def read_configuration(filepath: Path) -> Dict[str, Any]:
         with open(filepath, 'r') as file:
             config_json = file.read()
             config_json_expanded = os.path.expandvars(config_json)
             json_object = json.loads(config_json_expanded)
 
-        return json_replace_keys(json_object)
+        return json_replace_keys(json_object)  # type: ignore
 
     def create_cradle_configuration(self) -> CradleConfiguration:
         return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration))
@@ -327,10 +327,10 @@ class AbstractCommonFactory(ABC):
         pass
 
 
-def json_replace_keys(json_object: Union[str, int, float, List, Dict]) -> Union[str, int, float, List, Dict]:
-    if isinstance(json_object, dict):
+def json_replace_keys(json_object: Union[str, int, float, List, Dict]) -> Union[str, int, float, List, Dict[str, Any]]:
+    if isinstance(json_object, Dict):
         return {k.replace('-', '_'): json_replace_keys(v) for k, v in json_object.items()}
-    elif isinstance(json_object, list):
+    elif isinstance(json_object, List):
         return [json_replace_keys(i) for i in json_object]
     else:
         return json_object

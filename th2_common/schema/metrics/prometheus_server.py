@@ -33,7 +33,7 @@ class PrometheusServer:
             self.stopped = False
             app = make_wsgi_app()
             self.httpd = make_server(self.host, self.port, app)
-            self.server_thread = Thread(target=self.httpd.serve_forever)
+            self.server_thread = Thread(target=self.httpd.serve_forever, daemon=True)
             self.server_thread.start()
 
     def stop(self) -> None:
