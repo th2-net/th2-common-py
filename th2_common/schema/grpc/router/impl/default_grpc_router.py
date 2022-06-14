@@ -62,7 +62,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
                            request_name: str,
                            request: google.protobuf.message.Message,
                            timeout: int,
-                           properties: Optional[Dict[str, str]]) -> Optional[google.protobuf.message.Message]:
+                           properties: Optional[Dict[str, str]] = None) -> Optional[google.protobuf.message.Message]:
             service = self._filter_services(properties)
             endpoint = self._get_next_endpoint(service)
             endpoint_config = service.endpoints[endpoint]
