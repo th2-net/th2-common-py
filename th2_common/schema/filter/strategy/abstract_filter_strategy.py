@@ -14,7 +14,7 @@
 
 from abc import ABC
 from fnmatch import fnmatch
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, FieldFilterOperation
@@ -23,10 +23,12 @@ from th2_common.schema.message.configuration.message_configuration import FieldF
 class AbstractFilterStrategy(FilterStrategy, ABC):
 
     @staticmethod
-    def check_value(value: str, filter_configuration: FieldFilterConfiguration) -> bool:
+    def check_value(value: Optional[str], filter_configuration: FieldFilterConfiguration) -> bool:
         expected = filter_configuration.value
         if expected is None:
             return True
+        elif value is None:
+            return False
 
         options: Dict[FieldFilterOperation, Callable[[str], bool]] = {
             FieldFilterOperation.EQUAL: (lambda v: v == expected),

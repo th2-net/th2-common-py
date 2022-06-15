@@ -26,7 +26,7 @@ class DefaultGrpcFilterStrategy(AbstractFilterStrategy):
                message: Dict[str, str],
                router_filters: Optional[RouterFiltersType] = None) -> bool:
         if isinstance(router_filters, FieldFilterConfiguration):
-            msg_field_value = message[router_filters.field_name]
+            msg_field_value = message.get(router_filters.field_name)
             return self.check_value(msg_field_value, router_filters)
 
         elif isinstance(router_filters, list) and len(router_filters) > 0:

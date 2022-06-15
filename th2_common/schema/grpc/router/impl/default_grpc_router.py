@@ -48,7 +48,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             self.options = options
             self.stubs: Dict[str, Callable] = {}
             self._grpc_filter_strategy = DefaultGrpcFilterStrategy()
-            self._endpoint_generator: Optional[itertools.cycle[str]] = None
+            self._endpoint_generators: Dict[GrpcServiceConfiguration, itertools.cycle[str]] = {}
 
         def __create_stub_if_not_exists(self, endpoint_name: str, config: GrpcEndpointConfiguration) -> None:
             socket = f'{config.host}:{config.port}'
@@ -93,10 +93,10 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             return services[0]
 
         def _get_next_endpoint(self, service: GrpcServiceConfiguration) -> str:
-            if self._endpoint_generator is None:
-                self._endpoint_generator = itertools.cycle(service.endpoints)
+            if service not in self._endpoint_generators:
+                self._endpoint_generators[service] = itertools.cycle(service.endpoints)
 
-            return next(self._endpoint_generator)  # type: ignore
+            return next(self._endpoint_generators[service])  # type: ignore
 
     def get_connection(self, service_class: Callable, stub_class: Callable) -> Optional[Connection]:
         if self.grpc_configuration.services:

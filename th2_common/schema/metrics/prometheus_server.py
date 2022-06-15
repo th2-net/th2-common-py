@@ -17,6 +17,7 @@ from typing import Optional
 from wsgiref.simple_server import make_server, WSGIServer
 
 from prometheus_client import make_wsgi_app
+from prometheus_client.exposition import _SilentHandler
 
 
 class PrometheusServer:
@@ -32,7 +33,7 @@ class PrometheusServer:
         if self.httpd is None or self.stopped is True:
             self.stopped = False
             app = make_wsgi_app()
-            self.httpd = make_server(self.host, self.port, app)
+            self.httpd = make_server(self.host, self.port, app, handler_class=_SilentHandler)
             self.server_thread = Thread(target=self.httpd.serve_forever, daemon=True)
             self.server_thread.start()
 
