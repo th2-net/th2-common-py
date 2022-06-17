@@ -12,8 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import List
-
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Gauge
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
@@ -22,7 +21,7 @@ import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
 from th2_common.schema.metrics.metric_utils import update_total_metrics as util_total
 from th2_common.schema.util.util import get_debug_string_group
-from th2_grpc_common.common_pb2 import Message, MessageGroupBatch
+from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
@@ -61,13 +60,8 @@ class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):
                      self.INCOMING_MSG_DROPPED_QUANTITY,
                      self.INCOMING_MSG_GROUP_DROPPED_QUANTITY)
 
-    def get_messages(self, batch: MessageGroupBatch) -> List[Message]:
-        return [
-            any_message.message
-            for message_group in batch.groups
-            for any_message in message_group.messages
-            if any_message.HasField('message')
-        ]
+    def get_messages(self, batch: MessageGroupBatch) -> RepeatedCompositeFieldContainer:
+        return batch.groups
 
     def extract_metadata(self, message: MessageGroupBatch) -> Metadata:
         raise ValueError
