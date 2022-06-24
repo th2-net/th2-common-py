@@ -149,7 +149,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
     def value_from_bytes(body: bytes) -> Any:
         pass
 
-    @abstractmethod
+    @abstractmethod  # noqa: A003
     def filter(self, value: Any) -> bool:  # noqa: A003
         pass
 

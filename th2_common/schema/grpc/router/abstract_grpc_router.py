@@ -32,11 +32,11 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
         self.channels: Dict[str, grpc._channel.Channel] = {}
 
     def __add_insecure_port(self, server: grpc.Server) -> None:
-        if self.grpc_configuration.serverConfiguration.host is None:
-            server.add_insecure_port(f'[::]:{self.grpc_configuration.serverConfiguration.port}')
+        if self.grpc_configuration.server.host is None:
+            server.add_insecure_port(f'[::]:{self.grpc_configuration.server.port}')
         else:
             server.add_insecure_port(
-                f'{self.grpc_configuration.serverConfiguration.host}:{self.grpc_configuration.serverConfiguration.port}'
+                f'{self.grpc_configuration.server.host}:{self.grpc_configuration.server.port}'
             )
 
     @property
@@ -47,7 +47,8 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
             Returns:
                 grpc.Server: A server object.
         """
-        server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers))
+        server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers),
+                             options=self.grpc_router_configuration.options)
         self.__add_insecure_port(server)
         self.servers.append(server)
 

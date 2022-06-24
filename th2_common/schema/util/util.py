@@ -50,7 +50,7 @@ def get_session_alias_and_direction_group(any_message: AnyMessage) -> Tuple[str,
 def get_debug_string(class_name: str, ids: List[MessageID]) -> str:
     session_alias, direction = get_session_alias_and_direction(ids[0])
     sequences = ', '.join([str(i.sequence) for i in ids])
-    return f'{class_name}: {session_alias = }, {direction = }, {sequences = }'.strip()
+    return f'{class_name}: session_alias = {session_alias}, direction = {direction}, sequences = {sequences}'.strip()
 
 
 def get_debug_string_event(event_batch: EventBatch) -> str:
@@ -70,6 +70,6 @@ def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
     sequences_string = ''.join(sequences)
 
     return f'MessageGroupBatch: ' \
-           f'{session_alias = }, ' \
-           f'{direction = }, ' \
-           f'{sequences_string = }'.strip()
+           f'session_alias = {session_alias}, ' \
+           f'direction = {direction}, ' \
+           f'sequences_string = {sequences_string}'.strip()

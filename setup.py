@@ -14,7 +14,7 @@
 
 import json
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open('package_info.json', 'r') as file:
     package_info = json.load(file)

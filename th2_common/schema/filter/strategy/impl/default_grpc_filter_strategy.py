@@ -15,19 +15,20 @@
 from typing import Dict, List, Optional, Union
 
 from th2_common.schema.filter.strategy.abstract_filter_strategy import AbstractFilterStrategy
-from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcFilterConfiguration
 
 
 class DefaultGrpcFilterStrategy(AbstractFilterStrategy):
 
-    RouterFiltersType = Union[List[FieldFilterConfiguration], FieldFilterConfiguration]
+    RouterFiltersType = Union[List[GrpcFilterConfiguration], GrpcFilterConfiguration]
 
     def verify(self,
                message: Dict[str, str],
                router_filters: Optional[RouterFiltersType] = None) -> bool:
-        if isinstance(router_filters, FieldFilterConfiguration):
-            msg_field_value = message.get(router_filters.field_name)
-            return self.check_value(msg_field_value, router_filters)
+        if isinstance(router_filters, GrpcFilterConfiguration):
+            return all(self.check_value(message[field_filter.field_name], field_filter)
+                       if field_filter.field_name in message else False
+                       for field_filter in router_filters.properties)
 
         elif isinstance(router_filters, list) and len(router_filters) > 0:
             return all(self.verify(message, fields_filter) for fields_filter in router_filters)

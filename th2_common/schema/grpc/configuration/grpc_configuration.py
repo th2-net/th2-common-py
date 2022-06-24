@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 import json
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, ItemsView, List, Optional, Tuple, Union
 
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration
@@ -29,7 +29,7 @@ class GrpcConfiguration(AbstractConfiguration):
             name: GrpcServiceConfiguration(**params) for name, params in services.items()
         }
         if server is not None:
-            self.serverConfiguration = GrpcServerConfiguration(**server)
+            self.server = GrpcServerConfiguration(**server)
 
         self.check_unexpected_args(kwargs)
 
@@ -39,11 +39,16 @@ class GrpcConnectionConfiguration(AbstractConfiguration):
     def __init__(self,
                  workers: int = 5,
                  retryPolicy: Optional[Dict[str, Any]] = None,
+                 options: Optional[Dict[str, int]] = None,
                  **kwargs: Any) -> None:
         if retryPolicy is None:
             retryPolicy = {}
         self.workers = int(workers)
         self.retry_policy = GrpcRetryPolicyConfiguration(**retryPolicy)
+        if options is not None:
+            self.options: Optional[ItemsView[str, int]] = options.items()
+        else:
+            self.options = options
 
         self.check_unexpected_args(kwargs)
 
@@ -58,12 +63,12 @@ class GrpcServiceConfiguration(AbstractConfiguration):
                  service_class: str,
                  attributes: Optional[List[str]] = None,
                  filters: Optional[FiltersType] = None,
-                 strategy: Optional[Dict[str, Any]] = None,
+                 strategy: Optional[Dict[str, Any]] = None,  # deprecated
                  **kwargs: Any) -> None:
         self.endpoints: Dict[str, GrpcEndpointConfiguration] = {
             endpoint: GrpcEndpointConfiguration(**configuration) for endpoint, configuration in endpoints.items()
         }
-        self.service_class: str = service_class
+        self.service_class = service_class
 
         if attributes is not None:
             self.attributes = attributes
@@ -71,11 +76,9 @@ class GrpcServiceConfiguration(AbstractConfiguration):
             self.attributes = []
 
         if filters is not None:
-            self.filters = [FilterConfiguration(**filter_obj) for filter_obj in filters]
+            self.filters = [GrpcFilterConfiguration(**filter_obj) for filter_obj in filters]
         else:
             self.filters = []
-
-        self.strategy = strategy  # deprecated
 
         self.check_unexpected_args(kwargs)
 
@@ -170,7 +173,7 @@ class GrpcEndpointConfiguration(AbstractConfiguration):
         self.check_unexpected_args(kwargs)
 
 
-class FilterConfiguration(AbstractConfiguration):
+class GrpcFilterConfiguration(AbstractConfiguration):
 
     FilterType = Dict[str, str]
 

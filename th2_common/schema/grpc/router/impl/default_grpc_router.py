@@ -82,8 +82,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             else:
                 services = [
                     service for service in self.services
-                    for service_filter in service.filters
-                    if self._grpc_filter_strategy.verify(properties, router_filters=service_filter.properties)
+                    if self._grpc_filter_strategy.verify(properties, router_filters=service.filters)
                 ]
 
             if len(services) != 1:
@@ -100,10 +99,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
     def get_connection(self, service_class: Callable, stub_class: Callable) -> Optional[Connection]:
         if self.grpc_configuration.services:
-            find_services = list(filter(  # noqa: ECE001
-                lambda service_cfg: (service_cfg.service_class.split('.')[-1] == service_class.__name__),
-                self.grpc_configuration.services.values()
-            ))
+            find_services = self._filter_services_by_name(service_class.__name__)
 
             if find_services:
                 return self.Connection(find_services,
@@ -113,3 +109,9 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             return None
         else:
             raise GrpcRouterError("Services list are empty in 'grpc.json'. Check your links")
+
+    def _filter_services_by_name(self, service_class_name: str) -> List[GrpcServiceConfiguration]:
+        return list(filter(  # noqa: ECE001
+            lambda service_cfg: (service_cfg.service_class.split('.')[-1] == service_class_name),
+            self.grpc_configuration.services.values()
+        ))

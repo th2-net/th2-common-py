@@ -44,4 +44,5 @@ class DefaultFilterStrategy(AbstractFilterStrategy):
 
     def check_values(self, message_fields: Dict[str, str], field_filters: List[FieldFilterConfiguration]) -> bool:
         return all(self.check_value(message_fields[field_filter.field_name], field_filter)
+                   if field_filter.field_name in message_fields else False
                    for field_filter in field_filters)
