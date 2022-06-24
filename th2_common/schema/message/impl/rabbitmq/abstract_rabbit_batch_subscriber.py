@@ -13,14 +13,14 @@
 #   limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import List
 
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
-from th2_grpc_common.common_pb2 import Direction, Message, MessageGroupBatch
+from th2_grpc_common.common_pb2 import Direction, MessageGroupBatch
 
 
 class Metadata:
@@ -50,13 +50,13 @@ class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
     def filter(self, batch: MessageGroupBatch) -> bool:  # noqa: A003
         messages = [
-            msg for msg in self.get_messages(batch) if
-            self.filter_strategy.verify(message=msg, router_filters=self.filters)
+            message_group for message_group in self.get_messages(batch) if
+            self.filter_strategy.verify(message=message_group, router_filters=self.filters)
         ]
         return len(messages) > 0
 
     @abstractmethod
-    def get_messages(self, batch: MessageGroupBatch) -> List[Message]:
+    def get_messages(self, batch: MessageGroupBatch) -> RepeatedCompositeFieldContainer:
         pass
 
     @abstractmethod

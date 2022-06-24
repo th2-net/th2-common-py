@@ -104,12 +104,14 @@ class MqRouterFilterConfiguration(AbstractConfiguration):
         self.metadata = []
         self.message = []
 
-        if isinstance(metadata, dict) and isinstance(message, dict):
+        if isinstance(metadata, dict):
             self.metadata = [FieldFilterConfiguration(**metadata[key], fieldName=key) for key in metadata]
-            self.message = [FieldFilterConfiguration(**message[key], fieldName=key) for key in message]
-
-        elif isinstance(metadata, list) and isinstance(message, list):
+        elif isinstance(metadata, list):
             self.metadata = [FieldFilterConfiguration(**key) for key in metadata]
+
+        if isinstance(message, dict):
+            self.message = [FieldFilterConfiguration(**message[key], fieldName=key) for key in message]
+        elif isinstance(message, list):
             self.message = [FieldFilterConfiguration(**key) for key in message]
 
         self.check_unexpected_args(kwargs)

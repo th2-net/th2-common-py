@@ -30,6 +30,6 @@ class DefaultGrpcFilterStrategy(AbstractFilterStrategy):
             return self.check_value(msg_field_value, router_filters)
 
         elif isinstance(router_filters, list) and len(router_filters) > 0:
-            return any(self.verify(message, fields_filter) for fields_filter in router_filters)
+            return all(self.verify(message, fields_filter) for fields_filter in router_filters)
         else:
             return True

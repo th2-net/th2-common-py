@@ -87,7 +87,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
                 ]
 
             if len(services) != 1:
-                raise GrpcRouterError('Number of services matching properties should be 1. '
+                raise GrpcRouterError(f'Number of services matching properties should be 1, not {len(services)}. '
                                       'Check your gRPC configuration')
 
             return services[0]

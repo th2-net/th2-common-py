@@ -155,30 +155,33 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
         aliases_found_by_attrs = self.configuration.find_queues_by_attr(attrs)
         aliases_to_messages = self.split_and_filter(aliases_found_by_attrs, message)
         result_check = check(aliases_to_messages)
+
         if result_check is not None:
             raise result_check
+
         for alias, message in aliases_to_messages.items():
             try:
                 sender = self.get_sender(alias)
                 sender.start()
                 sender.send(message)
+
             except Exception:
                 raise RouterError('Can not start sender')
 
     def split_and_filter(self, queue_aliases_to_configs: Dict[str, QueueConfiguration], batch: Any) -> Dict[str, Any]:
         result: Dict[str, MessageGroupBatch] = defaultdict(MessageGroupBatch)
 
-        for message in self._get_messages(batch):
+        for message_group in self._get_messages(batch):
             dropped_on_aliases = set()
 
             for queue_alias, queue_config in queue_aliases_to_configs.items():
                 filters = queue_config.filters
-                if len(filters) == 0 or self._filter_strategy.verify(message, router_filters=filters):
-                    self._add_message(result[queue_alias], message)
+                if self._filter_strategy.verify(message_group, router_filters=filters):
+                    self._add_message(result[queue_alias], message_group)
                 else:
                     dropped_on_aliases.add(queue_alias)
 
-            self.update_dropped_metrics(MessageGroupBatch(groups=[message]), *dropped_on_aliases)
+            self.update_dropped_metrics(MessageGroupBatch(groups=[message_group]), *dropped_on_aliases)
 
         return result
 

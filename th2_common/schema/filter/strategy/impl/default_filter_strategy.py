@@ -18,7 +18,7 @@ from th2_common.schema.filter.strategy.abstract_filter_strategy import AbstractF
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, \
     MqRouterFilterConfiguration
 from th2_common.schema.strategy.field_extraction.th2_msg_field_extraction import Th2MsgFieldExtraction
-from th2_grpc_common.common_pb2 import Message
+from th2_grpc_common.common_pb2 import MessageGroup
 
 
 class DefaultFilterStrategy(AbstractFilterStrategy):
@@ -29,11 +29,12 @@ class DefaultFilterStrategy(AbstractFilterStrategy):
         self.extract_strategy = Th2MsgFieldExtraction()
 
     def verify(self,
-               message: Message,
+               message: MessageGroup,
                router_filters: Optional[RouterFiltersType] = None) -> bool:
         if isinstance(router_filters, MqRouterFilterConfiguration):
             filters = router_filters.message + router_filters.metadata
-            return self.check_values(self.extract_strategy.get_fields(message), filters)
+            return any(self.check_values(self.extract_strategy.get_fields(any_message), filters)
+                       for any_message in message.messages)
 
         elif isinstance(router_filters, list) and len(router_filters) > 0:
             return any(self.verify(message, fields_filter) for fields_filter in router_filters)
@@ -42,8 +43,5 @@ class DefaultFilterStrategy(AbstractFilterStrategy):
             return True
 
     def check_values(self, message_fields: Dict[str, str], field_filters: List[FieldFilterConfiguration]) -> bool:
-        for field_filter in field_filters:
-            msg_field_value = message_fields[field_filter.field_name]
-            if not self.check_value(msg_field_value, field_filter):
-                return False
-        return True
+        return all(self.check_value(message_fields[field_filter.field_name], field_filter)
+                   for field_filter in field_filters)
