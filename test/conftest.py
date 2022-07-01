@@ -12,16 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from test.resources.field_extraction.messages import any_message, any_message_raw, message_dict, raw_message_dict
+from test.fixtures import factory, filtered_messages, grpc_router
 
-from th2_common.schema.strategy.field_extraction.th2_msg_field_extraction import Th2MsgFieldExtraction
-
-
-def test_message_field_extraction() -> None:
-    extract_strategy = Th2MsgFieldExtraction()
-    assert extract_strategy.get_fields(any_message) == message_dict
-
-
-def test_raw_message_field_extraction() -> None:
-    extract_strategy = Th2MsgFieldExtraction()
-    assert extract_strategy.get_fields(any_message_raw) == raw_message_dict
+import pytest

@@ -267,14 +267,17 @@ grpc_configuration_dict = {  # noqa: ECE001
 }
 
 grpc_router_configuration_dict = {
-    'options': [('option1', 'value1'), ('option2', 2)],
     'retry_policy': {
         'backoff_multiplier': 2,
         'initial_backoff': 5.0,
         'max_attempts': 5,
         'max_backoff': 60.0,
         'services': None,
-        'status_codes': None
+        'status_codes': None,
+        'request_size_limit': [
+            ('grpc.max_receive_message_length', 4194304),
+            ('grpc.max_send_message_length', 4194304)
+        ],
     },
     'workers': 5
 }
@@ -289,7 +292,7 @@ cradle_configuration_dict = {
 }
 
 prometheus_configuration_dict = {
-    'enabled': True,
+    'enabled': False,
     'host': '0.0.0.0',
     'port': 9752
 }

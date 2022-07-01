@@ -12,31 +12,44 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from test.resources.filter_strategy.default_filter_strategy_test import filtered_by_queue, message_group_batch
-from test.resources.test_classes import rabbit_message_router, test_common_factory
-from test.resources.test_util import object_to_dict
+from test.test_filter_strategy.resources.default_filter_strategy_test import filtered_by_queue
+from test.test_filter_strategy.resources.messages import any_message, any_message_raw, message_dict, raw_message_dict
+from test.utils import object_to_dict
+from typing import Any, Dict
 
-filtered_messages = rabbit_message_router.split_and_filter(
-    queue_aliases_to_configs=test_common_factory.message_router_configuration.queues,  # type: ignore
-    batch=message_group_batch
-)
+import pytest
+from th2_common.schema.strategy.field_extraction.th2_msg_field_extraction import Th2MsgFieldExtraction
 
 
-def test_default_filter_strategy_and_filter() -> None:
+def test_message_field_extraction() -> None:
+    extract_strategy = Th2MsgFieldExtraction()
+    assert extract_strategy.get_fields(any_message) == message_dict
+
+
+def test_raw_message_field_extraction() -> None:
+    extract_strategy = Th2MsgFieldExtraction()
+    assert extract_strategy.get_fields(any_message_raw) == raw_message_dict
+
+
+@pytest.mark.usefixtures('filtered_messages')
+def test_default_filter_strategy_and_filter(filtered_messages: Dict[str, Any]) -> None:
     queue = 'queue_AND_filter'
     assert object_to_dict(filtered_messages)[queue] == object_to_dict(filtered_by_queue)[queue]
 
 
-def test_default_filter_strategy_or_filter() -> None:
+@pytest.mark.usefixtures('filtered_messages')
+def test_default_filter_strategy_or_filter(filtered_messages: Dict[str, Any]) -> None:
     queue = 'queue_OR_filter'
     assert object_to_dict(filtered_messages)[queue] == object_to_dict(filtered_by_queue)[queue]
 
 
-def test_default_filter_strategy_or_and_filter() -> None:
+@pytest.mark.usefixtures('filtered_messages')
+def test_default_filter_strategy_or_and_filter(filtered_messages: Dict[str, Any]) -> None:
     queue = 'queue_OR_AND_filter'
     assert object_to_dict(filtered_messages)[queue] == object_to_dict(filtered_by_queue)[queue]
 
 
-def test_default_filter_strategy_empty_filter() -> None:
+@pytest.mark.usefixtures('filtered_messages')
+def test_default_filter_strategy_empty_filter(filtered_messages: Dict[str, Any]) -> None:
     queue = 'queue_EMPTY_filter'
     assert object_to_dict(filtered_messages)[queue] == object_to_dict(filtered_by_queue)[queue]

@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 import json
-from typing import Any, Dict, ItemsView, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration
@@ -39,16 +39,11 @@ class GrpcConnectionConfiguration(AbstractConfiguration):
     def __init__(self,
                  workers: int = 5,
                  retryPolicy: Optional[Dict[str, Any]] = None,
-                 options: Optional[Dict[str, int]] = None,
                  **kwargs: Any) -> None:
         if retryPolicy is None:
             retryPolicy = {}
         self.workers = int(workers)
         self.retry_policy = GrpcRetryPolicyConfiguration(**retryPolicy)
-        if options is not None:
-            self.options: Optional[ItemsView[str, int]] = options.items()
-        else:
-            self.options = options
 
         self.check_unexpected_args(kwargs)
 
@@ -111,6 +106,7 @@ class GrpcRetryPolicyConfiguration(AbstractConfiguration):
                  backoffMultiplier: int = 2,
                  statusCodes: Optional[List[str]] = None,
                  services: Optional[List[ServicesDictType]] = None,
+                 request_size_limit: Union[int, float] = 4,
                  **kwargs: Any) -> None:
         """
         Initializes retry policy for later usage of 'options' parameter.
@@ -129,6 +125,10 @@ class GrpcRetryPolicyConfiguration(AbstractConfiguration):
         self.backoff_multiplier = backoffMultiplier
         self.status_codes = statusCodes
         self.services = services
+        self.request_size_limit = [
+            ('grpc.max_receive_message_length', round(request_size_limit * 1024 * 1024)),
+            ('grpc.max_send_message_length', round(request_size_limit * 1024 * 1024))
+        ]
 
         self.check_unexpected_args(kwargs)
 
@@ -164,11 +164,15 @@ class GrpcEndpointConfiguration(AbstractConfiguration):
     def __init__(self,
                  host: str,
                  port: int,
-                 attributes: List[str],
+                 attributes: Optional[List[str]] = None,
                  **kwargs: Any) -> None:
         self.host = host
         self.port = port
-        self.attributes = attributes
+
+        if attributes is not None:
+            self.attributes = attributes
+        else:
+            self.attributes = []
 
         self.check_unexpected_args(kwargs)
 

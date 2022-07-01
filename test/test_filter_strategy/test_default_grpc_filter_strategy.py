@@ -12,32 +12,37 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from test.resources.test_classes import grpc_router, TestConnection
+from unittest.mock import Mock
 
+import pytest
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
+from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 
 
-def test_default_grpc_filter_strategy_simple_filter() -> None:
+@pytest.mark.usefixtures('grpc_router')
+def test_default_grpc_filter_strategy_simple_filter(grpc_router: DefaultGrpcRouter) -> None:
     services = grpc_router._filter_services_by_name(service_class_name='ServiceClass1')
-    connection = TestConnection(services=services)  # type: ignore
+    connection = DefaultGrpcRouter.Connection(services=services, stub_class=Mock(), channels=Mock(), options=Mock())
 
     filtered_service = connection._filter_services(properties={'session_alias': 'asdfgh', 'msg11': ''})
 
     assert filtered_service.service_class == 'ServiceClass1'
 
 
-def test_default_grpc_filter_strategy_multiple_filters() -> None:
+@pytest.mark.usefixtures('grpc_router')
+def test_default_grpc_filter_strategy_multiple_filters(grpc_router: DefaultGrpcRouter) -> None:
     services = grpc_router._filter_services_by_name(service_class_name='ServiceClass2')
-    connection = TestConnection(services=services)  # type: ignore
+    connection = DefaultGrpcRouter.Connection(services=services, stub_class=Mock(), channels=Mock(), options=Mock())
 
     filtered_service = connection._filter_services(properties={'prop21': '21', 'prop22': '22', 'prop23': '23'})
 
     assert filtered_service.service_class == 'ServiceClass2'
 
 
-def test_default_grpc_filter_strategy_multiple_services() -> None:
+@pytest.mark.usefixtures('grpc_router')
+def test_default_grpc_filter_strategy_multiple_services(grpc_router: DefaultGrpcRouter) -> None:
     services = grpc_router._filter_services_by_name(service_class_name='ServiceClass3')
-    connection = TestConnection(services=services)  # type: ignore
+    connection = DefaultGrpcRouter.Connection(services=services, stub_class=Mock(), channels=Mock(), options=Mock())
 
     try:
         connection._filter_services(properties={'prop31': '31', 'prop32': '32'})
@@ -46,9 +51,10 @@ def test_default_grpc_filter_strategy_multiple_services() -> None:
         assert True  # two services pass the filter -> GrpcRouterError
 
 
-def test_default_grpc_filter_strategy_no_services() -> None:
+@pytest.mark.usefixtures('grpc_router')
+def test_default_grpc_filter_strategy_no_services(grpc_router: DefaultGrpcRouter) -> None:
     services = grpc_router._filter_services_by_name(service_class_name='ServiceClass3')
-    connection = TestConnection(services=services)  # type: ignore
+    connection = DefaultGrpcRouter.Connection(services=services, stub_class=Mock(), channels=Mock(), options=Mock())
 
     try:
         connection._filter_services(properties={'any_filed': '0'})
