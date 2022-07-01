@@ -48,7 +48,7 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
                 grpc.Server: A server object.
         """
         server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers),
-                             options=self.grpc_router_configuration.retry_policy.request_size_limit)
+                             options=self.grpc_router_configuration.request_size_limit)
         self.__add_insecure_port(server)
         self.servers.append(server)
 

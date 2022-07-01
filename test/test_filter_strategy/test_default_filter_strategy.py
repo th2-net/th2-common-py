@@ -12,8 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from test.test_filter_strategy.resources.default_filter_strategy_test import filtered_by_queue
-from test.test_filter_strategy.resources.messages import any_message, any_message_raw, message_dict, raw_message_dict
+from test.test_filter_strategy.resources.messages_for_extraction import any_message, any_message_raw, message_dict, \
+    raw_message_dict
+from test.test_filter_strategy.resources.messages_for_filtering import filtered_by_queue
 from test.utils import object_to_dict
 from typing import Any, Dict
 

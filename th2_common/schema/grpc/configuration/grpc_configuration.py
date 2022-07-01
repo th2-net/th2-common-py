@@ -39,11 +39,16 @@ class GrpcConnectionConfiguration(AbstractConfiguration):
     def __init__(self,
                  workers: int = 5,
                  retryPolicy: Optional[Dict[str, Any]] = None,
+                 request_size_limit: Union[int, float] = 4,
                  **kwargs: Any) -> None:
         if retryPolicy is None:
             retryPolicy = {}
         self.workers = int(workers)
         self.retry_policy = GrpcRetryPolicyConfiguration(**retryPolicy)
+        self.request_size_limit = [
+            ('grpc.max_receive_message_length', round(request_size_limit * 1024 * 1024)),
+            ('grpc.max_send_message_length', round(request_size_limit * 1024 * 1024))
+        ]
 
         self.check_unexpected_args(kwargs)
 
@@ -106,7 +111,6 @@ class GrpcRetryPolicyConfiguration(AbstractConfiguration):
                  backoffMultiplier: int = 2,
                  statusCodes: Optional[List[str]] = None,
                  services: Optional[List[ServicesDictType]] = None,
-                 request_size_limit: Union[int, float] = 4,
                  **kwargs: Any) -> None:
         """
         Initializes retry policy for later usage of 'options' parameter.
@@ -125,10 +129,6 @@ class GrpcRetryPolicyConfiguration(AbstractConfiguration):
         self.backoff_multiplier = backoffMultiplier
         self.status_codes = statusCodes
         self.services = services
-        self.request_size_limit = [
-            ('grpc.max_receive_message_length', round(request_size_limit * 1024 * 1024)),
-            ('grpc.max_send_message_length', round(request_size_limit * 1024 * 1024))
-        ]
 
         self.check_unexpected_args(kwargs)
 

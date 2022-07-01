@@ -20,8 +20,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from th2_grpc_common.common_pb2 import AnyMessage, ConnectionID, Direction, EventID, ListValue, Message, \
     MessageID, MessageMetadata, RawMessage, RawMessageMetadata, Value
 
-
-cl_ord_id = random.randint(10 ** 6, (10 ** 7) - 1)
+cl_ord_id = random.randint(10 ** 5, (10 ** 6) - 1)
 transact_time = datetime.now().isoformat()
 parent_event_id = EventID()
 ts = Timestamp()
@@ -31,24 +30,14 @@ ts = Timestamp()
 trading_party_message = Value(message_value=Message(fields={
     'NoPartyIDs': Value(list_value=ListValue(values=[
         Value(message_value=Message(fields={
-            'PartyID': Value(simple_value='DEMO-CONN1'),
-            'PartyIDSource': Value(simple_value='D'),
-            'PartyRole': Value(simple_value='76')
+            'PartyID': Value(simple_value='0'),
+            'PartyIDSource': Value(simple_value='A'),
+            'PartyRole': Value(simple_value='1')
         })),
         Value(message_value=Message(fields={
             'PartyID': Value(simple_value='0'),
-            'PartyIDSource': Value(simple_value='P'),
-            'PartyRole': Value(simple_value='3')
-        })),
-        Value(message_value=Message(fields={
-            'PartyID': Value(simple_value='0'),
-            'PartyIDSource': Value(simple_value='P'),
-            'PartyRole': Value(simple_value='122')
-        })),
-        Value(message_value=Message(fields={
-            'PartyID': Value(simple_value='3'),
-            'PartyIDSource': Value(simple_value='P'),
-            'PartyRole': Value(simple_value='12')
+            'PartyIDSource': Value(simple_value='A'),
+            'PartyRole': Value(simple_value='2')
         }))
     ]))
 }))
@@ -57,23 +46,16 @@ message = Message(parent_event_id=parent_event_id,
                   metadata=MessageMetadata(
                       message_type='NewOrderSingle',
                       id=MessageID(
-                          connection_id=ConnectionID(session_alias='arfq02fix10'),
+                          connection_id=ConnectionID(session_alias='jsTUURfy'),
                           direction=Direction.SECOND
                       )
                   ),
                   fields={
-                      'SecurityID': Value(simple_value='5221001'),
-                      'SecurityIDSource': Value(simple_value='8'),
-                      'OrdType': Value(simple_value='2'),
-                      'AccountType': Value(simple_value='1'),
-                      'OrderCapacity': Value(simple_value='A'),
-                      'OrderQty': Value(simple_value='30'),
-                      'DisplayQty': Value(simple_value='30'),
-                      'Price': Value(simple_value='55'),
+                      'OrdType': Value(simple_value='1'),
+                      'AccountType': Value(simple_value='2'),
+                      'OrderQty': Value(simple_value='3'),
+                      'Price': Value(simple_value='4'),
                       'ClOrdID': Value(simple_value=str(cl_ord_id)),
-                      'SecondaryClOrdID': Value(simple_value='11111'),
-                      'Side': Value(simple_value='1'),
-                      'TimeInForce': Value(simple_value='0'),
                       'TransactTime': Value(simple_value=transact_time),
                       'TradingParty': trading_party_message
                   })
@@ -83,55 +65,37 @@ any_message = AnyMessage(message=message)
 trading_party_dict = {
     'NoPartyIDs': [
         {
-            'PartyID': 'DEMO-CONN1',
-            'PartyIDSource': 'D',
-            'PartyRole': '76'
+            'PartyID': '0',
+            'PartyIDSource': 'A',
+            'PartyRole': '1'
         },
         {
             'PartyID': '0',
-            'PartyIDSource': 'P',
-            'PartyRole': '3'
-        },
-        {
-            'PartyID': '0',
-            'PartyIDSource': 'P',
-            'PartyRole': '122'
-        },
-        {
-            'PartyID': '3',
-            'PartyIDSource': 'P',
-            'PartyRole': '12'
+            'PartyIDSource': 'A',
+            'PartyRole': '2'
         }
     ]
 }
 
 message_dict = {
-    'AccountType': '1',
+    'OrdType': '1',
+    'AccountType': '2',
+    'OrderQty': '3',
+    'Price': '4',
     'ClOrdID': str(cl_ord_id),
-    'DisplayQty': '30',
-    'OrdType': '2',
-    'OrderCapacity': 'A',
-    'OrderQty': '30',
-    'Price': '55',
-    'SecondaryClOrdID': '11111',
-    'SecurityID': '5221001',
-    'SecurityIDSource': '8',
-    'Side': '1',
-    'TimeInForce': '0',
-    'TradingParty': trading_party_dict,
     'TransactTime': transact_time,
-    'session_alias': 'arfq02fix10',
+    'TradingParty': trading_party_dict,
+    'session_alias': 'jsTUURfy',
     'message_type': 'NewOrderSingle',
     'direction': 'SECOND'
 }
-
 
 #  AnyMessage.raw_message
 
 raw_message = RawMessage(parent_event_id=parent_event_id,
                          metadata=RawMessageMetadata(
                              id=MessageID(
-                                 connection_id=ConnectionID(session_alias='arfq02fix10'),
+                                 connection_id=ConnectionID(session_alias='jsTUURfy'),
                                  direction=Direction.SECOND
                              ),
                              timestamp=ts,
@@ -143,7 +107,7 @@ raw_message = RawMessage(parent_event_id=parent_event_id,
 any_message_raw = AnyMessage(raw_message=raw_message)
 
 raw_message_dict = {
-    'session_alias': 'arfq02fix10',
+    'session_alias': 'jsTUURfy',
     'direction': 'SECOND',
     'protocol': '_protocol'
 }

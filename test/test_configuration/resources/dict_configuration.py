@@ -274,11 +274,11 @@ grpc_router_configuration_dict = {
         'max_backoff': 60.0,
         'services': None,
         'status_codes': None,
-        'request_size_limit': [
-            ('grpc.max_receive_message_length', 4194304),
-            ('grpc.max_send_message_length', 4194304)
-        ],
     },
+    'request_size_limit': [
+        ('grpc.max_receive_message_length', 4194304),
+        ('grpc.max_send_message_length', 4194304)
+    ],
     'workers': 5
 }
 

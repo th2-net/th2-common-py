@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 from pathlib import Path
-from test.test_filter_strategy.resources.default_filter_strategy_test import message_group_batch
+from test.test_filter_strategy.resources.messages_for_filtering import message_group_batch
 from typing import Any, Dict
 from unittest.mock import Mock
 
