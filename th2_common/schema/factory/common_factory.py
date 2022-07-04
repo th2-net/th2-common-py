@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@ import base64
 import json
 import logging
 import os
-import sys
-from os import mkdir, getcwd
+from os import getcwd, mkdir
 from pathlib import Path
+import sys
+from typing import Any, Dict, List, Optional, Type
 
 from kubernetes import client, config
-
+from kubernetes.client import V1ConfigMapList
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.factory.abstract_common_factory import AbstractCommonFactory
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
@@ -58,29 +59,28 @@ class CommonFactory(AbstractCommonFactory):
 
     #   FIX: Add path to dictionary as a parameter
     def __init__(self,
-                 config_path=None,
-                 rabbit_mq_config_filepath=CONFIG_DEFAULT_PATH / RABBIT_MQ_CONFIG_FILENAME,
-                 mq_router_config_filepath=CONFIG_DEFAULT_PATH / MQ_ROUTER_CONFIG_FILENAME,
-                 connection_manager_config_filepath=CONFIG_DEFAULT_PATH / CONNECTION_MANAGER_CONFIG_FILENAME,
-                 grpc_config_filepath=CONFIG_DEFAULT_PATH / GRPC_CONFIG_FILENAME,
-                 grpc_router_config_filepath=CONFIG_DEFAULT_PATH / GRPC_ROUTER_CONFIG_FILENAME,
-                 cradle_config_filepath=CONFIG_DEFAULT_PATH / CRADLE_CONFIG_FILENAME,
-                 prometheus_config_filepath=CONFIG_DEFAULT_PATH / PROMETHEUS_CONFIG_FILENAME,
-                 custom_config_filepath=CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
-                 logging_config_filepath=None,
+                 config_path: Optional[Path] = None,
+                 rabbit_mq_config_filepath: Path = CONFIG_DEFAULT_PATH / RABBIT_MQ_CONFIG_FILENAME,
+                 mq_router_config_filepath: Path = CONFIG_DEFAULT_PATH / MQ_ROUTER_CONFIG_FILENAME,
+                 connection_manager_config_filepath: Path = CONFIG_DEFAULT_PATH / CONNECTION_MANAGER_CONFIG_FILENAME,
+                 grpc_config_filepath: Path = CONFIG_DEFAULT_PATH / GRPC_CONFIG_FILENAME,
+                 grpc_router_config_filepath: Path = CONFIG_DEFAULT_PATH / GRPC_ROUTER_CONFIG_FILENAME,
+                 cradle_config_filepath: Path = CONFIG_DEFAULT_PATH / CRADLE_CONFIG_FILENAME,
+                 prometheus_config_filepath: Path = CONFIG_DEFAULT_PATH / PROMETHEUS_CONFIG_FILENAME,
+                 custom_config_filepath: Path = CONFIG_DEFAULT_PATH / CUSTOM_CONFIG_FILENAME,
+                 logging_config_filepath: Optional[Path] = None,
 
-                 message_parsed_batch_router_class=RabbitParsedBatchRouter,
-                 message_raw_batch_router_class=RabbitRawBatchRouter,
-                 message_group_batch_router_class=RabbitMessageGroupBatchRouter,
-                 event_batch_router_class=EventBatchRouter,
-                 grpc_router_class=DefaultGrpcRouter) -> None:
+                 message_parsed_batch_router_class: Type[RabbitParsedBatchRouter] = RabbitParsedBatchRouter,
+                 message_raw_batch_router_class: Type[RabbitRawBatchRouter] = RabbitRawBatchRouter,
+                 message_group_batch_router_class: Type[RabbitMessageGroupBatchRouter] = RabbitMessageGroupBatchRouter,
+                 event_batch_router_class: Type[EventBatchRouter] = EventBatchRouter,
+                 grpc_router_class: Type[DefaultGrpcRouter] = DefaultGrpcRouter) -> None:
 
         if config_path is not None:
             config_path = Path(config_path)
             rabbit_mq_config_filepath = config_path / CommonFactory.RABBIT_MQ_CONFIG_FILENAME
             mq_router_config_filepath = config_path / CommonFactory.MQ_ROUTER_CONFIG_FILENAME
-            connection_manager_config_filepath = config_path / \
-                                                 CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME
+            connection_manager_config_filepath = config_path / CommonFactory.CONNECTION_MANAGER_CONFIG_FILENAME
             grpc_config_filepath = config_path / CommonFactory.GRPC_CONFIG_FILENAME
             grpc_router_config_filepath = config_path / CommonFactory.GRPC_ROUTER_CONFIG_FILENAME
             cradle_config_filepath = config_path / CommonFactory.CRADLE_CONFIG_FILENAME
@@ -102,11 +102,11 @@ class CommonFactory(AbstractCommonFactory):
                          logging_config_filepath)
 
     @staticmethod
-    def calculate_path(parsed_args, name_attr, path_default) -> Path:
+    def calculate_path(parsed_args: argparse.Namespace, name_attr: str, path_default: str) -> Path:
         return getattr(parsed_args, name_attr, CommonFactory.CONFIG_DEFAULT_PATH / path_default)
 
     @staticmethod
-    def create_from_arguments(args=None):
+    def create_from_arguments(args: Optional[List[str]] = None) -> 'CommonFactory':
         if args is None:
             args = sys.argv[1:]
 
@@ -148,9 +148,11 @@ class CommonFactory(AbstractCommonFactory):
             return CommonFactory(config_path=result.configPath)
         else:
             return CommonFactory(
-                rabbit_mq_config_filepath=CommonFactory.calculate_path(result, 'rabbitConfiguration',
+                rabbit_mq_config_filepath=CommonFactory.calculate_path(result,
+                                                                       'rabbitConfiguration',
                                                                        CommonFactory.RABBIT_MQ_CONFIG_FILENAME),
-                mq_router_config_filepath=CommonFactory.calculate_path(result, 'messageRouterConfiguration',
+                mq_router_config_filepath=CommonFactory.calculate_path(result,
+                                                                       'messageRouterConfiguration',
                                                                        CommonFactory.MQ_ROUTER_CONFIG_FILENAME),
                 connection_manager_config_filepath=CommonFactory.calculate_path(
                     result,
@@ -170,7 +172,7 @@ class CommonFactory(AbstractCommonFactory):
             )
 
     @staticmethod
-    def create_from_kubernetes(namespace, box_name, context_name=None):
+    def create_from_kubernetes(namespace: str, box_name: str, context_name: Any = None) -> 'CommonFactory':
 
         config.load_kube_config(context=context_name)
 
@@ -192,11 +194,11 @@ class CommonFactory(AbstractCommonFactory):
         prometheus_path = config_dir / CommonFactory.PROMETHEUS_CONFIG_FILENAME
         box_configuration_path = config_dir / CommonFactory.BOX_FILENAME
 
-        rabbit_mq_encoded_password = v1.read_namespaced_secret(CommonFactory.RABBITMQ_SECRET_NAME, namespace).data \
-            .get(CommonFactory.RABBITMQ_PASSWORD_KEY)
+        rabbit_mq_encoded_password = v1.read_namespaced_secret(
+            CommonFactory.RABBITMQ_SECRET_NAME, namespace).data.get(CommonFactory.RABBITMQ_PASSWORD_KEY)
 
-        cassandra_encoded_password = v1.read_namespaced_secret(CommonFactory.CASSANDRA_SECRET_NAME, namespace).data \
-            .get(CommonFactory.CASSANDRA_PASSWORD_KEY)
+        cassandra_encoded_password = v1.read_namespaced_secret(
+            CommonFactory.CASSANDRA_SECRET_NAME, namespace).data.get(CommonFactory.CASSANDRA_PASSWORD_KEY)
 
         os.environ[CommonFactory.KEY_RABBITMQ_PASS] = CommonFactory._decode_from_base64(rabbit_mq_encoded_password)
         os.environ[CommonFactory.KEY_CASSANDRA_PASS] = CommonFactory._decode_from_base64(cassandra_encoded_password)
@@ -233,8 +235,10 @@ class CommonFactory(AbstractCommonFactory):
 
         CommonFactory._get_dictionary(box_name, v1.list_config_map_for_all_namespaces(), dictionary_path)
 
-        CommonFactory._get_box_config(config_maps_dict, f'{box_name}-app-config',
-                                      CommonFactory.BOX_FILENAME, box_configuration_path)
+        CommonFactory._get_box_config(config_maps_dict,
+                                      f'{box_name}-app-config',
+                                      CommonFactory.BOX_FILENAME,
+                                      box_configuration_path)
 
         return CommonFactory(
             rabbit_mq_config_filepath=rabbit_path,
@@ -248,27 +252,30 @@ class CommonFactory(AbstractCommonFactory):
         )
 
     @staticmethod
-    def _decode_from_base64(data):
+    def _decode_from_base64(data: str) -> str:
         data_bytes = data.encode('ascii')
         data_string_bytes = base64.b64decode(data_bytes)
         return data_string_bytes.decode('ascii')
 
     @staticmethod
-    def _get_dictionary(box_name, config_maps, dictionary_path):
+    def _get_dictionary(box_name: str, config_maps: V1ConfigMapList, dictionary_path: Path) -> None:
         if 'items' in config_maps.to_dict()['items']:
             try:
                 for config_map in config_maps.to_dict()['items']:
-                    if config_map['metadata']['name'].startswith(box_name) & \
+                    if config_map['metadata']['name'].startswith(box_name) and \
                             config_map['metadata']['name'].endswith('-dictionary'):
                         with open(dictionary_path, 'w') as dictionary_file:
                             json.dump(config_map, dictionary_file)
             except KeyError:
-                logger.error(f'dictionary config map\'s metadata not valid. Some keys are absent.')
+                logger.error("dictionary config map\'s metadata not valid. Some keys are absent.")
             except IOError:
                 logger.error('Failed to write file for dictionary.')
 
     @staticmethod
-    def _get_config(config_maps_dict, name, config_file_name, path):
+    def _get_config(config_maps_dict: Dict[str, Dict],
+                    name: str,
+                    config_file_name: str,
+                    path: Path) -> None:
         try:
             if 'items' in config_maps_dict:
                 for config_map in config_maps_dict['items']:
@@ -279,12 +286,15 @@ class CommonFactory(AbstractCommonFactory):
                         with open(path, 'w') as file:
                             json.dump(config_data, file)
         except KeyError:
-            logger.error(f'{name}\'s data not valid. Some keys are absent.')
+            logger.error(f"{name}\'s data not valid. Some keys are absent.")
         except IOError:
             logger.error(f'Failed to write ${name} config.')
 
     @staticmethod
-    def _get_box_config(config_maps_dict, name, config_file_name, path):
+    def _get_box_config(config_maps_dict: Dict[str, Dict],
+                        name: str,
+                        config_file_name: str,
+                        path: Path) -> None:
         try:
             if 'items' in config_maps_dict:
                 for config_map in config_maps_dict['items']:

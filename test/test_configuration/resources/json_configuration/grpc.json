@@ -1,0 +1,123 @@
+{
+	"server":{
+		"attributes":null,
+		"host":"localhost",
+		"port":8080,
+		"workers":5
+	},
+
+	"services": {
+		"service1": {
+			"endpoints": {
+				"endpoint11": {
+					"attributes": [],
+					"host": "0.0.0.1",
+					"port": "1010"
+				},
+				"endpoint12": {
+					"attributes": [],
+					"host": "0.0.0.2",
+					"port": 1001
+				}
+			},
+			"service-class": "ServiceClass1",
+			"strategy": {
+				"endpoints": [
+					"endpoint"
+				],
+				"name": "robin"
+			},
+			"filters": [
+				{
+					"metadata": [
+						{
+							"fieldName": "session_alias",
+							"expectedValue": "qwerty",
+							"operation": "NOT_EQUAL"
+						}
+					],
+					"message": [
+						{
+							"fieldName": "msg11",
+							"operation": "EMPTY"
+						}
+					]
+				}
+			]
+		},
+		"service2": {
+			"endpoints": {
+				"endpoint2.1": {
+					"attributes": [],
+					"host": "0.0.0.3",
+					"port": 1011
+				}
+			},
+			"service-class": "ServiceClass2",
+			"filters": [
+				{
+					"properties": [
+						{
+							"fieldName": "prop21",
+							"value": "21",
+							"operation": "EQUAL"
+						},
+						{
+							"fieldName": "prop22",
+							"value": "22",
+							"operation": "EQUAL"
+						}
+					]
+				},
+				{
+					"properties": [
+						{
+							"fieldName": "prop23",
+							"operation": "NOT_EMPTY"
+						}
+					]
+				}
+			]
+		},
+		"service3": {
+			"endpoints": {},
+			"service-class": "ServiceClass3",
+			"filters": [
+				{
+					"properties": [
+						{
+							"fieldName": "prop31",
+							"value": "31",
+							"operation": "EQUAL"
+						},
+						{
+							"fieldName": "prop32",
+							"value": "32",
+							"operation": "EQUAL"
+						}
+					]
+				}
+			]
+		},
+		"service4": {
+			"endpoints": {},
+			"service-class": "ServiceClass3",
+			"filters": [
+				{
+					"properties": [
+						{
+							"fieldName": "prop31",
+							"value": "31",
+							"operation": "EQUAL"
+						},
+						{
+							"fieldName": "prop32",
+							"value": "32",
+							"operation": "EQUAL"
+						}
+					]
+				}
+			]
+		}
+	}
+}

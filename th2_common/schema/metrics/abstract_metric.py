@@ -1,4 +1,5 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2022 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,37 +13,29 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from abc import ABC, abstractmethod
-from typing import Set
+from abc import abstractmethod
 
 from th2_common.schema.metrics.metric import Metric
-from th2_common.schema.metrics.metric_monitor import MetricMonitor
 
 
-class AbstractMetric(Metric, ABC):
+class AbstractMetric(Metric):
 
-    __disabled_monitors: Set[MetricMonitor] = set()
+    def __init__(self) -> None:
+        self._enabled: bool = False
 
-    @property
-    def enabled(self) -> bool:
-        return not self.__disabled_monitors
+    def is_enabled(self) -> bool:
+        return self._enabled
 
-    def create_monitor(self, name: str) -> MetricMonitor:
-        return MetricMonitor(name, self)
+    def enable(self) -> None:
+        if not self._enabled:
+            self._enabled = True
+            self.on_value_change(self._enabled)
 
-    def is_enabled(self, monitor: MetricMonitor) -> bool:
-        return monitor not in self.__disabled_monitors
-
-    def enable(self, monitor: MetricMonitor):
-        if not self.is_enabled(monitor):
-            self.__disabled_monitors.remove(monitor)
-            self.on_value_change(self.enabled)
-
-    def disable(self, monitor: MetricMonitor):
-        if self.is_enabled(monitor):
-            self.__disabled_monitors.add(monitor)
-            self.on_value_change(False)
+    def disable(self) -> None:
+        if self._enabled:
+            self._enabled = False
+            self.on_value_change(self._enabled)
 
     @abstractmethod
-    def on_value_change(self, value: bool):
+    def on_value_change(self, value: bool) -> None:
         pass

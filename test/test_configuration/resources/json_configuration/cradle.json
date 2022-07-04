@@ -1,0 +1,8 @@
+{
+  "dataCenter":"some_datacenter",
+  "host":"localhost",
+  "port":8080,
+  "keyspace":"some_keyspace",
+  "username":"user1",
+  "password":"password123"
+}

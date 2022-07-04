@@ -12,21 +12,28 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from prometheus_client import Counter, Gauge
 from th2_common.schema.metrics import common_metrics
-from th2_common.schema.util.util import get_session_alias_and_direction_group, get_sequence
+from th2_common.schema.util.util import get_sequence, get_session_alias_and_direction_group
+from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
-def update_total_metrics(batch, th2_pin, message_counter, group_counter, sequence_gauge):
+def update_total_metrics(batch: MessageGroupBatch,
+                         th2_pin: str,
+                         message_counter: Counter,
+                         group_counter: Counter,
+                         sequence_gauge: Gauge) -> None:
     for group in batch.groups:
         gr_labels = (th2_pin, ) + get_session_alias_and_direction_group(group.messages[0])
-        update_message_metrics(group.messages, message_counter, gr_labels)
+        update_message_metrics(group.messages, message_counter, *gr_labels)
         if group_counter:
             group_counter.labels(*gr_labels).inc()
         if sequence_gauge:
             sequence_gauge.labels(*gr_labels).set(get_sequence(group))
 
 
-def update_message_metrics(messages, counter, labels):
+def update_message_metrics(messages: RepeatedCompositeFieldContainer, counter: Counter, *labels: str) -> None:
     for msg in messages:
         if msg.HasField('raw_message'):
             counter.labels(*labels, common_metrics.TH2_MESSAGE_TYPES['raw']).inc()
@@ -34,9 +41,12 @@ def update_message_metrics(messages, counter, labels):
             counter.labels(*labels, common_metrics.TH2_MESSAGE_TYPES['parsed']).inc()
 
 
-def update_dropped_metrics(batch, th2_pin, message_counter, group_counter):
+def update_dropped_metrics(batch: MessageGroupBatch,
+                           th2_pin: str,
+                           message_counter: Counter,
+                           group_counter: Counter) -> None:
     for group in batch.groups:
         labels = (th2_pin, ) + get_session_alias_and_direction_group(group.messages[0])
-        update_message_metrics(group.messages, message_counter, labels)
+        update_message_metrics(group.messages, message_counter, *labels)
         if group_counter:
             group_counter.labels(*labels).inc()
