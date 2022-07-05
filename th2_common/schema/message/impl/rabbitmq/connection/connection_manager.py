@@ -106,7 +106,10 @@ class ConnectionManager:
 
         self.__metrics.disable()
 
-        asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
+        graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
+        graceful_shutdown.result()
+
+        self.publisher_consumer_thread.join()
 
     async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
@@ -116,4 +119,5 @@ class ConnectionManager:
                 task.cancel()
                 with suppress(asyncio.exceptions.CancelledError):
                     await task
-        self._loop.stop()
+
+        self._loop.call_soon_threadsafe(self._loop.stop)
