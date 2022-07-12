@@ -90,9 +90,9 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             self.update_total_metrics(value)
 
             if logger.isEnabledFor(logging.TRACE):  # type: ignore
-                logger.trace(f'Received message: {self.to_trace_string(value)}')  # type: ignore
+                logger.trace('Received message: %s' % self.to_trace_string(value))  # type: ignore
             elif logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f'Received message: {self.to_debug_string(value)}')
+                logger.debug('Received message: %s' % self.to_debug_string(value))
 
             if not self.filter(value):
                 self.update_dropped_metrics(value)

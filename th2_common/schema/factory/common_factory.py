@@ -267,7 +267,7 @@ class CommonFactory(AbstractCommonFactory):
                         with open(dictionary_path, 'w') as dictionary_file:
                             json.dump(config_map, dictionary_file)
             except KeyError:
-                logger.error("dictionary config map\'s metadata not valid. Some keys are absent.")
+                logger.error("Dictionary config map's metadata is not valid. Some keys are absent.")
             except IOError:
                 logger.error('Failed to write file for dictionary.')
 
@@ -286,7 +286,7 @@ class CommonFactory(AbstractCommonFactory):
                         with open(path, 'w') as file:
                             json.dump(config_data, file)
         except KeyError:
-            logger.error(f"{name}\'s data not valid. Some keys are absent.")
+            logger.error(f"{name}'s data not valid. Some keys are absent.")
         except IOError:
             logger.error(f'Failed to write ${name} config.')
 

@@ -18,4 +18,4 @@ from th2_common_utils.message_fields_access import *
 try:
     print(f"Using th2-common=={get_distribution('th2_common').version}")
 except DistributionNotFound:
-    print('th2-common package not installed')
+    print('th2-common package is not installed')

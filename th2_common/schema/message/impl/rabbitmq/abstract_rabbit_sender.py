@@ -74,13 +74,15 @@ class AbstractRabbitSender(MessageSender, ABC):
             self.OUTGOING_MSG_SIZE.labels(*labels).inc(len(byted_message))
 
             if logger.isEnabledFor(logging.TRACE):  # type: ignore
-                logger.trace(f'Sending to exchange_name = "{self.__exchange_name}", '  # type: ignore
-                             f'routing_key = "{self.__send_queue}", '
-                             f'message = {self.to_trace_string(message)}')
+                logger.trace('Sending to exchange_name = "%s", '  # type: ignore
+                             'routing_key = "%s", '
+                             'message = %s'
+                             % (self.__exchange_name, self.__send_queue, self.to_trace_string(message)))
             elif logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f'Sending to exchange_name = "{self.__exchange_name}", '
-                             f'routing_key = "{self.__send_queue}", '
-                             f'message = {self.to_debug_string(message)}')
+                logger.debug('Sending to exchange_name = "%s", '
+                             'routing_key = "%s", '
+                             'message = %s}'
+                             % (self.__exchange_name, self.__send_queue, self.to_debug_string(message)))
         except Exception as e:
             logger.exception(f"Can't send: {e}")
 

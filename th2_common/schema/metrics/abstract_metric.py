@@ -13,12 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from th2_common.schema.metrics.metric import Metric
 
 
-class AbstractMetric(Metric):
+class AbstractMetric(Metric, ABC):
 
     def __init__(self) -> None:
         self._enabled: bool = False
