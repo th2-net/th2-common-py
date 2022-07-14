@@ -1,0 +1,53 @@
+{
+    "version": 1,
+    "root":
+        {
+            "level": "INFO",
+            "handlers": ["consoleHandler", "fileHandler"],
+            "propagate": 0
+        },
+    "loggers":
+        {
+            "th2_common":
+                {
+                    "level": "INFO",
+                    "handlers": ["consoleHandler", "fileHandler"],
+                    "propagate": 0
+                },
+            "aio_pika":
+                {
+                    "level": "WARNING",
+                    "handlers": ["consoleHandler", "fileHandler"],
+                    "propagate": 0
+                }
+        },
+    "handlers":
+        {
+            "consoleHandler":
+                {
+                    "class": "logging.StreamHandler",
+                    "formatter": "formatter",
+                    "stream": "ext://sys.stdout"
+                },
+            "fileHandler":
+                {
+                    "class": "logging.FileHandler",
+                    "formatter": "formatter",
+                    "filename": "../all.log"
+                },
+            "metricsHandler":
+            {
+                "()": "th2_common.schema.log.handlers.MetricLogHandler",
+                "level": "ERROR",
+                "metric_name": "th2_logging_metric"
+            }
+        },
+    "formatters":
+        {
+            "formatter":
+            {
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            }
+        },
+    "disable_existing_loggers": 0
+}

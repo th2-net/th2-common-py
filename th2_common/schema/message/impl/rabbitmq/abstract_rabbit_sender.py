@@ -12,11 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
 from abc import ABC, abstractmethod
+import logging
+from typing import Any
 
 from prometheus_client import Counter
-
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.message.message_sender import MessageSender
@@ -31,19 +31,23 @@ class AbstractRabbitSender(MessageSender, ABC):
                                 'Amount of bytes sent',
                                 common_metrics.SENDER_LABELS)
     OUTGOING_MSG_QUANTITY_ABSTRACT = Counter('th2_rabbitmq_message_publish_total',
-                                    'Amount of batches sent',
-                                    common_metrics.SENDER_LABELS)
+                                             'Amount of batches sent',
+                                             common_metrics.SENDER_LABELS)
 
     _TH2_TYPE = 'unknown'
 
-    def __init__(self, connection_manager: ConnectionManager, exchange_name: str, send_queue: str, th2_pin='') -> None:
+    def __init__(self,
+                 connection_manager: ConnectionManager,
+                 exchange_name: str,
+                 send_queue: str,
+                 th2_pin: str = '') -> None:
         self.__publisher: Publisher = connection_manager.publisher
         self.__exchange_name: str = exchange_name
         self.__send_queue: str = send_queue
         self.__closed = True
         self.th2_pin = th2_pin
 
-    def start(self):
+    def start(self) -> None:
         if self.__send_queue is None or self.__exchange_name is None:
             raise Exception('Sender can not start. Sender did not init')
         self.__closed = False
@@ -51,13 +55,15 @@ class AbstractRabbitSender(MessageSender, ABC):
     def is_close(self) -> bool:
         return self.__closed
 
-    def close(self):
+    def close(self) -> None:
         self.__closed = True
 
-    def send(self, message):
+    def send(self, message: Any) -> None:
         labels = self.th2_pin, self._TH2_TYPE, self.__exchange_name, self.__send_queue
+
         if message is None:
             raise ValueError('Value for send can not be null')
+
         try:
             byted_message = self.value_to_bytes(message)
             self.__publisher.publish_message(exchange_name=self.__exchange_name,
@@ -67,27 +73,28 @@ class AbstractRabbitSender(MessageSender, ABC):
             self.OUTGOING_MSG_QUANTITY_ABSTRACT.labels(*labels).inc()
             self.OUTGOING_MSG_SIZE.labels(*labels).inc(len(byted_message))
 
-            if logger.isEnabledFor(logging.TRACE):
-                logger.trace(f'Sending to exchange_name = "{self.__exchange_name}", '
-                             f'routing_key = "{self.__send_queue}", '
-                             f'message = {self.to_trace_string(message)}')
+            if logger.isEnabledFor(logging.TRACE):  # type: ignore
+                logger.trace('Sending to exchange_name = "%s", '  # type: ignore
+                             'routing_key = "%s", '
+                             'message = %s'
+                             % (self.__exchange_name, self.__send_queue, self.to_trace_string(message)))
             elif logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f'Sending to exchange_name = "{self.__exchange_name}", '
-                             f'routing_key = "{self.__send_queue}", '
-                             f'message = {self.to_debug_string(message)}')
-
-        except Exception:
-            logger.exception('Can not send')
+                logger.debug('Sending to exchange_name = "%s", '
+                             'routing_key = "%s", '
+                             'message = %s}'
+                             % (self.__exchange_name, self.__send_queue, self.to_debug_string(message)))
+        except Exception as e:
+            logger.exception(f"Can't send: {e}")
 
     @staticmethod
     @abstractmethod
-    def value_to_bytes(value):
+    def value_to_bytes(value: Any) -> bytes:
         pass
 
     @abstractmethod
-    def to_trace_string(self, value):
+    def to_trace_string(self, value: Any) -> str:
         pass
 
     @abstractmethod
-    def to_debug_string(self, value):
+    def to_debug_string(self, value: Any) -> str:
         pass

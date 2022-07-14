@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,14 +19,14 @@ class SubscribeTarget:
         self.__queue = queue
         self.__routing_key = routing_key
 
-    def set_queue(self, queue: str):
+    def set_queue(self, queue: str) -> None:
         self.__queue = queue
 
-    def set_routing_key(self, routing_key: str):
+    def set_routing_key(self, routing_key: str) -> None:
         self.__routing_key = routing_key
 
-    def get_queue(self):
+    def get_queue(self) -> str:
         return self.__queue
 
-    def get_routing_key(self):
+    def get_routing_key(self) -> str:
         return self.__routing_key

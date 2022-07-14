@@ -35,14 +35,19 @@ jobs:
           filename: './package_info.json'
           key: 'package_version'
           value: ${{ steps.release_ver.outputs.value }}
-      # Build and publish
+      # Test
       - name: Set up Python 3.7
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Build package
+      - name: Run tests
         run: |
           pip install -r requirements.txt
+          pip install pytest
+          pytest
+      # Build and publish
+      - name: Build package
+        run: |
           python setup.py sdist
       # - name: Publish distribution to Test PyPI
       #   uses: pypa/gh-action-pypi-publish@master

@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
 
 
 import asyncio
-import threading
 import logging
+import threading
 import time
-from typing import List, Union, Optional, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import aio_pika
 from aio_pika import Message
-from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_channel import RobustChannel
+from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_exchange import RobustExchange
 
 
@@ -48,8 +48,8 @@ class Publisher:
     DELAY_FOR_RECONNECTION = 5
     PUBLISHING_COROUTINE_NAME = '_publish_message'
 
-    def __init__(self, connection_parameters: dict) -> None:
-        self._connection_parameters: Dict[str, Union[str, int]] = connection_parameters
+    def __init__(self, connection_parameters: Dict[str, Any]) -> None:
+        self._connection_parameters: Dict[str, Any] = connection_parameters
         self._connection: Optional[RobustConnection] = None
         self._channel: Optional[RobustChannel] = None
         self._exchange: Optional[RobustExchange] = None
@@ -72,15 +72,15 @@ class Publisher:
             except Exception as e:
                 logger.error(f'Exception was raised while connecting Publisher: {e}')
                 time.sleep(Publisher.DELAY_FOR_RECONNECTION)
-        logger.info("Connection for Publisher has been created")
+        logger.info('Connection for Publisher has been created')
 
         while not self._channel:
             try:
                 self._channel = await self._connection.channel()
             except Exception as e:
-                logger.error(f"Exception was raised while creating channel for Publisher {e}")
+                logger.error(f'Exception was raised while creating channel for Publisher {e}')
                 time.sleep(Publisher.DELAY_FOR_RECONNECTION)
-        logger.info("Channel for Publisher has been created")
+        logger.info('Channel for Publisher has been created')
 
         self._connection_event.set()
         self._publish_event.set()
@@ -88,7 +88,7 @@ class Publisher:
     async def _get_exchange_coroutine(self, name: str) -> RobustExchange:
         """Coroutine for getting exchange"""
 
-        return await self._channel.get_exchange(name=name)
+        return await self._channel.get_exchange(name=name)  # type: ignore
 
     def _get_exchange(self, exchange_name: str) -> RobustExchange:
         """Returns an exchange object"""
@@ -98,7 +98,7 @@ class Publisher:
         while not exchange:
             try:
                 exchange_future = asyncio.run_coroutine_threadsafe(self._get_exchange_coroutine(exchange_name),
-                                                                   self._connection.loop)
+                                                                   self._connection.loop)  # type: ignore
                 exchange = exchange_future.result()
                 self._exchange_dict[exchange_name] = exchange
             except Exception as e:
@@ -122,7 +122,7 @@ class Publisher:
         exchange = self._get_exchange(exchange_name)
 
         asyncio.run_coroutine_threadsafe(self._publish_message(exchange, routing_key, message),
-                                         self._connection.loop)
+                                         self._connection.loop)  # type: ignore
 
     def _message_number_update(self) -> int:
         """Updates message number"""
@@ -133,11 +133,11 @@ class Publisher:
     async def _publish_message(self,
                                exchange: RobustExchange,
                                routing_key: str,
-                               message: bytes) -> None:
+                               data: bytes) -> None:
         """Coroutine for publishing messages"""
 
         message_number = self._message_number_update()
-        message = Message(message)
+        message: Message = Message(data)
 
         try:
             await exchange.publish(message=message, routing_key=routing_key)
@@ -145,8 +145,8 @@ class Publisher:
             self._connection_event.clear()
             self._publish_event.clear()
             if e.__class__.__name__ not in self._connection_exceptions:
-                logger.error(f"Connection issue: {e}. "
-                             f"DELIVERY OF ALL ALREADY SENT MESSAGES IS NOT GUARANTEED")
+                logger.error(f'Connection issue: {e}. '
+                             f'DELIVERY OF ALL ALREADY SENT MESSAGES IS NOT GUARANTEED')
                 self._connection_exceptions.append(e.__class__.__name__)
             failed = FailedMessage(exchange.name, routing_key, message.body, message_number)
             self._not_sent.append(failed)
@@ -161,9 +161,9 @@ class Publisher:
         while not self._connection_event.is_set():
             await asyncio.sleep(Publisher.DELAY_FOR_RECONNECTION)
 
-            if self._connection.connected.is_set():
+            if self._connection.connected.is_set():  # type: ignore
                 self._connection_event.set()
-                logger.info("Connection was restored")
+                logger.info('Connection was restored')
 
     async def _republish_messages(self) -> None:
         """Republish messages that were failed due to connection issues"""
@@ -195,9 +195,10 @@ class Publisher:
             await self._wait_for_connection()
 
         publishing_tasks = [
-            task for task in asyncio.all_tasks() if task.get_coro().__name__ == Publisher.PUBLISHING_COROUTINE_NAME
+            task for task in asyncio.all_tasks()
+            if task.get_coro().__name__ == Publisher.PUBLISHING_COROUTINE_NAME  # type: ignore
         ]
 
         await asyncio.wait_for(asyncio.gather(*publishing_tasks), timeout=None)
 
-        await self._connection.close()
+        await self._connection.close()  # type: ignore

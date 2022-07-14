@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,14 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-from abc import ABC, abstractmethod
-
-from google.protobuf.message import Message
+from th2_common.schema.metrics.metric import Metric
 
 
-class FieldExtractionStrategy(ABC):
+class AggregatingMetricMonitor(Metric):
 
-    @abstractmethod
-    def get_fields(self, message: Message) -> {str: str}:
-        pass
+    def __init__(self, name: str, aggregating_metric: Metric) -> None:
+        self.name = name
+        self.aggregating_metric = aggregating_metric
+
+    def is_enabled(self) -> bool:
+        return self.aggregating_metric.is_enabled()
+
+    def enable(self) -> None:
+        self.aggregating_metric.enable()
+
+    def disable(self) -> None:
+        self.aggregating_metric.disable()
