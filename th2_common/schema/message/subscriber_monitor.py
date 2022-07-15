@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,5 +18,5 @@ from abc import ABC, abstractmethod
 class SubscriberMonitor(ABC):
 
     @abstractmethod
-    def unsubscribe(self):
+    def unsubscribe(self) -> None:
         pass

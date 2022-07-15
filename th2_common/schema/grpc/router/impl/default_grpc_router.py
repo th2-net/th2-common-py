@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,82 +12,106 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import itertools
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from importlib import import_module
-from pathlib import Path
-from pkgutil import iter_modules
-
+import google.protobuf.message
 import grpc
-
+from grpc import _channel
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
-from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration
+from th2_common.schema.filter.strategy.impl.default_grpc_filter_strategy import DefaultGrpcFilterStrategy
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration, \
+    GrpcEndpointConfiguration, GrpcServiceConfiguration
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
-import th2_common.schema.strategy.route.impl as route
 
 
 class DefaultGrpcRouter(AbstractGrpcRouter):
 
-    def __init__(self, grpc_configuration: GrpcConfiguration,
-                 grpc_router_configuration: GrpcRouterConfiguration) -> None:
+    def __init__(self,
+                 grpc_configuration: GrpcConfiguration,
+                 grpc_router_configuration: GrpcConnectionConfiguration) -> None:
         super().__init__(grpc_configuration, grpc_router_configuration)
-        self.strategies = dict()
-        self.__load_strategies()
 
-    def get_service(self, cls):
-        return cls(self)
+    def get_service(self, cls: Callable) -> Callable:
+        return cls(self)  # type: ignore
 
     class Connection:
 
-        def __init__(self, service, strategy_obj, stub_class, channels):
-            self.service = service
-            self.strategy_obj = strategy_obj
+        def __init__(self,
+                     services: List[GrpcServiceConfiguration],
+                     stub_class: Callable,
+                     channels: Dict[str, _channel.Channel],
+                     options: List[Tuple[str, Any]]) -> None:
+            self.services = services
             self.stubClass = stub_class
             self.channels = channels
-            self.stubs = {}
+            self.options = options
+            self.stubs: Dict[str, Callable] = {}
+            self._grpc_filter_strategy = DefaultGrpcFilterStrategy()
+            self._endpoint_generators: Dict[GrpcServiceConfiguration, itertools.cycle[str]] = {}
 
-        def __create_stub_if_not_exists(self, endpoint_name, config):
-            socket = f"{config['host']}:{config['port']}"
+        def __create_stub_if_not_exists(self, endpoint_name: str, config: GrpcEndpointConfiguration) -> None:
+            socket = f'{config.host}:{config.port}'
             if socket not in self.channels:
-                self.channels[socket] = grpc.insecure_channel(socket)
+                self.channels[socket] = grpc.insecure_channel(socket, options=self.options)
 
             if endpoint_name not in self.stubs:
                 self.stubs[endpoint_name] = self.stubClass(self.channels[socket])
 
-        def create_request(self, request_name, request, timeout):
-            endpoint = self.strategy_obj.get_endpoint(request)
-            endpoint_config = self.service['endpoints'][endpoint]
+        def create_request(self,
+                           request_name: str,
+                           request: google.protobuf.message.Message,
+                           timeout: int,
+                           properties: Optional[Dict[str, str]] = None) -> Optional[google.protobuf.message.Message]:
+            service = self._filter_services(properties)
+            endpoint = self._get_next_endpoint(service)
+            endpoint_config = service.endpoints[endpoint]
+
             if endpoint_config is not None:
                 self.__create_stub_if_not_exists(endpoint, endpoint_config)
             stub = self.stubs[endpoint]
-            if stub is not None:
-                return getattr(stub, request_name)(request, timeout=timeout)
 
-    def get_connection(self, service_class, stub_class):
-        find_service = None
+            if stub is not None:
+                return getattr(stub, request_name)(request, timeout=timeout)  # type: ignore
+
+            return None
+
+        def _filter_services(self, properties: Optional[Dict[str, str]]) -> GrpcServiceConfiguration:
+            if not properties:
+                services = self.services
+            else:
+                services = [
+                    service for service in self.services
+                    if self._grpc_filter_strategy.verify(properties, router_filters=service.filters)
+                ]
+
+            if len(services) != 1:
+                raise GrpcRouterError(f'Number of services matching properties should be 1, not {len(services)}. '
+                                      'Check your gRPC configuration')
+
+            return services[0]
+
+        def _get_next_endpoint(self, service: GrpcServiceConfiguration) -> str:
+            if service not in self._endpoint_generators:
+                self._endpoint_generators[service] = itertools.cycle(service.endpoints)
+
+            return next(self._endpoint_generators[service])  # type: ignore
+
+    def get_connection(self, service_class: Callable, stub_class: Callable) -> Optional[Connection]:
         if self.grpc_configuration.services:
-            for service in self.grpc_configuration.services:
-                if self.grpc_configuration.services[service]['service-class'].split('.')[-1] == service_class.__name__:
-                    find_service = self.grpc_configuration.services[service]
-                    break
+            find_services = self._filter_services_by_name(service_class.__name__)
+
+            if find_services:
+                return self.Connection(find_services,
+                                       stub_class,
+                                       self.channels,
+                                       self.grpc_router_configuration.retry_policy.options)
+            return None
         else:
             raise GrpcRouterError("Services list are empty in 'grpc.json'. Check your links")
 
-        strategy_name = find_service['strategy']['name']
-        strategy_class = self.strategies[strategy_name]
-        if strategy_class is None:
-            return None
-        strategy_obj = strategy_class(find_service['strategy'])
-        return self.Connection(find_service, strategy_obj, stub_class, self.channels)
-
-    def __load_strategies(self):
-        package_dir = str(Path(route.__file__).resolve().parent)
-
-        for _, module_name, _ in iter_modules([package_dir]):
-            module = import_module(f'{route.__name__}.{module_name}')
-            for name in dir(module):
-                if not name.startswith('__'):
-                    attr = getattr(module, name)
-                    if dir(attr).__contains__('get_endpoint'):
-                        self.strategies[name.lower()] = attr
-
-        self.strategies.pop('routingstrategy', None)
+    def _filter_services_by_name(self, service_class_name: str) -> List[GrpcServiceConfiguration]:
+        return list(filter(  # noqa: ECE001
+            lambda service_cfg: (service_cfg.service_class.split('.')[-1] == service_class_name),
+            self.grpc_configuration.services.values()
+        ))

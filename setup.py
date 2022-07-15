@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 import json
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open('package_info.json', 'r') as file:
     package_info = json.load(file)
@@ -37,11 +37,12 @@ setup(
     license='Apache License 2.0',
     python_requires='>=3.7',
     install_requires=[
-        'pika==1.2.0',
-        'th2-grpc-common~=4.0.0.dev1606698147',
-        'kubernetes==18.20.0',
-        'prometheus_client==0.11.0'
+        'aio_pika==6.8.2',
+        'th2-grpc-common~=4.0.0.dev2635598706',
+        'kubernetes==24.2.0',
+        'prometheus_client==0.14.1',
+        'th2-common-utils==1.4.0.dev2670727983'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
-    package_data={'': ['package_info.json'], 'th2_common.schema.log': ['config.conf']}
+    package_data={'': ['package_info.json'], 'th2_common.schema.log': ['log4py.conf', 'log_config.json']}
 )

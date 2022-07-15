@@ -1,4 +1,4 @@
-#   Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,15 +12,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from abc import ABC, abstractmethod
+from typing import Tuple
+
+from th2_grpc_common.common_pb2 import Message
 
 
 class MessageListener(ABC):
 
     @abstractmethod
-    def handler(self, attributes: tuple, message):
+    def handler(self, attributes: Tuple, message: Message) -> None:
         pass
 
-    def on_close(self):
+    def on_close(self) -> None:
         pass

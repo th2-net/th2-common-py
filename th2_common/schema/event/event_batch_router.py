@@ -11,10 +11,11 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 from collections import defaultdict
+from typing import Dict, Set
 
-from th2_grpc_common.common_pb2 import EventBatch
-
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from th2_common.schema.event.event_batch_sender import EventBatchSender
 from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
@@ -24,18 +25,20 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
+from th2_grpc_common.common_pb2 import Event, EventBatch, Message
 
 DEFAULT_SCOPE_NAME = 'th2-scope'
 
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
 
-    def check_validity(self, message):
+    def check_validity(self, message: EventBatch) -> EventBatch:
         for event in message.events:
             book = event.id.book_name
             if not book:
                 if self.box_configuration.book_name is None:
-                    raise Exception('Book name is undefined both explicitly in message IDs and implicitly in box configuration')
+                    raise Exception('Book name is undefined both explicitly in message IDs and '
+                                    'implicitly in box configuration')
                 book = self.box_configuration.book_name
                 event.id.book_name = book
             if any(message_id.book_name != book for message_id in event.attached_message_ids):
@@ -44,48 +47,56 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
                 event.id.scope = DEFAULT_SCOPE_NAME
         return message
 
-    def send(self, message, *queue_attr):
+    def send(self, message: EventBatch, *queue_attr: str) -> None:
         super().send(self.check_validity(message), *queue_attr)
 
-    def send_all(self, message, *queue_attr):
+    def send_all(self, message: EventBatch, *queue_attr: str) -> None:
         super().send_all(self.check_validity(message), *queue_attr)
 
-    def _get_messages(self, batch) -> list:
+    def _get_messages(self, batch: EventBatch) -> RepeatedCompositeFieldContainer:
         return batch.events
 
-    def _create_batch(self):
+    def _create_batch(self) -> EventBatch:
         return EventBatch()
 
-    def _add_message(self, batch, message):
+    def _add_message(self, batch: EventBatch, message: Event) -> None:
         batch.events.append(message)
 
-    def update_dropped_metrics(self, batch, pin):
+    def update_dropped_metrics(self, batch: EventBatch, *pins: str) -> None:
         pass
 
-    def split_and_filter(self, queue_aliases_to_configs, batch) -> dict:
-        result = defaultdict(EventBatch)
+    def split_and_filter(self,
+                         queue_aliases_to_configs: Dict[str, QueueConfiguration],
+                         batch: EventBatch) -> Dict[str, EventBatch]:
+        result: Dict[str, EventBatch] = defaultdict(EventBatch)
         for message in self._get_messages(batch):
-            for queue_alias in queue_aliases_to_configs.keys():
+            for queue_alias in queue_aliases_to_configs:
                 self._add_message(result[queue_alias], message)
         return result
 
     @property
-    def required_subscribe_attributes(self):
-        return {QueueAttribute.SUBSCRIBE.value, QueueAttribute.EVENT.value}
+    def required_subscribe_attributes(self) -> Set[str]:
+        return {QueueAttribute.SUBSCRIBE, QueueAttribute.EVENT}
 
     @property
-    def required_send_attributes(self):
-        return {QueueAttribute.PUBLISH.value, QueueAttribute.EVENT.value}
+    def required_send_attributes(self) -> Set[str]:
+        return {QueueAttribute.PUBLISH, QueueAttribute.EVENT}
 
-    def _find_by_filter(self, queues: {str: QueueConfiguration}, msg) -> dict:
-        return {key: msg for key in queues.keys()}
+    def _find_by_filter(self, queues: Dict[str, QueueConfiguration], msg: Message) -> Dict[str, Message]:
+        return {key: msg for key in queues}
 
-    def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:
-        return EventBatchSender(connection_manager, queue_configuration.exchange, queue_configuration.routing_key,
+    def create_sender(self,
+                      connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration,
+                      th2_pin: str) -> MessageSender:
+        return EventBatchSender(connection_manager,
+                                queue_configuration.exchange,
+                                queue_configuration.routing_key,
                                 th2_pin=th2_pin)
 
-    def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration, th2_pin) -> MessageSubscriber:
+    def create_subscriber(self,
+                          connection_manager: ConnectionManager,
+                          queue_configuration: QueueConfiguration,
+                          th2_pin: str) -> MessageSubscriber:
         subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
-        return EventBatchSubscriber(connection_manager, queue_configuration, subscribe_target, th2_pin=th2_pin)
+        return EventBatchSubscriber(connection_manager, subscribe_target, queue_configuration, th2_pin=th2_pin)

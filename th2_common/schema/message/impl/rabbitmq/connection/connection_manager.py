@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,16 +12,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import asyncio
+from asyncio import AbstractEventLoop
+from contextlib import suppress
 import logging
-import threading
+from threading import Thread
+from typing import Any, Dict
 
-import pika
-from google.protobuf.pyext._message import SetAllowOversizeProtos
-
-from th2_common.schema.message.configuration.message_configuration import ConnectionManagerConfiguration
+import aio_pika
+from google.protobuf.pyext._message import SetAllowOversizeProtos  # type: ignore
+from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
-from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_consumer import ReconnectingConsumer
-from th2_common.schema.message.impl.rabbitmq.connection.reconnecting_publisher import ReconnectingPublisher
+from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
+from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.metrics.common_metrics import HealthMetrics
 
 
@@ -29,37 +32,92 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
+    """Initializes RabbitMQ Publisher and Consumer.
 
-    def __init__(self, configuration: RabbitMQConfiguration,
-                 connection_manager_configuration: ConnectionManagerConfiguration) -> None:
-        self.__credentials = pika.PlainCredentials(configuration.username,
-                                                   configuration.password)
-        self.__connection_parameters = pika.ConnectionParameters(virtual_host=configuration.vhost,
-                                                                 host=configuration.host,
-                                                                 port=configuration.port,
-                                                                 credentials=self.__credentials)
+        Channel and connection are created for publisher and consumer during initialization.
+
+    :param :class: `RabbitMQConfiguration` configuration: Used as connection parameters to connect with RabbitMQ
+    :param :class: `ConnectionManagerConfiguration` connection_manager_configuration: Used to save configuration
+    parameters for Consumer
+    """
+
+    def __init__(self,
+                 configuration: RabbitMQConfiguration,
+                 connection_manager_configuration: MqConnectionConfiguration) -> None:
 
         SetAllowOversizeProtos(connection_manager_configuration.message_recursion_limit > 100)
 
         self.__metrics = HealthMetrics(self)
 
-        self.consumer = ReconnectingConsumer(configuration,
-                                             connection_manager_configuration,
-                                             self.__connection_parameters)
-        threading.Thread(target=self.consumer.run).start()
+        self.connection_parameters = {
+            'host': configuration.host,
+            'port': configuration.port,
+            'login': configuration.username,
+            'password': configuration.password,
+            'virtualhost': configuration.vhost
+        }
 
-        self.publisher = ReconnectingPublisher(self.__connection_parameters)
-        threading.Thread(target=self.publisher.run).start()
+        self.consumer = Consumer(connection_manager_configuration,
+                                 self.connection_parameters)
+        self.publisher = Publisher(self.connection_parameters)
+
+        self._loop = asyncio.get_event_loop()
+        self.publisher_consumer_thread = Thread(target=self._start_background_loop)
+        self.publisher_consumer_thread.start()
+
+        self.consumer_future = asyncio.run_coroutine_threadsafe(self.consumer.connect(), self._loop)
+        self.consumer_future.result()
+
+        self.publisher_future = asyncio.run_coroutine_threadsafe(self.publisher.connect(), self._loop)
+        self.publisher_future.result()
 
         self.__metrics.enable()
 
-    def close(self):
+    def _start_background_loop(self) -> None:
+        """Set and run event loop in the thread forever"""
+
+        asyncio.set_event_loop(self._loop)
+        self._loop.set_exception_handler(self._handle_exception)
+        self._loop.run_forever()
+
+    def _handle_exception(self, loop: AbstractEventLoop, context: Dict[str, Any]) -> Any:
+        """Custom exception handling"""
+
+        if isinstance(context.get('exception'), aio_pika.exceptions.CONNECTION_EXCEPTIONS):
+            pass
+        elif context['message']:
+            logger.error(context['message'])
+
+    def close(self) -> None:
+        """Closing consumer's and publisher's channel and connection."""
+
         try:
-            self.consumer.stop()
-        except Exception:
-            logger.exception("Error while stopping Consumer")
+            logger.info('Closing Consumer')
+            stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
+            stopping_consumer.result()
+        except Exception as e:
+            logger.exception(f'Error while stopping Consumer: {e}')
         try:
-            self.publisher.stop()
-        except Exception:
-            logger.exception("Error while stopping Publisher")
+            logger.info('Closing Publisher')
+            stopping_publisher = asyncio.run_coroutine_threadsafe(self.publisher.stop(), self._loop)
+            stopping_publisher.result()
+        except Exception as e:
+            logger.exception(f'Error while stopping Publisher: {e}')
+
         self.__metrics.disable()
+
+        graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
+        graceful_shutdown.result()
+
+        self.publisher_consumer_thread.join()
+
+    async def _cancel_pending_tasks(self) -> None:
+        """Coroutine that ensures graceful shutdown of event loop"""
+
+        for task in asyncio.all_tasks():
+            if task is not asyncio.current_task():
+                task.cancel()
+                with suppress(asyncio.exceptions.CancelledError):
+                    await task
+
+        self._loop.call_soon_threadsafe(self._loop.stop)

@@ -1,0 +1,8 @@
+{
+  "connectionCloseTimeout":10,
+  "connectionTimeout":"-1",
+  "maxConnectionRecoveryTimeout":6000,
+  "maxRecoveryAttempts":"5",
+  "minConnectionRecoveryTimeout":"10000",
+  "prefetchCount":50
+}
