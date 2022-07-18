@@ -28,6 +28,7 @@ from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRo
 from th2_common.schema.log.trace import install_trace_logger
 from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, \
     ConnectionManagerConfiguration
+from th2_common.schema.message.impl.rabbitmq.cbor.rabbit_cbor_router import RabbitCborRouter
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
@@ -52,6 +53,7 @@ class AbstractCommonFactory(ABC):
                  message_parsed_batch_router_class=RabbitParsedBatchRouter,
                  message_raw_batch_router_class=RabbitRawBatchRouter,
                  message_group_batch_router_class=RabbitMessageGroupBatchRouter,
+                 message_cbor_router_class=RabbitCborRouter,
                  event_batch_router_class=EventBatchRouter,
                  grpc_router_class=DefaultGrpcRouter,
                  logging_config_filepath=None) -> None:
@@ -67,12 +69,14 @@ class AbstractCommonFactory(ABC):
         self.message_parsed_batch_router_class = message_parsed_batch_router_class
         self.message_raw_batch_router_class = message_raw_batch_router_class
         self.message_group_batch_router_class = message_group_batch_router_class
+        self.message_cbor_router_class = message_cbor_router_class
         self.event_batch_router_class = event_batch_router_class
         self.grpc_router_class = grpc_router_class
 
         self._message_parsed_batch_router = None
         self._message_raw_batch_router = None
         self._message_group_batch_router = None
+        self._message_cbor_router = None
         self._event_batch_router = None
         self._grpc_router = None
 
@@ -158,6 +162,26 @@ class AbstractCommonFactory(ABC):
                                                                                      self.message_router_configuration)
 
         return self._message_group_batch_router
+
+    @property
+    def message_cbor_router(self) -> MessageRouter:
+        """
+        Create MessageRouter which work with dicts
+        """
+        if self._connection_manager is None:
+            if self.rabbit_mq_configuration is None:
+                self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+            if self.connection_manager_configuration is None:
+                self.connection_manager_configuration = self._create_conn_manager_configuration()
+            self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
+                                                         self.connection_manager_configuration)
+        if self.message_router_configuration is None:
+            self.message_router_configuration = self._create_message_router_configuration()
+        if self._message_cbor_router is None:
+            self._message_cbor_router = self.message_cbor_router_class(self._connection_manager,
+                                                                       self.message_router_configuration)
+
+        return self._message_cbor_router
 
     @property
     def event_batch_router(self) -> MessageRouter:

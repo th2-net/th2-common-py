@@ -28,6 +28,7 @@ from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_router import MessageRouter
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
+from th2_common.schema.message.queue_attribute import QueueAttribute
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
 from th2_common.schema.util.util import get_debug_string_group, get_filters
 
@@ -138,7 +139,10 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
     def filter_and_send(self, message, attrs, check: Callable):
         aliases_found_by_attrs = self.configuration.find_queues_by_attr(attrs)
-        aliases_to_messages = self.split_and_filter(aliases_found_by_attrs, message)
+        if QueueAttribute.CBOR.value not in attrs:
+            aliases_to_messages = self.split_and_filter(aliases_found_by_attrs, message)
+        else:
+            aliases_to_messages = {alias: message for alias in aliases_found_by_attrs.keys()}
         result_check = check(aliases_to_messages)
         if result_check is not None:
             raise result_check

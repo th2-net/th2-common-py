@@ -88,7 +88,7 @@ class AbstractRabbitSubscriber(MessageSubscriber, ABC):
             elif logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f'Received message: {self.to_debug_string(value)}')
 
-            if not self.filter(value):
+            if not isinstance(value, dict) and not self.filter(value):
                 self.update_dropped_metrics(value)
                 return
 

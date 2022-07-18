@@ -10,3 +10,4 @@ class QueueAttribute(enum.Enum):
     RAW = 'raw'
     EVENT = 'event'
     STORE = 'store'
+    CBOR = 'cbor'
