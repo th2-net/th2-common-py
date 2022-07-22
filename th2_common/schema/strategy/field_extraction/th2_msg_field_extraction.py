@@ -41,17 +41,9 @@ class Th2MsgFieldExtraction:
             return {}
 
     def _message_with_metadata_to_dict(self, any_message: AnyMessage) -> Dict[str, Any]:
-        message_fields = message_to_dict(any_message.message)
-        message_metadata = any_message.message.metadata
+        message_dict = message_to_dict(any_message.message)
 
-        metadata_message_fields = {
-            self.SESSION_ALIAS_KEY: message_metadata.id.connection_id.session_alias,
-            self.MESSAGE_TYPE_KEY: message_metadata.message_type,
-            self.DIRECTION_KEY: Direction.Name(message_metadata.id.direction)
-        }
-        message_fields.update(metadata_message_fields)
-
-        return message_fields  # type: ignore
+        return {**message_dict['fields'], **message_dict['metadata']}
 
     def _raw_message_metadata_to_dict(self, any_message: AnyMessage) -> Dict[str, Any]:
         raw_message_metadata = any_message.raw_message.metadata

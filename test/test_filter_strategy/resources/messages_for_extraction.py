@@ -85,9 +85,15 @@ message_dict = {
     'ClOrdID': str(cl_ord_id),
     'TransactTime': transact_time,
     'TradingParty': trading_party_dict,
-    'session_alias': 'jsTUURfy',
     'message_type': 'NewOrderSingle',
-    'direction': 'SECOND'
+    'direction': 'SECOND',
+    'properties': {},
+    'protocol': '',
+    'sequence': 0,
+    'session_alias': 'jsTUURfy',
+    'session_group': '',
+    'subsequence': [],
+    'timestamp': None
 }
 
 #  AnyMessage.raw_message
