@@ -12,39 +12,46 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from abc import ABC, abstractmethod
+from typing import Any, Callable
+
+import google.protobuf.message
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
     RabbitMessageGroupBatchRouter
-from abc import ABC, abstractmethod
-
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
+from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 class RabbitMessageGroupBatchRouterAdapter(RabbitMessageGroupBatchRouter, ABC):
 
-    def send(self, message, *queue_attr):
+    def send(self, message: MessageGroupBatch, *queue_attr: str) -> None:
         super().send(self.to_group_batch(message), *queue_attr)
 
-    def send_all(self, message, *queue_attr):
+    def send_all(self, message: MessageGroupBatch, *queue_attr: str) -> None:
         super().send_all(self.to_group_batch(message), *queue_attr)
 
-    def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe(self, callback: MessageListener, *queue_attr: str) -> SubscriberMonitor:
         return super().subscribe(self.get_converter(callback), *queue_attr)
 
-    def subscribe_all(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_all(self, callback: MessageListener, *queue_attr: str) -> SubscriberMonitor:
         return super().subscribe_all(self.get_converter(callback), *queue_attr)
 
     @staticmethod
     @abstractmethod
-    def to_group_batch(message):
+    def to_group_batch(message: Any) -> MessageGroupBatch:
         pass
 
     @staticmethod
     @abstractmethod
-    def from_group_batch(message):
+    def from_group_batch(message: MessageGroupBatch) -> google.protobuf.message.Message:
         pass
 
-    def get_converter(self, callback: MessageListener):
-        old_handler = callback.handler
-        callback.handler = lambda attributes, message: old_handler(attributes, self.from_group_batch(message))
+    def get_converter(self, callback: MessageListener) -> MessageListener:
+        old_handler: Callable = callback.handler
+        setattr(
+            callback,
+            'handler',
+            lambda attributes, message: old_handler(attributes, self.from_group_batch(message))
+        )
         return callback

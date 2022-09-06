@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,18 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from abc import ABC, abstractmethod
-from typing import List
-
-from google.protobuf.message import Message
-
-from th2_common.schema.message.configuration.message_configuration import RouterFilterConfiguration
+from typing import Any, Optional
 
 
 class FilterStrategy(ABC):
 
     @abstractmethod
-    def verify(self, message: Message, router_filter: RouterFilterConfiguration = None,
-               router_filters: List[RouterFilterConfiguration] = None):
+    def verify(self,
+               message: Any,
+               router_filters: Optional[Any] = None) -> bool:
         pass

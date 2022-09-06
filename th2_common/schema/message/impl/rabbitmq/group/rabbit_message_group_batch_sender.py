@@ -14,18 +14,17 @@
 
 from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Gauge
-from th2_grpc_common.common_pb2 import MessageGroupBatch
-
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.metric_utils import update_total_metrics
-from th2_common.schema.util.util import get_debug_string_group, get_session_alias_and_direction_group, get_sequence
+from th2_common.schema.util.util import get_debug_string_group
+from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 class RabbitMessageGroupBatchSender(AbstractRabbitSender):
     OUTGOING_MSG_QUANTITY = Counter('th2_message_publish_total',
                                     'Amount of individual messages sent',
-                                    common_metrics.DEFAULT_LABELS+(common_metrics.DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
+                                    common_metrics.DEFAULT_LABELS + (common_metrics.DEFAULT_MESSAGE_TYPE_LABEL_NAME, ))
     OUTGOING_MSG_GROUP_QUANTITY = Counter('th2_message_group_publish_total',
                                           'Quantity of outgoing message groups',
                                           common_metrics.DEFAULT_LABELS)
@@ -36,16 +35,19 @@ class RabbitMessageGroupBatchSender(AbstractRabbitSender):
     _TH2_TYPE = 'MESSAGE_GROUP'
 
     @staticmethod
-    def value_to_bytes(value: MessageGroupBatch):
+    def value_to_bytes(value: MessageGroupBatch) -> bytes:
         return value.SerializeToString()
 
-    def to_trace_string(self, value):
+    def to_trace_string(self, value: MessageGroupBatch) -> str:
         return MessageToJson(value)
 
-    def to_debug_string(self, value):
-        return str(value)
+    def to_debug_string(self, value: MessageGroupBatch) -> str:
+        return get_debug_string_group(value)
 
-    def send(self, message):
-        update_total_metrics(message, self.th2_pin, self.OUTGOING_MSG_QUANTITY, self.OUTGOING_MSG_GROUP_QUANTITY,
+    def send(self, message: MessageGroupBatch) -> None:
+        update_total_metrics(message,
+                             self.th2_pin,
+                             self.OUTGOING_MSG_QUANTITY,
+                             self.OUTGOING_MSG_GROUP_QUANTITY,
                              self.OUTGOING_GROUP_SEQUENCE)
         super().send(message)

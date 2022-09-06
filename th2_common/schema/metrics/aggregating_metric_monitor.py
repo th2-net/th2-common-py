@@ -1,4 +1,4 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,32 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import th2_common.schema.metrics.metric as metric
+from th2_common.schema.metrics.metric import Metric
 
 
-class MetricMonitor:
+class AggregatingMetricMonitor(Metric):
 
-    def __init__(self, name: str, arbiter: 'metric.Metric') -> None:
+    def __init__(self, name: str, aggregating_metric: Metric) -> None:
         self.name = name
-        self.arbiter = arbiter
+        self.aggregating_metric = aggregating_metric
 
-    @property
     def is_enabled(self) -> bool:
-        return self.arbiter.is_enabled(self)
+        return self.aggregating_metric.is_enabled()
 
-    @is_enabled.setter
-    def is_enabled(self, value):
-        if value:
-            self.enable()
-        else:
-            self.disable()
+    def enable(self) -> None:
+        self.aggregating_metric.enable()
 
-    @property
-    def is_metric_enabled(self):
-        return self.arbiter.enabled
-
-    def enable(self):
-        self.arbiter.enable(self)
-
-    def disable(self):
-        self.arbiter.disable(self)
+    def disable(self) -> None:
+        self.aggregating_metric.disable()

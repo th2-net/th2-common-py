@@ -11,9 +11,11 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-from prometheus_client import Counter
-from th2_grpc_common.common_pb2 import MessageGroupBatch
 
+from typing import Set
+
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from prometheus_client import Counter
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
@@ -27,6 +29,7 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as dropped_metrics_updater
+from th2_grpc_common.common_pb2 import MessageGroup, MessageGroupBatch
 
 
 class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
@@ -37,37 +40,41 @@ class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):
                                          'Quantity of message groups dropped on sending',
                                          common_metrics.DEFAULT_LABELS)
 
-    def update_dropped_metrics(self, batch, pins):
+    def update_dropped_metrics(self, batch: MessageGroupBatch, *pins: str) -> None:
         for pin in pins:
             dropped_metrics_updater(batch, pin, self.OUTGOING_MSG_DROPPED, self.OUTGOING_MSG_GROUP_DROPPED)
 
     @property
-    def required_subscribe_attributes(self):
-        return {QueueAttribute.SUBSCRIBE.value}
+    def required_subscribe_attributes(self) -> Set[str]:
+        return {QueueAttribute.SUBSCRIBE}
 
     @property
-    def required_send_attributes(self):
-        return {QueueAttribute.PUBLISH.value}
+    def required_send_attributes(self) -> Set[str]:
+        return {QueueAttribute.PUBLISH}
 
-    def _get_messages(self, batch):
+    def _get_messages(self, batch: MessageGroupBatch) -> RepeatedCompositeFieldContainer:
         return batch.groups
 
-    def _create_batch(self):
+    def _create_batch(self) -> MessageGroupBatch:
         return MessageGroupBatch()
 
-    def _add_message(self, batch: MessageGroupBatch, group):
+    def _add_message(self, batch: MessageGroupBatch, group: MessageGroup) -> None:
         batch.groups.append(group)
 
-    def create_sender(self, connection_manager: ConnectionManager,
-                      queue_configuration: QueueConfiguration, th2_pin) -> MessageSender:
+    def create_sender(self,
+                      connection_manager: ConnectionManager,
+                      queue_configuration: QueueConfiguration,
+                      th2_pin: str) -> MessageSender:
         return RabbitMessageGroupBatchSender(connection_manager, queue_configuration.exchange,
                                              queue_configuration.routing_key, th2_pin=th2_pin)
 
-    def create_subscriber(self, connection_manager: ConnectionManager,
-                          queue_configuration: QueueConfiguration, th2_pin) -> MessageSubscriber:
+    def create_subscriber(self,
+                          connection_manager: ConnectionManager,
+                          queue_configuration: QueueConfiguration,
+                          th2_pin: str) -> MessageSubscriber:
         subscribe_target = SubscribeTarget(queue_configuration.queue, queue_configuration.routing_key)
-        return RabbitMessageGroupBatchSubscriber(connection_manager,
-                                                 queue_configuration,
-                                                 self.filter_strategy,
-                                                 subscribe_target,
+        return RabbitMessageGroupBatchSubscriber(connection_manager=connection_manager,
+                                                 subscribe_target=subscribe_target,
+                                                 queue_configuration=queue_configuration,
+                                                 filter_strategy=self.filter_strategy,  # type: ignore
                                                  th2_pin=th2_pin)

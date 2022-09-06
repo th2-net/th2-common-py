@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,12 +13,13 @@
 #   limitations under the License.
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class MessageSender(ABC):
 
     @abstractmethod
-    def start(self):
+    def start(self) -> None:
         pass
 
     @abstractmethod
@@ -26,9 +27,9 @@ class MessageSender(ABC):
         pass
 
     @abstractmethod
-    def send(self, message):
+    def send(self, message: Any) -> None:
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass

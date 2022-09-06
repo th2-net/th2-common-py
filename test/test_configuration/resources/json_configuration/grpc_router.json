@@ -1,0 +1,7 @@
+{
+  "workers": 5,
+  "options": {
+    "option1": "value1",
+    "option2": 2
+  }
+}
