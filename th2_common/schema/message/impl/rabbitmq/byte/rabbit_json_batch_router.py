@@ -12,17 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import enum
+from typing import Set
+
+from th2_common.schema.message.impl.rabbitmq.byte.abstract_rabbit_byte_batch_router import AbstractRabbitByteBatchRouter
+from th2_common.schema.message.queue_attribute import QueueAttribute
 
 
-class QueueAttribute(str, enum.Enum):
-    FIRST = 'first'
-    SECOND = 'second'
-    SUBSCRIBE = 'subscribe'
-    PUBLISH = 'publish'
-    PARSED = 'parsed'
-    RAW = 'raw'
-    EVENT = 'event'
-    STORE = 'store'
-    CBOR = 'cbor'
-    JSON = 'json'
+class RabbitJsonBatchRouter(AbstractRabbitByteBatchRouter):
+
+    @property
+    def required_subscribe_attributes(self) -> Set[str]:
+        return {QueueAttribute.SUBSCRIBE, QueueAttribute.JSON}
+
+    @property
+    def required_send_attributes(self) -> Set[str]:
+        return {QueueAttribute.PUBLISH, QueueAttribute.JSON}

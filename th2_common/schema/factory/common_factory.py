@@ -28,6 +28,7 @@ from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.factory.abstract_common_factory import AbstractCommonFactory
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.message.impl.rabbitmq.byte.rabbit_cbor_batch_router import RabbitCborBatchRouter
+from th2_common.schema.message.impl.rabbitmq.byte.rabbit_json_batch_router import RabbitJsonBatchRouter
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
     RabbitMessageGroupBatchRouter
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
@@ -75,6 +76,7 @@ class CommonFactory(AbstractCommonFactory):
                  message_raw_batch_router_class: Type[RabbitRawBatchRouter] = RabbitRawBatchRouter,
                  message_group_batch_router_class: Type[RabbitMessageGroupBatchRouter] = RabbitMessageGroupBatchRouter,
                  message_cbor_router_class: Type[RabbitCborBatchRouter] = RabbitCborBatchRouter,
+                 message_json_router_class: Type[RabbitJsonBatchRouter] = RabbitJsonBatchRouter,
                  event_batch_router_class: Type[EventBatchRouter] = EventBatchRouter,
                  grpc_router_class: Type[DefaultGrpcRouter] = DefaultGrpcRouter) -> None:
 
@@ -100,7 +102,7 @@ class CommonFactory(AbstractCommonFactory):
         self.custom_config_filepath = Path(custom_config_filepath)
 
         super().__init__(message_parsed_batch_router_class, message_raw_batch_router_class,
-                         message_group_batch_router_class, message_cbor_router_class,
+                         message_group_batch_router_class, message_cbor_router_class, message_json_router_class,
                          event_batch_router_class, grpc_router_class,
                          logging_config_filepath)
 

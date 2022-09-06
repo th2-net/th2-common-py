@@ -14,13 +14,11 @@
 
 from typing import Set
 
-from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
-    RabbitMessageGroupBatchRouterAdapter
+from th2_common.schema.message.impl.rabbitmq.byte.abstract_rabbit_byte_batch_router import AbstractRabbitByteBatchRouter
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_grpc_common.common_pb2 import AnyMessage, ByteMessageBatch, MessageGroup, MessageGroupBatch
 
 
-class RabbitCborBatchRouter(RabbitMessageGroupBatchRouterAdapter):
+class RabbitCborBatchRouter(AbstractRabbitByteBatchRouter):
 
     @property
     def required_subscribe_attributes(self) -> Set[str]:
@@ -29,17 +27,3 @@ class RabbitCborBatchRouter(RabbitMessageGroupBatchRouterAdapter):
     @property
     def required_send_attributes(self) -> Set[str]:
         return {QueueAttribute.PUBLISH, QueueAttribute.CBOR}
-
-    @staticmethod
-    def to_group_batch(message: ByteMessageBatch) -> MessageGroupBatch:
-        messages = [AnyMessage(byte_message=msg) for msg in message.messages]
-        group = MessageGroup(messages=messages)
-
-        return MessageGroupBatch(groups=[group])
-
-    @staticmethod
-    def from_group_batch(message: MessageGroupBatch) -> ByteMessageBatch:
-        return ByteMessageBatch(messages=[
-            anymsg.byte_message for group in message.groups for anymsg in group.messages if
-            anymsg.HasField('byte_message')
-        ])

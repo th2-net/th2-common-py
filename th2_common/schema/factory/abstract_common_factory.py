@@ -28,6 +28,7 @@ from th2_common.schema.log.trace import install_trace_logger
 from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, \
     MqConnectionConfiguration
 from th2_common.schema.message.impl.rabbitmq.byte.rabbit_cbor_batch_router import RabbitCborBatchRouter
+from th2_common.schema.message.impl.rabbitmq.byte.rabbit_json_batch_router import RabbitJsonBatchRouter
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
@@ -54,6 +55,7 @@ class AbstractCommonFactory(ABC):
                  message_raw_batch_router_class: Type[RabbitRawBatchRouter] = RabbitRawBatchRouter,
                  message_group_batch_router_class: Type[RabbitMessageGroupBatchRouter] = RabbitMessageGroupBatchRouter,
                  message_cbor_router_class: Type[RabbitCborBatchRouter] = RabbitCborBatchRouter,
+                 message_json_router_class: Type[RabbitJsonBatchRouter] = RabbitJsonBatchRouter,
                  event_batch_router_class: Type[EventBatchRouter] = EventBatchRouter,
                  grpc_router_class: Type[DefaultGrpcRouter] = DefaultGrpcRouter,
                  logging_config_filepath: Optional[Path] = None) -> None:
@@ -70,6 +72,7 @@ class AbstractCommonFactory(ABC):
         self.message_raw_batch_router_class = message_raw_batch_router_class
         self.message_group_batch_router_class = message_group_batch_router_class
         self.message_cbor_router_class = message_cbor_router_class
+        self.message_json_router_class = message_json_router_class
         self.event_batch_router_class = event_batch_router_class
         self.grpc_router_class = grpc_router_class
 
@@ -77,6 +80,7 @@ class AbstractCommonFactory(ABC):
         self._message_raw_batch_router: Optional[MessageRouter] = None
         self._message_group_batch_router: Optional[MessageRouter] = None
         self._message_cbor_router: Optional[MessageRouter] = None
+        self._message_json_router: Optional[MessageRouter] = None
         self._event_batch_router: Optional[MessageRouter] = None
         self._grpc_router: Optional[GrpcRouter] = None
 
@@ -183,6 +187,26 @@ class AbstractCommonFactory(ABC):
                                                                        self.message_router_configuration)
 
         return self._message_cbor_router
+
+    @property
+    def message_json_router(self) -> MessageRouter:
+        """
+        Create MessageRouter which work with dicts
+        """
+        if self._connection_manager is None:
+            if self.rabbit_mq_configuration is None:
+                self.rabbit_mq_configuration = self._create_rabbit_mq_configuration()
+            if self.connection_manager_configuration is None:
+                self.connection_manager_configuration = self._create_conn_manager_configuration()
+            self._connection_manager = ConnectionManager(self.rabbit_mq_configuration,
+                                                         self.connection_manager_configuration)
+        if self.message_router_configuration is None:
+            self.message_router_configuration = self._create_message_router_configuration()
+        if self._message_json_router is None:
+            self._message_json_router = self.message_json_router_class(self._connection_manager,
+                                                                       self.message_router_configuration)
+
+        return self._message_json_router
 
     @property
     def event_batch_router(self) -> MessageRouter:
