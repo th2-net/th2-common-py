@@ -45,6 +45,8 @@ def get_session_alias_and_direction_group(any_message: AnyMessage) -> Tuple[str,
         return get_session_alias_and_direction(any_message.message.metadata.id)
     elif any_message.HasField('raw_message'):
         return get_session_alias_and_direction(any_message.raw_message.metadata.id)
+    elif any_message.HasField('byte_message'):
+        return get_session_alias_and_direction(any_message.byte_message.metadata.id)
     else:
         return common_metrics.UNKNOWN_LABELS
 
@@ -69,6 +71,8 @@ def get_debug_string_group(group_batch: MessageGroupBatch) -> str:
             sequences.append(str(message.message.metadata.id.sequence))
         elif message.HasField('raw_message'):
             sequences.append(str(message.raw_message.metadata.id.sequence))
+        elif message.HasField('byte_message'):
+            sequences.append(str(message.byte_message.metadata.id.sequence))
     sequences_string = ''.join(sequences)
 
     return f'MessageGroupBatch: ' \

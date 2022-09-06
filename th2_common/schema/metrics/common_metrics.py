@@ -47,7 +47,7 @@ SUBSCRIBER_LABELS = (
     DEFAULT_TH2_TYPE_LABEL_NAME,
     DEFAULT_QUEUE_LABEL_NAME
 )
-TH2_MESSAGE_TYPES: dict = {'raw': 'RAW_MESSAGE', 'parsed': 'MESSAGE'}
+TH2_MESSAGE_TYPES: dict = {'byte': 'BYTE_MESSAGE', 'raw': 'RAW_MESSAGE', 'parsed': 'MESSAGE'}
 
 LIVENESS_ARBITER = AggregatingMetric([PrometheusMetric('th2_liveness', 'Service liveness'), FileMetric('healthy')])
 READINESS_ARBITER = AggregatingMetric([PrometheusMetric('th2_readiness', 'Service readiness'), FileMetric('ready')])

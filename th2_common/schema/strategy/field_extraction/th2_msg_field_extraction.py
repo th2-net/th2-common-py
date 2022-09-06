@@ -58,10 +58,10 @@ class Th2MsgFieldExtraction:
         }
 
     def _byte_message_metadata_to_dict(self, any_message: AnyMessage) -> Dict[str, Any]:
-        raw_message_metadata = any_message.byte_message.metadata
+        byte_message_metadata = any_message.byte_message.metadata
 
         return {
-            self.SESSION_ALIAS_KEY: raw_message_metadata.id.connection_id.session_alias,
-            self.DIRECTION_KEY: Direction.Name(raw_message_metadata.id.direction),
-            self.PROTOCOL_KEY: raw_message_metadata.protocol
+            self.SESSION_ALIAS_KEY: byte_message_metadata.id.connection_id.session_alias,
+            self.DIRECTION_KEY: Direction.Name(byte_message_metadata.id.direction),
+            self.PROTOCOL_KEY: byte_message_metadata.protocol
         }

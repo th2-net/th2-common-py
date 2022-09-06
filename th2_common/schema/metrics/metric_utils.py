@@ -37,6 +37,8 @@ def update_message_metrics(messages: RepeatedCompositeFieldContainer, counter: C
     for msg in messages:
         if msg.HasField('raw_message'):
             counter.labels(*labels, common_metrics.TH2_MESSAGE_TYPES['raw']).inc()
+        elif msg.HasField('byte_message'):
+            counter.labels(*labels, common_metrics.TH2_MESSAGE_TYPES['byte']).inc()
         elif msg.HasField('message'):
             counter.labels(*labels, common_metrics.TH2_MESSAGE_TYPES['parsed']).inc()
 
