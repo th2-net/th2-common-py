@@ -23,9 +23,14 @@ from th2_common.schema.filter.strategy.impl.default_grpc_filter_strategy import 
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration, \
     GrpcEndpointConfiguration, GrpcServiceConfiguration
 from th2_common.schema.grpc.router.abstract_grpc_router import AbstractGrpcRouter
+from th2_common.schema.metrics.metric_utils import update_grpc_metrics
 
 
 class DefaultGrpcRouter(AbstractGrpcRouter):
+
+    GRPC_INVOKE_CALL_TOTAL = AbstractGrpcRouter.GRPC_INVOKE_CALL_TOTAL
+    GRPC_INVOKE_REQUEST_BYTES = AbstractGrpcRouter.GRPC_INVOKE_REQUEST_BYTES
+    GRPC_INVOKE_RESPONSE_BYTES = AbstractGrpcRouter.GRPC_INVOKE_RESPONSE_BYTES
 
     def __init__(self,
                  grpc_configuration: GrpcConfiguration,
@@ -72,8 +77,15 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
             stub = self.stubs[endpoint]
 
             if stub is not None:
-                return getattr(stub, request_name)(request, timeout=timeout)  # type: ignore
+                request_method = getattr(stub, request_name)
+                response = request_method(request, timeout=timeout)
+                update_grpc_metrics(request_method._method.decode('utf-8'),
+                                    response,
+                                    DefaultGrpcRouter.GRPC_INVOKE_CALL_TOTAL,
+                                    DefaultGrpcRouter.GRPC_INVOKE_REQUEST_BYTES,
+                                    DefaultGrpcRouter.GRPC_INVOKE_RESPONSE_BYTES)
 
+                return response  # type: ignore
             return None
 
         def _filter_services(self, properties: Optional[Dict[str, str]]) -> GrpcServiceConfiguration:

@@ -17,11 +17,38 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
 import grpc
+from prometheus_client import Counter
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration
+from th2_common.schema.grpc.grpc_interceptors import MetricInterceptor
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
+import th2_common.schema.metrics.common_metrics as common_metrics
 
 
 class AbstractGrpcRouter(GrpcRouter, ABC):
+
+    GRPC_INVOKE_CALL_TOTAL = Counter('th2_grpc_invoke_call_total',
+                                     'Total number of calling particular gRPC method',
+                                     common_metrics.GRPC_LABELS)
+
+    GRPC_RECEIVE_CALL_TOTAL = Counter('th2_grpc_receive_call_total',
+                                      'Total number of consuming particular gRPC method',
+                                      common_metrics.GRPC_LABELS)
+
+    GRPC_INVOKE_REQUEST_BYTES = Counter('th2_grpc_invoke_call_request_bytes',
+                                        'Number of bytes sent to particular gRPC call',
+                                        common_metrics.GRPC_LABELS)
+
+    GRPC_RECEIVE_CALL_REQUEST_BYTES = Counter('th2_grpc_receive_call_request_bytes',
+                                              'Number of bytes received from particular gRPC call',
+                                              common_metrics.GRPC_LABELS)
+
+    GRPC_INVOKE_RESPONSE_BYTES = Counter('th2_grpc_invoke_call_response_bytes',
+                                         'Number of bytes received from particular gRPC call',
+                                         common_metrics.GRPC_LABELS)
+
+    GRPC_RECEIVE_CALL_RESPONSE_BYTES = Counter('th2_grpc_receive_call_response_bytes',
+                                               'Number of bytes sent to particular gRPC call',
+                                               common_metrics.GRPC_LABELS)
 
     def __init__(self,
                  grpc_configuration: GrpcConfiguration,
@@ -47,8 +74,14 @@ class AbstractGrpcRouter(GrpcRouter, ABC):
             Returns:
                 grpc.Server: A server object.
         """
+        interceptor = [
+            MetricInterceptor(self.GRPC_RECEIVE_CALL_TOTAL,
+                              self.GRPC_RECEIVE_CALL_REQUEST_BYTES,
+                              self.GRPC_RECEIVE_CALL_RESPONSE_BYTES)
+        ]
         server = grpc.server(ThreadPoolExecutor(max_workers=self.grpc_router_configuration.workers),
-                             options=self.grpc_router_configuration.request_size_limit)
+                             options=self.grpc_router_configuration.request_size_limit,
+                             interceptors=interceptor)
         self.__add_insecure_port(server)
         self.servers.append(server)
 

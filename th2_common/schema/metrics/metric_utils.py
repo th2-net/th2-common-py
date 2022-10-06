@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.descriptor_pb2 import DescriptorProto
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from prometheus_client import Counter, Gauge
 from th2_common.schema.metrics import common_metrics
@@ -50,3 +51,14 @@ def update_dropped_metrics(batch: MessageGroupBatch,
         update_message_metrics(group.messages, message_counter, *labels)
         if group_counter:
             group_counter.labels(*labels).inc()
+
+
+def update_grpc_metrics(full_name: str, data: DescriptorProto, method_call_total: Counter,
+                        request_bytes: Counter, response_bytes: Counter) -> None:
+    service_name, method_name = full_name.split('.')[-1].split('/')
+    labels = service_name, method_name
+    byte_message = data.SerializeToString()
+    byte_response = data.SerializeToString()
+    method_call_total.labels(*labels).inc()
+    request_bytes.labels(*labels).inc(len(byte_message))
+    response_bytes.labels(*labels).inc(len(byte_response))
