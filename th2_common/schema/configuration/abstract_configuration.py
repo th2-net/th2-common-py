@@ -11,15 +11,13 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-from abc import ABC
 import logging
 from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractConfiguration(ABC):
+class AbstractConfiguration:
 
     def check_unexpected_args(self, kwargs: Dict[str, Any]) -> None:
         if len(kwargs) > 0:
