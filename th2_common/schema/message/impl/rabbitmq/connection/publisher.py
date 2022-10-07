@@ -20,8 +20,8 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import aio_pika
-import requests
 from aio_pika import Message
+import requests
 from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_exchange import RobustExchange
@@ -50,7 +50,8 @@ class Publisher:
     DELAY_FOR_RECONNECTION = 5
     PUBLISHING_COROUTINE_NAME = '_publish_message'
 
-    def __init__(self, connection_manager_configuration: MqConnectionConfiguration, connection_parameters: Dict[str, Any]) -> None:
+    def __init__(self, connection_manager_configuration: MqConnectionConfiguration, 
+                 connection_parameters: Dict[str, Any]) -> None:
         self._connection_parameters: Dict[str, Any] = connection_parameters
         self._connection: Optional[RobustConnection] = None
         self._channel: Optional[RobustChannel] = None
@@ -115,12 +116,18 @@ class Publisher:
         return exchange
 
     def get_queues(self) -> list:
-        return self._session.get(f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/queues',
-                                 auth=(self._connection_parameters['login'], self._connection_parameters['password'])).json()
+        url = f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/queues'
+        return self._session.get(url,
+                                 auth=(self._connection_parameters['login'], 
+                                       self._connection_parameters['password'])
+                                ).json()
 
     def get_bindings_info(self) -> list:
-        return self._session.get(f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/definitions',
-                                 auth=(self._connection_parameters['login'], self._connection_parameters['password'])).json()['bindings']
+        url = f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/definitions'
+        return self._session.get(url,
+                                 auth=(self._connection_parameters['login'], 
+                                       self._connection_parameters['password'])
+                                ).json()['bindings']
 
     def get_queues_info(self, routing_key: str) -> list:
         destination_queues = [item['destination'] for item in filter(lambda x: x['routing_key'] == routing_key, self.get_bindings_info())]
