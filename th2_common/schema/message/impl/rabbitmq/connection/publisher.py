@@ -19,7 +19,8 @@ import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-import aio_pika, requests
+import aio_pika
+import requests
 from aio_pika import Message
 from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_connection import RobustConnection
@@ -114,17 +115,19 @@ class Publisher:
         return exchange
 
     def get_queues(self) -> list:
-        return self._session.get(f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/queues',auth=(self._connection_parameters["login"],self._connection_parameters["password"])).json()
+        return self._session.get(f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/queues',
+                                 auth=(self._connection_parameters['login'], self._connection_parameters['password'])).json()
 
     def get_bindings_info(self) -> list:
-        return self._session.get(f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/definitions',auth=(self._connection_parameters["login"],self._connection_parameters["password"])).json()['bindings']
+        return self._session.get(f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/definitions',
+                                 auth=(self._connection_parameters['login'], self._connection_parameters['password'])).json()['bindings']
 
     def get_queues_info(self, routing_key: str) -> list:
         destination_queues = [item['destination'] for item in filter(lambda x: x['routing_key'] == routing_key, self.get_bindings_info())]
         return list(filter(lambda x: x['name'] in destination_queues, self.get_queues()))
 
     def queues_message_count(self, routing_key: str, unacked: bool = True, ready: bool = True) -> int:
-        return sum([ready*queue['messages_ready'] + unacked*queue['messages_unacknowledged'] for queue in self.get_queues_info(routing_key)])
+        return sum([ready * queue['messages_ready'] + unacked * queue['messages_unacknowledged'] for queue in self.get_queues_info(routing_key)])
 
     def publish_message(self,
                         exchange_name: str,
