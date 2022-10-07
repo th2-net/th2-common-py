@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from abc import ABC
 from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
@@ -24,7 +23,7 @@ from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 import th2_common.schema.metrics.common_metrics as common_metrics
 
 
-class AbstractGrpcRouter(GrpcRouter, ABC):
+class AbstractGrpcRouter(GrpcRouter):
 
     GRPC_INVOKE_CALL_TOTAL = Counter('th2_grpc_invoke_call_total',
                                      'Total number of calling particular gRPC method',

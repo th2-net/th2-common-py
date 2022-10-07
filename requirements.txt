@@ -18,3 +18,4 @@ kubernetes==24.2.0
 prometheus_client==0.14.1
 th2-common-utils==1.4.2
 grpc-interceptor==0.15.0
+types-setuptools==65.4.0.0

@@ -11,8 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-from abc import ABC
 from fnmatch import fnmatch
 from typing import Callable, Dict
 
@@ -20,7 +18,7 @@ from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, FieldFilterOperation
 
 
-class AbstractFilterStrategy(FilterStrategy, ABC):
+class AbstractFilterStrategy(FilterStrategy):
 
     @staticmethod
     def check_value(value: str, filter_configuration: FieldFilterConfiguration) -> bool:

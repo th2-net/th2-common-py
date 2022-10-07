@@ -42,7 +42,8 @@ setup(
         'kubernetes==24.2.0',
         'prometheus_client==0.14.1',
         'th2-common-utils>=1.4.2',
-        'grpc-interceptor==0.15.0'
+        'grpc-interceptor==0.15.0',
+        'types-setuptools==65.4.0.0'
     ],
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json'], 'th2_common.schema.log': ['log4py.conf', 'log_config.json']}
