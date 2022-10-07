@@ -59,7 +59,8 @@ class ConnectionManager:
 
         self.consumer = Consumer(connection_manager_configuration,
                                  self.connection_parameters)
-        self.publisher = Publisher(self.connection_parameters)
+        self.publisher = Publisher(connection_manager_configuration, 
+                                 self.connection_parameters)
 
         self._loop = asyncio.get_event_loop()
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)

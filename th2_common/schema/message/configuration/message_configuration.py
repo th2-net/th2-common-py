@@ -60,6 +60,8 @@ class MqConnectionConfiguration(AbstractConfiguration):
                  maxConnectionRecoveryTimeout: int = 60000,
                  prefetchCount: int = 10,
                  messageRecursionLimit: int = 100,
+                 maxMessages: int = 10,
+                 checkInterval: int = 2,
                  **kwargs: Any) -> None:
         self.subscriber_name = subscriberName
         self.connection_timeout = int(connectionTimeout)
@@ -71,6 +73,9 @@ class MqConnectionConfiguration(AbstractConfiguration):
         self.message_recursion_limit = int(messageRecursionLimit)
 
         self.check_unexpected_args(kwargs)
+
+        self.max_messages = int(maxMessages)
+        self.check_interval = int(checkInterval)
 
 
 class QueueConfiguration(AbstractConfiguration):
