@@ -140,8 +140,8 @@ class Publisher:
 
     def queues_message_count(self, routing_key: str, unacked: bool = True, ready: bool = True) -> int:
         return sum([
-                ready * queue['messages_ready'] + 
-                unacked * queue['messages_unacknowledged'] 
+                ready * queue['messages_ready'] +
+                unacked * queue['messages_unacknowledged']
                     for queue in self.get_queues_info(routing_key)])
 
     def publish_message(self,
