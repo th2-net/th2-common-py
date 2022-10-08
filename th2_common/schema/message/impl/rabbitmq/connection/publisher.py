@@ -50,7 +50,7 @@ class Publisher:
     DELAY_FOR_RECONNECTION = 5
     PUBLISHING_COROUTINE_NAME = '_publish_message'
 
-    def __init__(self, connection_manager_configuration: MqConnectionConfiguration, 
+    def __init__(self, connection_manager_configuration: MqConnectionConfiguration,
                  connection_parameters: Dict[str, Any]) -> None:
         self._connection_parameters: Dict[str, Any] = connection_parameters
         self._connection: Optional[RobustConnection] = None
@@ -118,19 +118,24 @@ class Publisher:
     def get_queues(self) -> list:
         url = f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/queues'
         return self._session.get(url,
-                                 auth=(self._connection_parameters['login'], 
+                                 auth=(self._connection_parameters['login'],
                                        self._connection_parameters['password'])
-                                ).json()
+                                 ).json()
 
     def get_bindings_info(self) -> list:
         url = f'http://{self._connection_parameters["host"]}:1{self._connection_parameters["port"]}/api/definitions'
         return self._session.get(url,
-                                 auth=(self._connection_parameters['login'], 
+                                 auth=(self._connection_parameters['login'],
                                        self._connection_parameters['password'])
-                                ).json()['bindings']
+                                 ).json()['bindings']
 
     def get_queues_info(self, routing_key: str) -> list:
-        destination_queues = [item['destination'] for item in filter(lambda x: x['routing_key'] == routing_key, self.get_bindings_info())]
+        destination_queues = [
+            item['destination'] for item in filter(
+                                    lambda x: x['routing_key'] == routing_key,
+                                    self.get_bindings_info()
+                                    )
+            ]
         return list(filter(lambda x: x['name'] in destination_queues, self.get_queues()))
 
     def queues_message_count(self, routing_key: str, unacked: bool = True, ready: bool = True) -> int:
