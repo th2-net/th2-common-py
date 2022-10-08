@@ -142,7 +142,9 @@ mq_router_configuration_dict = {
     'message_recursion_limit': 100,
     'min_connection_recovery_timeout': 10000,
     'prefetch_count': 50,
-    'subscriber_name': None
+    'subscriber_name': None,
+    'max_messages': 10,
+    'check_interval': 2
 }
 
 grpc_configuration_dict = {  # noqa: ECE001

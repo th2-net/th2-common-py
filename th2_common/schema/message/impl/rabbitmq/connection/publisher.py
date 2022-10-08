@@ -21,11 +21,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aio_pika
 from aio_pika import Message
-import requests
 from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_exchange import RobustExchange
-
+import requests
 from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 
 logger = logging.getLogger(__name__)
@@ -64,10 +63,8 @@ class Publisher:
         self._message_number: int = 0
         self._republishing: bool = False
         self._count_of_messages: int = 0
-
         self._max_messages: int = connection_manager_configuration.max_messages
         self._check_interval: int = connection_manager_configuration.check_interval
-
         self._session = requests.Session()
 
     async def connect(self) -> None:
@@ -131,18 +128,18 @@ class Publisher:
 
     def get_queues_info(self, routing_key: str) -> list:
         destination_queues = [
-            item['destination'] for item in filter(
-                                    lambda x: x['routing_key'] == routing_key,
-                                    self.get_bindings_info()
-                                    )
-            ]
+                               item['destination'] for item in filter(
+                                                    lambda x: x['routing_key'] == routing_key,
+                                                    self.get_bindings_info()
+                                                                      )
+                              ]
         return list(filter(lambda x: x['name'] in destination_queues, self.get_queues()))
 
     def queues_message_count(self, routing_key: str, unacked: bool = True, ready: bool = True) -> int:
         return sum([
-                ready * queue['messages_ready'] +
-                unacked * queue['messages_unacknowledged']
-                    for queue in self.get_queues_info(routing_key)])
+                ready * queue['messages_ready']
+                + unacked * queue['messages_unacknowledged']
+                for queue in self.get_queues_info(routing_key)])
 
     def publish_message(self,
                         exchange_name: str,
