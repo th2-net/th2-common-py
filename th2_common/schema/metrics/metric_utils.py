@@ -30,7 +30,7 @@ def update_total_metrics(batch: MessageGroupBatch,
         if group_counter:
             group_counter.labels(*gr_labels).inc()
         if sequence_gauge:
-            sequence_gauge.labels(*gr_labels).set(get_sequence(group))
+            sequence_gauge.labels(*gr_labels).set(get_sequence(group))  # type: ignore
 
 
 def update_message_metrics(messages: RepeatedCompositeFieldContainer, counter: Counter, *labels: str) -> None:
