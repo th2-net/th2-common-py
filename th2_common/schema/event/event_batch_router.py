@@ -46,9 +46,12 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
                          queue_aliases_to_configs: Dict[str, QueueConfiguration],
                          batch: EventBatch) -> Dict[str, EventBatch]:
         result: Dict[str, EventBatch] = defaultdict(EventBatch)
-        for message in self._get_messages(batch):
-            for queue_alias in queue_aliases_to_configs:
-                self._add_message(result[queue_alias], message)
+
+        if len(queue_aliases_to_configs) > 0:
+            for message in self._get_messages(batch):
+                for queue_alias in queue_aliases_to_configs:
+                    self._add_message(result[queue_alias], message)
+
         return result
 
     @property

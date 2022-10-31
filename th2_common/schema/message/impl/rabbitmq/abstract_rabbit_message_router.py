@@ -171,17 +171,18 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def split_and_filter(self, queue_aliases_to_configs: Dict[str, QueueConfiguration], batch: Any) -> Dict[str, Any]:
         result: Dict[str, MessageGroupBatch] = defaultdict(MessageGroupBatch)
 
-        for message_group in self._get_messages(batch):
-            dropped_on_aliases = set()
+        if len(queue_aliases_to_configs) > 0:
+            for message_group in self._get_messages(batch):
+                dropped_on_aliases = set()
 
-            for queue_alias, queue_config in queue_aliases_to_configs.items():
-                filters = queue_config.filters
-                if self._filter_strategy.verify(message_group, router_filters=filters):
-                    self._add_message(result[queue_alias], message_group)
-                else:
-                    dropped_on_aliases.add(queue_alias)
+                for queue_alias, queue_config in queue_aliases_to_configs.items():
+                    filters = queue_config.filters
+                    if self._filter_strategy.verify(message_group, router_filters=filters):
+                        self._add_message(result[queue_alias], message_group)
+                    else:
+                        dropped_on_aliases.add(queue_alias)
 
-            self.update_dropped_metrics(MessageGroupBatch(groups=[message_group]), *dropped_on_aliases)
+                self.update_dropped_metrics(MessageGroupBatch(groups=[message_group]), *dropped_on_aliases)
 
         return result
 
