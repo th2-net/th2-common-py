@@ -38,7 +38,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'th2-grpc-common~=3.12.0',
-        'th2-common-utils==1.6.0.dev3361733438'
+        'th2-common-utils==1.6.0.dev3361733438',
         'aio_pika==6.8.2',
         'kubernetes==24.2.0',
         'prometheus_client==0.14.1'
