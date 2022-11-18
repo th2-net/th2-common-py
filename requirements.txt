@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-aio_pika==6.8.2
+aio_pika==8.2.5
 th2-grpc-common~=3.11.1
 kubernetes==24.2.0
 prometheus_client==0.14.1
