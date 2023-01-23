@@ -17,6 +17,7 @@ import logging
 from typing import Any
 
 from prometheus_client import Counter
+
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.connection.publisher import Publisher
 from th2_common.schema.message.message_sender import MessageSender

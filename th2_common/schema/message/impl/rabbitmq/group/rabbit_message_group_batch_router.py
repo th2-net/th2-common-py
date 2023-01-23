@@ -16,6 +16,8 @@ from typing import Set
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from prometheus_client import Counter
+from th2_grpc_common.common_pb2 import MessageGroup, MessageGroupBatch
+
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_message_router import AbstractRabbitMessageRouter
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
@@ -29,7 +31,6 @@ from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as dropped_metrics_updater
-from th2_grpc_common.common_pb2 import MessageGroup, MessageGroupBatch
 
 
 class RabbitMessageGroupBatchRouter(AbstractRabbitMessageRouter):

@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import google.protobuf.message
 import grpc
 from grpc import _channel
+
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
 from th2_common.schema.filter.strategy.impl.default_grpc_filter_strategy import DefaultGrpcFilterStrategy
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration, \
@@ -97,7 +98,7 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
 
             return next(self._endpoint_generators[service])  # type: ignore
 
-    def get_connection(self, service_class: Callable, stub_class: Callable) -> Optional[Connection]:
+    def get_connection(self, service_class: Callable, stub_class: Callable) -> Connection:
         if self.grpc_configuration.services:
             find_services = self._filter_services_by_name(service_class.__name__)
 
@@ -106,9 +107,10 @@ class DefaultGrpcRouter(AbstractGrpcRouter):
                                        stub_class,
                                        self.channels,
                                        self.grpc_router_configuration.retry_policy.options)
-            return None
+            else:
+                raise GrpcRouterError('No suitable service is found in `grpc.json`. Check the configuration.')
         else:
-            raise GrpcRouterError("Services list are empty in 'grpc.json'. Check your links")
+            raise GrpcRouterError('Services list is empty in `grpc.json`. Check the configuration.')
 
     def _filter_services_by_name(self, service_class_name: str) -> List[GrpcServiceConfiguration]:
         return list(filter(  # noqa: ECE001

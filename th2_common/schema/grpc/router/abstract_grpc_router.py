@@ -17,6 +17,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
 import grpc
+
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 

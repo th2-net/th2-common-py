@@ -16,6 +16,7 @@ from test.test_configuration.resources import dict_configuration
 from test.utils import object_to_dict
 
 import pytest
+
 from th2_common.schema.factory.common_factory import CommonFactory
 
 

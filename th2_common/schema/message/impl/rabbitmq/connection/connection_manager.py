@@ -20,7 +20,11 @@ from threading import Thread
 from typing import Any, Dict
 
 import aio_pika
-from google.protobuf.pyext._message import SetAllowOversizeProtos  # type: ignore
+try:
+    from google._upb._message import SetAllowOversizeProtos
+except ImportError:
+    from google.protobuf.pyext._message import SetAllowOversizeProtos
+
 from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
@@ -78,8 +82,7 @@ class ConnectionManager:
 
         asyncio.set_event_loop(self._loop)
         self._loop.set_exception_handler(self._handle_exception)
-        if not self._loop.is_running():
-            self._loop.run_forever()
+        self._loop.run_forever()
 
     def _handle_exception(self, loop: AbstractEventLoop, context: Dict[str, Any]) -> Any:
         """Custom exception handling"""
