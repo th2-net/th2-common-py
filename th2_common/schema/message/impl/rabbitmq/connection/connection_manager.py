@@ -20,7 +20,11 @@ from threading import Thread
 from typing import Any, Dict
 
 import aio_pika
-from google.protobuf.pyext._message import SetAllowOversizeProtos  # type: ignore
+try:
+    from google._upb._message import SetAllowOversizeProtos
+except ImportError:
+    from google.protobuf.pyext._message import SetAllowOversizeProtos
+
 from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
@@ -61,7 +65,7 @@ class ConnectionManager:
                                  self.connection_parameters)
         self.publisher = Publisher(self.connection_parameters)
 
-        self._loop = asyncio.get_event_loop()
+        self._loop: AbstractEventLoop = asyncio.get_event_loop()
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 

@@ -16,6 +16,8 @@ from collections import defaultdict
 from typing import Dict, Set
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from th2_grpc_common.common_pb2 import Event, EventBatch, Message
+
 from th2_common.schema.event.event_batch_sender import EventBatchSender
 from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
@@ -25,7 +27,6 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_grpc_common.common_pb2 import Event, EventBatch, Message
 
 
 class EventBatchRouter(AbstractRabbitMessageRouter):

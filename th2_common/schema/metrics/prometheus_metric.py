@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 from prometheus_client import Gauge
+
 from th2_common.schema.metrics.abstract_metric import AbstractMetric
 
 
