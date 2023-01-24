@@ -46,13 +46,7 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
     def split_and_filter(self,
                          queue_aliases_to_configs: Dict[str, QueueConfiguration],
                          batch: EventBatch) -> Dict[str, EventBatch]:
-        result: Dict[str, EventBatch] = defaultdict(EventBatch)
-
-        if queue_aliases_to_configs:
-            for message in self._get_messages(batch):
-                for queue_alias in queue_aliases_to_configs:
-                    self._add_message(result[queue_alias], message)
-        return result
+        return {queue_alias: batch for queue_alias in queue_aliases_to_configs}
 
     @property
     def required_subscribe_attributes(self) -> Set[str]:
