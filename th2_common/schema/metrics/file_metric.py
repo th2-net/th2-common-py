@@ -34,13 +34,13 @@ class FileMetric(AbstractMetric):
             try:
                 self.filename.touch()
             except Exception as e:
-                logger.error(f'Can not create metric file with path = {self.filename}'. Error: {e})
+                logger.error(f'Can not create metric file with path = {self.filename}. Error: {e}')
         else:
             self.delete_file_metric()
 
-    def delete_file_metric(self):
+    def delete_file_metric(self) -> None:
         if self.filename.exists():
             try:
                 self.filename.unlink()
             except Exception as e:
-                logger.error(f'Can not delete metric file with path = {self.filename}'. Error: {e})
+                logger.error(f'Can not delete metric file with path = {self.filename}. Error: {e}')
