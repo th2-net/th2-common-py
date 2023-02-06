@@ -18,12 +18,14 @@ import tempfile
 from th2_common.schema.metrics.abstract_metric import AbstractMetric
 
 
+logger = logging.getLogger(__name__)
+
+
 class FileMetric(AbstractMetric):
 
     def __init__(self, filename: str) -> None:
         self.filename = Path(tempfile.gettempdir()) / filename
-        if self.filename.exists():
-            self.filename.unlink()
+        self.delete_file_metric()
 
         super().__init__()
 
@@ -32,7 +34,13 @@ class FileMetric(AbstractMetric):
             try:
                 self.filename.touch()
             except Exception as e:
-                raise OSError(f'Can not create metric file with path = {self.filename}', e)
+                logger.error(f'Can not create metric file with path = {self.filename}'. Error: {e})
         else:
-            if self.filename.exists():
+            self.delete_file_metric()
+
+    def delete_file_metric(self):
+        if self.filename.exists():
+            try:
                 self.filename.unlink()
+            except Exception as e:
+                logger.error(f'Can not delete metric file with path = {self.filename}'. Error: {e})
