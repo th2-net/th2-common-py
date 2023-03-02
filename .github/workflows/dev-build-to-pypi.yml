@@ -65,9 +65,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: install
-        run: python -m pip install .
+#      - name: install
+#        run: python -m pip install .
       - uses: pypa/gh-action-pip-audit@v1.0.6
+        with:
+          inputs: requirements.txt
   scan:
     name: Vulnerabilities scan
     uses: th2-net/.github/.github/workflows/python-scan.yml@main
