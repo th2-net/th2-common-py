@@ -12,10 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from collections import defaultdict
 from typing import Dict, Set
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from th2_grpc_common.common_pb2 import Event, EventBatch, Message
+
 from th2_common.schema.event.event_batch_sender import EventBatchSender
 from th2_common.schema.event.event_batch_subscriber import EventBatchSubscriber
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
@@ -25,7 +26,6 @@ from th2_common.schema.message.impl.rabbitmq.connection.connection_manager impor
 from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_grpc_common.common_pb2 import Event, EventBatch, Message
 
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
@@ -45,11 +45,7 @@ class EventBatchRouter(AbstractRabbitMessageRouter):
     def split_and_filter(self,
                          queue_aliases_to_configs: Dict[str, QueueConfiguration],
                          batch: EventBatch) -> Dict[str, EventBatch]:
-        result: Dict[str, EventBatch] = defaultdict(EventBatch)
-        for message in self._get_messages(batch):
-            for queue_alias in queue_aliases_to_configs:
-                self._add_message(result[queue_alias], message)
-        return result
+        return {queue_alias: batch for queue_alias in queue_aliases_to_configs}
 
     @property
     def required_subscribe_attributes(self) -> Set[str]:

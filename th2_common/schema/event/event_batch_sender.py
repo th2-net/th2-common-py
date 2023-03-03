@@ -15,10 +15,11 @@
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter
+from th2_grpc_common.common_pb2 import EventBatch
+
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.util.util import get_debug_string_event
-from th2_grpc_common.common_pb2 import EventBatch
 
 
 class EventBatchSender(AbstractRabbitSender):

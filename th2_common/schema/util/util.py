@@ -14,10 +14,11 @@
 
 from typing import List, Optional, Tuple
 
+from th2_grpc_common.common_pb2 import AnyMessage, Direction, EventBatch, MessageGroup, MessageGroupBatch, MessageID
+
 from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, \
     MqRouterFilterConfiguration
 import th2_common.schema.metrics.common_metrics as common_metrics
-from th2_grpc_common.common_pb2 import AnyMessage, Direction, EventBatch, MessageGroup, MessageGroupBatch, MessageID
 
 
 def get_filters(configuration: MessageRouterConfiguration,

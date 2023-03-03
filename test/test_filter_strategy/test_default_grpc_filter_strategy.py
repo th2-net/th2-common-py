@@ -15,6 +15,7 @@
 from unittest.mock import Mock
 
 import pytest
+
 from th2_common.schema.exception.grpc_router_error import GrpcRouterError
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 
