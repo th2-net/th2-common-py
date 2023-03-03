@@ -25,6 +25,9 @@ package_version = package_info['package_version']
 with open('README.md', 'r') as file:
     long_description = file.read()
 
+with open('requirements.txt', 'r') as file:
+    requirements = [l.strip() for l in file.readlines() if not l.startswith('#') and l != '\n']
+
 setup(
     name=package_name,
     version=package_version,
@@ -36,14 +39,7 @@ setup(
     url='https://github.com/th2-net/th2-common-py',
     license='Apache License 2.0',
     python_requires='>=3.7',
-    install_requires=[
-        'aio_pika==6.8.2',
-        'nest_asyncio==1.5.6',
-        'th2-grpc-common~=3.11.1',
-        'kubernetes==24.2.0',
-        'prometheus_client==0.14.1',
-        'th2-common-utils>=1.6.0'
-    ],
+    install_requires=requirements,
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json'], 'th2_common.schema.log': ['log4py.conf', 'log_config.json']}
 )
