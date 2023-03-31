@@ -21,6 +21,8 @@ from typing import Any, Optional, Set
 import aio_pika
 from google.protobuf.message import DecodeError
 from prometheus_client import Counter, Histogram
+from th2_grpc_common.common_pb2 import Message
+
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
@@ -28,7 +30,6 @@ from th2_common.schema.message.impl.rabbitmq.connection.consumer import Consumer
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 import th2_common.schema.metrics.common_metrics as common_metrics
-from th2_grpc_common.common_pb2 import Message
 
 
 logger = logging.getLogger(__name__)

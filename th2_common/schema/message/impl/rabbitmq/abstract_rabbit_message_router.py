@@ -18,6 +18,8 @@ from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from th2_grpc_common.common_pb2 import MessageGroupBatch
+
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
@@ -29,7 +31,6 @@ from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
 from th2_common.schema.util.util import get_debug_string_group, get_filters
-from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 class SubscriberMonitorImpl(SubscriberMonitor):
@@ -171,17 +172,18 @@ class AbstractRabbitMessageRouter(MessageRouter, ABC):
     def split_and_filter(self, queue_aliases_to_configs: Dict[str, QueueConfiguration], batch: Any) -> Dict[str, Any]:
         result: Dict[str, MessageGroupBatch] = defaultdict(MessageGroupBatch)
 
-        for message_group in self._get_messages(batch):
-            dropped_on_aliases = set()
+        if queue_aliases_to_configs:
+            for message_group in self._get_messages(batch):
+                dropped_on_aliases = set()
 
-            for queue_alias, queue_config in queue_aliases_to_configs.items():
-                filters = queue_config.filters
-                if self._filter_strategy.verify(message_group, router_filters=filters):
-                    self._add_message(result[queue_alias], message_group)
-                else:
-                    dropped_on_aliases.add(queue_alias)
+                for queue_alias, queue_config in queue_aliases_to_configs.items():
+                    filters = queue_config.filters
+                    if self._filter_strategy.verify(message_group, router_filters=filters):
+                        self._add_message(result[queue_alias], message_group)
+                    else:
+                        dropped_on_aliases.add(queue_alias)
 
-            self.update_dropped_metrics(MessageGroupBatch(groups=[message_group]), *dropped_on_aliases)
+                self.update_dropped_metrics(MessageGroupBatch(groups=[message_group]), *dropped_on_aliases)
 
         return result
 

@@ -14,10 +14,11 @@
 
 from typing import Set
 
+from th2_grpc_common.common_pb2 import AnyMessage, MessageGroup, MessageGroupBatch, RawMessageBatch
+
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
     RabbitMessageGroupBatchRouterAdapter
 from th2_common.schema.message.queue_attribute import QueueAttribute
-from th2_grpc_common.common_pb2 import AnyMessage, MessageGroup, MessageGroupBatch, RawMessageBatch
 
 
 class RabbitRawBatchRouter(RabbitMessageGroupBatchRouterAdapter):

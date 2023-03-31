@@ -19,6 +19,7 @@ from test.utils import object_to_dict
 from typing import Any, Dict
 
 import pytest
+
 from th2_common.schema.strategy.field_extraction.th2_msg_field_extraction import Th2MsgFieldExtraction
 
 
