@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,14 +12,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from typing import Any, Optional
 
 from th2_common.schema.configuration.abstract_configuration import AbstractConfiguration
 
 
 class RabbitMQConfiguration(AbstractConfiguration):
 
-    def __init__(self, host, vHost, port, username, password, exchangeName,
-                 prefetch_count: int = 100, subscriberName=None, **kwargs) -> None:
+    def __init__(self,
+                 host: str,
+                 vHost: str,
+                 port: int,
+                 username: str,
+                 password: str,
+                 exchangeName: str,
+                 prefetch_count: int = 100,
+                 subscriberName: Optional[str] = None,
+                 **kwargs: Any) -> None:
         self.host = host
         self.vhost = vHost
         self.port = port
@@ -28,4 +37,5 @@ class RabbitMQConfiguration(AbstractConfiguration):
         self.subscriber_name = subscriberName
         self.exchange_name = exchangeName
         self.prefetch_count = prefetch_count
+
         self.check_unexpected_args(kwargs)

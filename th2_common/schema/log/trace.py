@@ -1,4 +1,4 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,23 +13,23 @@
 #   limitations under the License.
 
 import logging
-
+from typing import Any
 
 _trace_installed = False
 
 
-def install_trace_logger():
+def install_trace_logger() -> None:
     global _trace_installed
     if _trace_installed:
         return
 
     TRACE = 5
 
-    def trace(self, msg, *args, **kwargs):
+    def trace(self: logging.Logger, msg: str, *args: Any, **kwargs: Any) -> None:
         if self.isEnabledFor(TRACE):
             self._log(TRACE, msg, args, **kwargs)
 
-    def log_to_root(msg, *args, **kwargs):
+    def log_to_root(msg: str, *args: Any, **kwargs: Any) -> None:
         logging.log(TRACE, msg, *args, **kwargs)
 
     logging.addLevelName(TRACE, 'TRACE')

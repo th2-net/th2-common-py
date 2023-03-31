@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from th2_common.schema.message.message_listener import MessageListener
 class MessageSubscriber(ABC):
 
     @abstractmethod
-    def start(self):
+    def start(self) -> None:
         pass
 
     @abstractmethod
@@ -28,9 +28,9 @@ class MessageSubscriber(ABC):
         pass
 
     @abstractmethod
-    def add_listener(self, message_listener: MessageListener):
+    def add_listener(self, message_listener: MessageListener) -> None:
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass

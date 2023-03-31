@@ -4,7 +4,7 @@ on:
   push:
     branches-ignore:
       - master
-      - version-2
+      - version-*
       - dependabot**
     paths-ignore:
       - README.md
@@ -35,14 +35,19 @@ jobs:
           filename: './package_info.json'
           key: 'package_version'
           value: ${{ steps.release_ver.outputs.value }}
-      # Build and publish
+      # Test
       - name: Set up Python 3.7
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Build package
+      - name: Run tests
         run: |
           pip install -r requirements.txt
+          pip install pytest
+          pytest
+      # Build and publish
+      - name: Build package
+        run: |
           python setup.py sdist
       # - name: Publish distribution to Test PyPI
       #   uses: pypa/gh-action-pypi-publish@master
@@ -56,3 +61,16 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_PASSWORD }}
           repository_url: https://upload.pypi.org/legacy/
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: install
+        run: python -m pip install .
+      - uses: pypa/gh-action-pip-audit@v1.0.6
+        with:
+          inputs: requirements.txt
+  scan:
+    name: Vulnerabilities scan
+    uses: th2-net/.github/.github/workflows/python-scan.yml@main
+

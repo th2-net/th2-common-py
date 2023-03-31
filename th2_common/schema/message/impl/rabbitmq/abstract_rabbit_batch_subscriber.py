@@ -14,17 +14,23 @@
 
 from abc import ABC, abstractmethod
 
-from th2_grpc_common.common_pb2 import Direction
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from th2_grpc_common.common_pb2 import Direction, MessageGroupBatch
 
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import QueueConfiguration
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_subscriber import AbstractRabbitSubscriber
+from th2_common.schema.message.impl.rabbitmq.configuration.subscribe_target import SubscribeTarget
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 
 
 class Metadata:
 
-    def __init__(self, sequence, message_type: str, direction: Direction, session_alias: str) -> None:
+    def __init__(self,
+                 sequence: str,
+                 message_type: str,
+                 direction: Direction,
+                 session_alias: str) -> None:
         self.sequence = sequence
         self.message_type = message_type
         self.direction = direction
@@ -33,21 +39,27 @@ class Metadata:
 
 class AbstractRabbitBatchSubscriber(AbstractRabbitSubscriber, ABC):
 
-    def __init__(self, connection_manager: ConnectionManager, queue_configuration: QueueConfiguration,
-                 filter_strategy=DefaultFilterStrategy(), *subscribe_targets, th2_pin='') -> None:
-        super().__init__(connection_manager, queue_configuration, *subscribe_targets, th2_pin=th2_pin)
+    def __init__(self,
+                 connection_manager: ConnectionManager,
+                 subscribe_target: SubscribeTarget,
+                 queue_configuration: QueueConfiguration,
+                 filter_strategy: DefaultFilterStrategy,
+                 th2_pin: str = '') -> None:
+        super().__init__(connection_manager, subscribe_target, queue_configuration, th2_pin=th2_pin)
         self.filters = queue_configuration.filters
         self.filter_strategy = filter_strategy
 
-    def filter(self, batch) -> bool:
-        messages = [msg for msg in self.get_messages(batch) if
-                    self.filter_strategy.verify(message=msg, router_filters=self.filters)]
+    def filter(self, batch: MessageGroupBatch) -> bool:  # noqa: A003
+        messages = [
+            message_group for message_group in self.get_messages(batch) if
+            self.filter_strategy.verify(message=message_group, router_filters=self.filters)
+        ]
         return len(messages) > 0
 
     @abstractmethod
-    def get_messages(self, batch) -> list:
+    def get_messages(self, batch: MessageGroupBatch) -> RepeatedCompositeFieldContainer:
         pass
 
     @abstractmethod
-    def extract_metadata(self, message) -> Metadata:
+    def extract_metadata(self, message: MessageGroupBatch) -> Metadata:
         pass

@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,22 +12,22 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from abc import ABC, abstractmethod
 import json
 import logging.config
 import os
-from abc import ABC, abstractmethod
 from pathlib import Path
-from threading import Lock
+from typing import Any, Dict, List, Optional, Type, Union
 
-import th2_common.schema.metrics.common_metrics as common_metrics
+from th2_common.schema.box.configuration.box_configuration import BoxConfiguration
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
-from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcRouterConfiguration
+from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration
 from th2_common.schema.grpc.router.grpc_router import GrpcRouter
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.log.trace import install_trace_logger
 from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, \
-    ConnectionManagerConfiguration
+    MqConnectionConfiguration
 from th2_common.schema.message.impl.rabbitmq.configuration.rabbitmq_configuration import RabbitMQConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
@@ -35,33 +35,33 @@ from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_ro
 from th2_common.schema.message.impl.rabbitmq.parsed.rabbit_parsed_batch_router import RabbitParsedBatchRouter
 from th2_common.schema.message.impl.rabbitmq.raw.rabbit_raw_batch_router import RabbitRawBatchRouter
 from th2_common.schema.message.message_router import MessageRouter
+import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.prometheus_configuration import PrometheusConfiguration
 from th2_common.schema.metrics.prometheus_server import PrometheusServer
-
 
 logger = logging.getLogger(__name__)
 
 
 class AbstractCommonFactory(ABC):
-
-    DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/log4py.conf')
-    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent.joinpath('log/config.conf')
+    LOGGING_CONFIG_FILENAME = 'log4py.conf'
+    DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/') / LOGGING_CONFIG_FILENAME
+    DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent / 'log' / 'log_config.json'
 
     def __init__(self,
-                 message_parsed_batch_router_class=RabbitParsedBatchRouter,
-                 message_raw_batch_router_class=RabbitRawBatchRouter,
-                 message_group_batch_router_class=RabbitMessageGroupBatchRouter,
-                 event_batch_router_class=EventBatchRouter,
-                 grpc_router_class=DefaultGrpcRouter,
-                 logging_config_filepath=None) -> None:
+                 message_parsed_batch_router_class: Type[RabbitParsedBatchRouter] = RabbitParsedBatchRouter,
+                 message_raw_batch_router_class: Type[RabbitRawBatchRouter] = RabbitRawBatchRouter,
+                 message_group_batch_router_class: Type[RabbitMessageGroupBatchRouter] = RabbitMessageGroupBatchRouter,
+                 event_batch_router_class: Type[EventBatchRouter] = EventBatchRouter,
+                 grpc_router_class: Type[DefaultGrpcRouter] = DefaultGrpcRouter,
+                 logging_config_filepath: Optional[Path] = None) -> None:
 
-        self.rabbit_mq_configuration = None
-        self.message_router_configuration = None
-        self.grpc_configuration = None
-        self.grpc_router_configuration = None
+        self.rabbit_mq_configuration: Optional[RabbitMQConfiguration] = None
+        self.message_router_configuration: Optional[MessageRouterConfiguration] = None
+        self.grpc_configuration: Optional[GrpcConfiguration] = None
+        self.grpc_connection_configuration: Optional[GrpcConnectionConfiguration] = None
 
-        self._connection_manager = None
-        self.connection_manager_configuration = None
+        self._connection_manager: Optional[ConnectionManager] = None
+        self.connection_manager_configuration: Optional[MqConnectionConfiguration] = None
 
         self.message_parsed_batch_router_class = message_parsed_batch_router_class
         self.message_raw_batch_router_class = message_raw_batch_router_class
@@ -69,11 +69,11 @@ class AbstractCommonFactory(ABC):
         self.event_batch_router_class = event_batch_router_class
         self.grpc_router_class = grpc_router_class
 
-        self._message_parsed_batch_router = None
-        self._message_raw_batch_router = None
-        self._message_group_batch_router = None
-        self._event_batch_router = None
-        self._grpc_router = None
+        self._message_parsed_batch_router: Optional[MessageRouter] = None
+        self._message_raw_batch_router: Optional[MessageRouter] = None
+        self._message_group_batch_router: Optional[MessageRouter] = None
+        self._event_batch_router: Optional[MessageRouter] = None
+        self._grpc_router: Optional[GrpcRouter] = None
 
         install_trace_logger()
 
@@ -86,11 +86,14 @@ class AbstractCommonFactory(ABC):
                                       disable_existing_loggers=False)
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_OUTER_PATH}')
         elif AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH.exists():
-            logging.config.fileConfig(fname=AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH,
-                                      disable_existing_loggers=False)
+            logging.config.dictConfig(
+                self.read_configuration(Path(AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH))
+            )
             logger.info(f'Using logging config file from {AbstractCommonFactory.DEFAULT_LOGGING_CONFIG_INNER_PATH}')
 
         self._liveness_monitor = common_metrics.register_liveness('common_factory_liveness')
+
+        self.box_configuration = self._create_box_configuration()
 
         self.prometheus_config = self._create_prometheus_configuration()
         if self.prometheus_config.enabled:
@@ -113,9 +116,11 @@ class AbstractCommonFactory(ABC):
         if self.message_router_configuration is None:
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_parsed_batch_router is None:
-            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self._connection_manager,
-                                                                                       self.message_router_configuration
-                                                                                       )
+            self._message_parsed_batch_router = self.message_parsed_batch_router_class(
+                self._connection_manager,
+                self.message_router_configuration,
+                self.box_configuration
+            )
 
         return self._message_parsed_batch_router
 
@@ -135,7 +140,8 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_raw_batch_router is None:
             self._message_raw_batch_router = self.message_raw_batch_router_class(self._connection_manager,
-                                                                                 self.message_router_configuration)
+                                                                                 self.message_router_configuration,
+                                                                                 self.box_configuration)
         return self._message_raw_batch_router
 
     @property
@@ -154,7 +160,8 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_group_batch_router is None:
             self._message_group_batch_router = self.message_group_batch_router_class(self._connection_manager,
-                                                                                     self.message_router_configuration)
+                                                                                     self.message_router_configuration,
+                                                                                     self.box_configuration)
 
         return self._message_group_batch_router
 
@@ -174,7 +181,8 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = self._create_message_router_configuration()
         if self._event_batch_router is None:
             self._event_batch_router = self.event_batch_router_class(self._connection_manager,
-                                                                     self.message_router_configuration)
+                                                                     self.message_router_configuration,
+                                                                     self.box_configuration)
 
         return self._event_batch_router
 
@@ -183,13 +191,13 @@ class AbstractCommonFactory(ABC):
         if self._grpc_router is None:
             if self.grpc_configuration is None:
                 self.grpc_configuration = self._create_grpc_configuration()
-            if self.grpc_router_configuration is None:
-                self.grpc_router_configuration = self._create_grpc_router_configuration()
-            self._grpc_router = self.grpc_router_class(self.grpc_configuration, self.grpc_router_configuration)
+            if self.grpc_connection_configuration is None:
+                self.grpc_connection_configuration = self._create_grpc_router_configuration()
+            self._grpc_router = self.grpc_router_class(self.grpc_configuration, self.grpc_connection_configuration)
 
         return self._grpc_router
 
-    def close(self):
+    def close(self) -> None:
         logger.info('Closing Common Factory')
 
         if self._message_raw_batch_router is not None:
@@ -233,13 +241,13 @@ class AbstractCommonFactory(ABC):
         logger.info('Common Factory is closed')
 
     @staticmethod
-    def read_configuration(filepath):
+    def read_configuration(filepath: Path) -> Dict[str, Any]:
         with open(filepath, 'r') as file:
             config_json = file.read()
             config_json_expanded = os.path.expandvars(config_json)
-            config_dict = json.loads(config_json_expanded)
+            json_object = json.loads(config_json_expanded)
 
-        return config_dict
+        return json_replace_keys(json_object)  # type: ignore
 
     def create_cradle_configuration(self) -> CradleConfiguration:
         return CradleConfiguration(**self.read_configuration(self._path_to_cradle_configuration))
@@ -250,7 +258,13 @@ class AbstractCommonFactory(ABC):
         else:
             return PrometheusConfiguration()
 
-    def create_custom_configuration(self) -> dict:
+    def _create_box_configuration(self) -> BoxConfiguration:
+        if self._path_to_box_configuration.exists():
+            return BoxConfiguration(**self.read_configuration(self._path_to_box_configuration))
+        else:
+            return BoxConfiguration()
+
+    def create_custom_configuration(self) -> Any:
         return self.read_configuration(self._path_to_custom_configuration)
 
     def _create_rabbit_mq_configuration(self) -> RabbitMQConfiguration:
@@ -263,23 +277,26 @@ class AbstractCommonFactory(ABC):
         self.message_router_configuration = MessageRouterConfiguration(**config_dict)
         return self.message_router_configuration
 
-    def _create_conn_manager_configuration(self) -> ConnectionManagerConfiguration:
+    def _create_conn_manager_configuration(self) -> MqConnectionConfiguration:
         if self._path_to_connection_manager_configuration.exists():
-            return ConnectionManagerConfiguration(**self.read_configuration(
-                self._path_to_connection_manager_configuration))
+            return MqConnectionConfiguration(
+                **self.read_configuration(self._path_to_connection_manager_configuration)
+            )
         else:
-            return ConnectionManagerConfiguration()
+            return MqConnectionConfiguration()
 
     def _create_grpc_configuration(self) -> GrpcConfiguration:
         config_dict = self.read_configuration(self._path_to_grpc_configuration)
         self.grpc_configuration = GrpcConfiguration(**config_dict)
         return self.grpc_configuration
 
-    def _create_grpc_router_configuration(self) -> GrpcRouterConfiguration:
+    def _create_grpc_router_configuration(self) -> GrpcConnectionConfiguration:
         if self._path_to_grpc_router_configuration.exists():
-            return GrpcRouterConfiguration(**self.read_configuration(self._path_to_grpc_router_configuration))
+            return GrpcConnectionConfiguration(
+                **self.read_configuration(self._path_to_grpc_router_configuration)
+            )
         else:
-            return GrpcRouterConfiguration()
+            return GrpcConnectionConfiguration()
 
     @property
     @abstractmethod
@@ -320,3 +337,17 @@ class AbstractCommonFactory(ABC):
     @abstractmethod
     def _path_to_custom_configuration(self) -> Path:
         pass
+
+    @property
+    @abstractmethod
+    def _path_to_box_configuration(self) -> Path:
+        pass
+
+
+def json_replace_keys(json_object: Union[str, int, float, List, Dict]) -> Union[str, int, float, List, Dict[str, Any]]:
+    if isinstance(json_object, Dict):
+        return {k.replace('-', '_'): json_replace_keys(v) for k, v in json_object.items()}
+    elif isinstance(json_object, List):
+        return [json_replace_keys(i) for i in json_object]
+    else:
+        return json_object

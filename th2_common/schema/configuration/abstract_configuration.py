@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,13 +13,14 @@
 #   limitations under the License.
 
 import logging
-from abc import ABC
+from typing import Any, Dict
 
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractConfiguration(ABC):
-    def check_unexpected_args(self, args):
-        if len(args) > 0:
-            logger.warning(f'{self.__class__.__name__} JSON config contains unexpected arguments: {args}')
+class AbstractConfiguration:
+
+    def check_unexpected_args(self, kwargs: Dict[str, Any]) -> None:
+        if len(kwargs) > 0:
+            logger.warning(f'{self.__class__.__name__} JSON config contains unexpected arguments: {kwargs}')

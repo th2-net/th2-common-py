@@ -4,3 +4,5 @@ __pycache__/
 *$py.class
 dist
 *egg-info
+.mypy_cache
+all.log

@@ -1,4 +1,4 @@
-#   Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,8 +14,10 @@
 
 from abc import ABC, abstractmethod
 from threading import Lock
+from typing import Any
 
-from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration, QueueConfiguration
+from th2_common.schema.box.configuration.box_configuration import BoxConfiguration
+from th2_common.schema.message.configuration.message_configuration import MessageRouterConfiguration
 from th2_common.schema.message.impl.rabbitmq.connection.connection_manager import ConnectionManager
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.message_sender import MessageSender
@@ -28,15 +30,18 @@ class MessageRouter(ABC):
     Interface for send and receive RabbitMQ messages
     """
 
-    def __init__(self, connection_manager: ConnectionManager,
-                 configuration: MessageRouterConfiguration) -> None:
+    def __init__(self,
+                 connection_manager: ConnectionManager,
+                 configuration: MessageRouterConfiguration,
+                 box_configuration: BoxConfiguration) -> None:
         self.configuration = configuration
         self.connection_manager = connection_manager
         self.subscriber_lock = Lock()
         self.sender_lock = Lock()
+        self.box_configuration = box_configuration
 
     @abstractmethod
-    def subscribe(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe(self, callback: MessageListener, *queue_attr: str) -> SubscriberMonitor:
         """
         RabbitMQ queue by intersection schemas queues attributes
         :param callback: listener
@@ -46,7 +51,7 @@ class MessageRouter(ABC):
         pass
 
     @abstractmethod
-    def subscribe_all(self, callback: MessageListener, *queue_attr) -> SubscriberMonitor:
+    def subscribe_all(self, callback: MessageListener, *queue_attr: str) -> SubscriberMonitor:
         """
         RabbitMQ queues
         :param callback: listener
@@ -55,7 +60,7 @@ class MessageRouter(ABC):
         """
 
     @abstractmethod
-    def unsubscribe_all(self):
+    def unsubscribe_all(self) -> None:
         """
         Unsubscribe from all queues
         :return:
@@ -63,21 +68,25 @@ class MessageRouter(ABC):
         pass
 
     @abstractmethod
-    def send(self, message, *queue_attr):
+    def send(self, message: Any, *queue_attr: str) -> None:
         pass
 
     @abstractmethod
-    def send_all(self, message, *queue_attr):
+    def send_all(self, message: Any, *queue_attr: str) -> None:
         pass
 
     @abstractmethod
-    def get_subscriber(self, queue_alias) -> MessageSubscriber:
+    def get_subscriber(self, queue_alias: str) -> MessageSubscriber:
         pass
 
     @abstractmethod
-    def get_sender(self, queue_alias) -> MessageSender:
+    def get_sender(self, queue_alias: str) -> MessageSender:
         pass
 
     @abstractmethod
-    def close_connection(self, queue_alias):
+    def close_connection(self, queue_alias: str) -> None:
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
         pass

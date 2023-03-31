@@ -1,4 +1,4 @@
-#   Copyright 2021-2021 Exactpro (Exactpro Systems Limited)
+#   Copyright 2021-2022 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,5 +22,7 @@ class PrometheusMetric(AbstractMetric):
     def __init__(self, name: str, documentation: str) -> None:
         self.metric = Gauge(name=name, documentation=documentation)
 
-    def on_value_change(self, value: bool):
+        super().__init__()
+
+    def on_value_change(self, value: bool) -> None:
         self.metric.set(1.0 if value else 0.0)

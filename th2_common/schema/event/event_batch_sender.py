@@ -12,13 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter
 from th2_grpc_common.common_pb2 import EventBatch
 
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_sender import AbstractRabbitSender
 import th2_common.schema.metrics.common_metrics as common_metrics
-from th2_common.schema.metrics.metric_utils import update_total_metrics
 from th2_common.schema.util.util import get_debug_string_event
 
 
@@ -29,19 +29,19 @@ class EventBatchSender(AbstractRabbitSender):
 
     _TH2_TYPE = 'EVENT'
 
-    def send(self, message):
+    def send(self, message: EventBatch) -> None:
         self.OUTGOING_EVENT_QUANTITY.labels(self.th2_pin).inc(len(message.events))
         super().send(message)
 
-    def get_events(self, batch: EventBatch) -> list:
+    def get_events(self, batch: EventBatch) -> RepeatedCompositeFieldContainer:
         return batch.events
 
     @staticmethod
-    def value_to_bytes(value: EventBatch):
+    def value_to_bytes(value: EventBatch) -> bytes:
         return value.SerializeToString()
 
-    def to_trace_string(self, value):
+    def to_trace_string(self, value: EventBatch) -> str:
         return MessageToJson(value)
 
-    def to_debug_string(self, value):
+    def to_debug_string(self, value: EventBatch) -> str:
         return get_debug_string_event(value)

@@ -12,8 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from typing import Set
 
-from th2_grpc_common.common_pb2 import AnyMessage, MessageGroup, MessageGroupBatch, MessageBatch
+from th2_grpc_common.common_pb2 import AnyMessage, MessageBatch, MessageGroup, MessageGroupBatch
 
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router_adapter import \
     RabbitMessageGroupBatchRouterAdapter
@@ -23,21 +24,23 @@ from th2_common.schema.message.queue_attribute import QueueAttribute
 class RabbitParsedBatchRouter(RabbitMessageGroupBatchRouterAdapter):
 
     @property
-    def required_subscribe_attributes(self):
-        return {QueueAttribute.SUBSCRIBE.value, QueueAttribute.PARSED.value}
+    def required_subscribe_attributes(self) -> Set[str]:
+        return {QueueAttribute.SUBSCRIBE, QueueAttribute.PARSED}
 
     @property
-    def required_send_attributes(self):
-        return {QueueAttribute.PUBLISH.value, QueueAttribute.PARSED.value}
+    def required_send_attributes(self) -> Set[str]:
+        return {QueueAttribute.PUBLISH, QueueAttribute.PARSED}
 
     @staticmethod
-    def to_group_batch(message):
+    def to_group_batch(message: MessageBatch) -> MessageGroupBatch:
         messages = [AnyMessage(message=msg) for msg in message.messages]
         group = MessageGroup(messages=messages)
-        value = MessageGroupBatch(groups=[group])
-        return value
+
+        return MessageGroupBatch(groups=[group])
 
     @staticmethod
-    def from_group_batch(message):
-        return MessageBatch(messages=[anymsg.message for group in message.groups for anymsg in group.messages if
-                                         anymsg.HasField('message')])
+    def from_group_batch(message: MessageGroupBatch) -> MessageBatch:
+        return MessageBatch(messages=[
+            anymsg.message for group in message.groups for anymsg in group.messages if
+            anymsg.HasField('message')
+        ])
