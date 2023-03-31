@@ -15,13 +15,14 @@
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf.json_format import MessageToJson
 from prometheus_client import Counter, Gauge
+from th2_grpc_common.common_pb2 import MessageGroupBatch
+
 from th2_common.schema.message.impl.rabbitmq.abstract_rabbit_batch_subscriber import AbstractRabbitBatchSubscriber, \
     Metadata
 import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.metric_utils import update_dropped_metrics as util_dropped
 from th2_common.schema.metrics.metric_utils import update_total_metrics as util_total
 from th2_common.schema.util.util import get_debug_string_group
-from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 class RabbitMessageGroupBatchSubscriber(AbstractRabbitBatchSubscriber):

@@ -18,6 +18,7 @@ from typing import Any, Dict
 from unittest.mock import Mock
 
 import pytest
+
 from th2_common.schema.factory.common_factory import CommonFactory
 from th2_common.schema.grpc.router.impl.default_grpc_router import DefaultGrpcRouter
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \

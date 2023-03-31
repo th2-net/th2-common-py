@@ -16,11 +16,12 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable
 
 import google.protobuf.message
+from th2_grpc_common.common_pb2 import MessageGroupBatch
+
 from th2_common.schema.message.impl.rabbitmq.group.rabbit_message_group_batch_router import \
     RabbitMessageGroupBatchRouter
 from th2_common.schema.message.message_listener import MessageListener
 from th2_common.schema.message.subscriber_monitor import SubscriberMonitor
-from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 class RabbitMessageGroupBatchRouterAdapter(RabbitMessageGroupBatchRouter, ABC):

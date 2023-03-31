@@ -14,9 +14,10 @@
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from prometheus_client import Counter, Gauge
+from th2_grpc_common.common_pb2 import MessageGroupBatch
+
 from th2_common.schema.metrics import common_metrics
 from th2_common.schema.util.util import get_sequence, get_session_alias_and_direction_group
-from th2_grpc_common.common_pb2 import MessageGroupBatch
 
 
 def update_total_metrics(batch: MessageGroupBatch,

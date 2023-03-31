@@ -14,11 +14,12 @@
 
 from typing import Dict, List, Optional, Union
 
+from th2_grpc_common.common_pb2 import MessageGroup
+
 from th2_common.schema.filter.strategy.abstract_filter_strategy import AbstractFilterStrategy
 from th2_common.schema.message.configuration.message_configuration import FieldFilterConfiguration, \
     MqRouterFilterConfiguration
 from th2_common.schema.strategy.field_extraction.th2_msg_field_extraction import Th2MsgFieldExtraction
-from th2_grpc_common.common_pb2 import MessageGroup
 
 
 class DefaultFilterStrategy(AbstractFilterStrategy):

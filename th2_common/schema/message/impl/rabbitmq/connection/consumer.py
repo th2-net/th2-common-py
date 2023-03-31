@@ -23,6 +23,7 @@ import aio_pika
 from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_queue import RobustQueue
+
 from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 
 

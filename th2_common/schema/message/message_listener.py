@@ -25,4 +25,4 @@ class MessageListener(ABC):
         pass
 
     def on_close(self) -> None:
-        pass
+        return
