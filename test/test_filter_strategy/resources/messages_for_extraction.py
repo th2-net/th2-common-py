@@ -86,6 +86,7 @@ message_dict = {
     'TransactTime': transact_time,
     'TradingParty': trading_party_dict,
     'message_type': 'NewOrderSingle',
+    'book_name': '',
     'direction': 'SECOND',
     'properties': {},
     'protocol': '',
