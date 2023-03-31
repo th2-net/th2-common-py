@@ -17,4 +17,4 @@ nest_asyncio==1.5.6
 th2-grpc-common>=3.12,<4
 kubernetes~=26.1
 prometheus_client~=0.14.1
-th2-common-utils~=1.6
+th2-common-utils~=2.0
