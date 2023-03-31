@@ -4,7 +4,7 @@ on:
   push:
     branches-ignore:
       - master
-      - version-2
+      - version-*
       - dependabot**
     paths-ignore:
       - README.md
