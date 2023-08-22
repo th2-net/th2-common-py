@@ -80,7 +80,7 @@ class QueueConfiguration(AbstractConfiguration):
                  queue: str,
                  exchange: str,
                  attributes: List[str],
-                 filters: List[Dict[str, Any]],
+                 filters: List[Dict[str, Any]] = None,
                  can_read: bool = True,
                  can_write: bool = True,
                  **kwargs: Any) -> None:
@@ -88,7 +88,7 @@ class QueueConfiguration(AbstractConfiguration):
         self.queue = queue
         self.exchange = exchange
         self.attributes = attributes
-        self.filters = [MqRouterFilterConfiguration(**filter_schema) for filter_schema in filters]
+        self.filters = [MqRouterFilterConfiguration(**filter_schema) for filter_schema in filters] if filters is not None else []
         self.can_read = can_read
         self.can_write = can_write
 
