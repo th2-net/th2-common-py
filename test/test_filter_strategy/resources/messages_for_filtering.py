@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from th2_grpc_common.common_pb2 import AnyMessage, ConnectionID, Direction, Message, MessageGroup,\
+from th2_grpc_common.common_pb2 import AnyMessage, ConnectionID, Direction, Message, MessageGroup, \
     MessageGroupBatch, MessageID, MessageMetadata, RawMessage, RawMessageMetadata, Value
 
 
