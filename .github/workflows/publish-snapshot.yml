@@ -1,0 +1,18 @@
+name: check and publish snapshot Python tarball to PyPi
+
+on:
+    push:
+      branches-ignore:
+        - master
+        - version-*
+      paths-ignore:
+        - README.md
+
+jobs:
+  build-job:
+    name: Check and publish snapshot tarball to PyPi
+    uses: th2-net/.github/.github/workflows/compound-python.yml@python-workflow # FIXME: change to main
+    with:
+      release-type: development
+    secrets:
+      pypi-password: ${{ secrets.PYPI_PASSWORD }}
