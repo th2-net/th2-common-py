@@ -80,7 +80,7 @@ class QueueConfiguration(AbstractConfiguration):
                  queue: str,
                  exchange: str,
                  attributes: List[str],
-                 filters: List[Dict[str, Any]] = None,
+                 filters: Optional[List[Dict[str, Any]]] = None,
                  can_read: bool = True,
                  can_write: bool = True,
                  **kwargs: Any) -> None:
