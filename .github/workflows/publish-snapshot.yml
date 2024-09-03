@@ -15,6 +15,7 @@ jobs:
     with:
       release-type: development
       python-check-versions: "['3.8', '3.9', '3.10', '3.11', '3.12']"
-
+      scan-safety-args: '-i 70612' # ignore https://data.safetycli.com/v/70612/97c/. Jinja2 library is not used in our code directly.
+      
     secrets:
       pypi-password: ${{ secrets.PYPI_PASSWORD }}
