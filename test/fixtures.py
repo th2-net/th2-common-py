@@ -39,7 +39,8 @@ def factory() -> CommonFactory:  # type: ignore
 def filtered_messages(factory) -> Dict[str, Any]:  # type: ignore
     message_router_configuration = factory._create_message_router_configuration()
     rabbit_message_router = RabbitMessageGroupBatchRouter(connection_manager=Mock(),
-                                                          configuration=message_router_configuration)
+                                                          configuration=message_router_configuration,
+                                                          box_configuration=factory.box_configuration)
 
     filtered_messages = rabbit_message_router.split_and_filter(
         queue_aliases_to_configs=message_router_configuration.queues,

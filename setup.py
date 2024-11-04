@@ -38,7 +38,7 @@ setup(
     author_email='th2-devs@exactprosystems.com',
     url='https://github.com/th2-net/th2-common-py',
     license='Apache License 2.0',
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     install_requires=requirements,
     packages=[''] + find_packages(include=['th2_common', 'th2_common.*']),
     package_data={'': ['package_info.json'], 'th2_common.schema.log': ['log4py.conf', 'log_config.json']}
