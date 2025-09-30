@@ -65,7 +65,7 @@ class ConnectionManager:
                                  self.connection_parameters)
         self.publisher = Publisher(self.connection_parameters)
 
-        self._loop: AbstractEventLoop = asyncio.get_event_loop()
+        self._loop: AbstractEventLoop = asyncio.new_event_loop()
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 
@@ -128,7 +128,7 @@ class ConnectionManager:
     async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
 
-        tasks = asyncio.all_tasks()
+        tasks = asyncio.all_tasks(self._loop)
         logger.info('Canceling pending tasks %d', len(tasks))
         for task in tasks:
             if task is not asyncio.current_task():
