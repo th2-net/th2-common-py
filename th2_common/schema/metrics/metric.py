@@ -22,7 +22,7 @@ class Metric:
 
         :return: Status (bool) of MetricMonitor
         """
-        pass
+        return False
 
     def enable(self) -> None:
         """

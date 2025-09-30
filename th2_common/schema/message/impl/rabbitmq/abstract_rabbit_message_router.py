@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from th2_grpc_common.common_pb2 import MessageGroupBatch
 
+from th2_common.schema.box.configuration.box_configuration import BoxConfiguration
 from th2_common.schema.exception.router_error import RouterError
 from th2_common.schema.filter.strategy.filter_strategy import FilterStrategy
 from th2_common.schema.filter.strategy.impl.default_filter_strategy import DefaultFilterStrategy
@@ -59,8 +60,11 @@ class MultiplySubscribeMonitorImpl(SubscriberMonitor):
 
 class AbstractRabbitMessageRouter(MessageRouter, ABC):
 
-    def __init__(self, connection_manager: ConnectionManager, configuration: MessageRouterConfiguration) -> None:
-        super().__init__(connection_manager, configuration)
+    def __init__(self,
+                 connection_manager: ConnectionManager,
+                 configuration: MessageRouterConfiguration,
+                 box_configuration: BoxConfiguration) -> None:
+        super().__init__(connection_manager, configuration, box_configuration)
         self._filter_strategy: FilterStrategy = DefaultFilterStrategy()
         # List of queue aliases, which configurations we used to create senders/subs.
         self.queue_connections: List[str] = []

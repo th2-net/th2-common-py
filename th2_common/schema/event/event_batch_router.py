@@ -27,8 +27,31 @@ from th2_common.schema.message.message_sender import MessageSender
 from th2_common.schema.message.message_subscriber import MessageSubscriber
 from th2_common.schema.message.queue_attribute import QueueAttribute
 
+DEFAULT_SCOPE_NAME = 'th2-scope'
+
 
 class EventBatchRouter(AbstractRabbitMessageRouter):
+
+    def check_validity(self, message: EventBatch) -> EventBatch:
+        for event in message.events:
+            book = event.id.book_name
+            if not book:
+                if self.box_configuration.book_name is None:
+                    raise Exception('Book name is undefined both explicitly in message IDs and '
+                                    'implicitly in box configuration')
+                book = self.box_configuration.book_name
+                event.id.book_name = book
+            if any(message_id.book_name != book for message_id in event.attached_message_ids):
+                raise Exception('MessageID attached to event has different book name')
+            if not event.id.scope:
+                event.id.scope = DEFAULT_SCOPE_NAME
+        return message
+
+    def send(self, message: EventBatch, *queue_attr: str) -> None:
+        super().send(self.check_validity(message), *queue_attr)
+
+    def send_all(self, message: EventBatch, *queue_attr: str) -> None:
+        super().send_all(self.check_validity(message), *queue_attr)
 
     def _get_messages(self, batch: EventBatch) -> RepeatedCompositeFieldContainer:
         return batch.events

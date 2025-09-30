@@ -86,6 +86,7 @@ message_dict = {
     'TransactTime': transact_time,
     'TradingParty': trading_party_dict,
     'message_type': 'NewOrderSingle',
+    'book_name': '',
     'direction': 'SECOND',
     'properties': {},
     'protocol': '',
@@ -102,9 +103,9 @@ raw_message = RawMessage(parent_event_id=parent_event_id,
                          metadata=RawMessageMetadata(
                              id=MessageID(
                                  connection_id=ConnectionID(session_alias='jsTUURfy'),
+                                 timestamp=ts,
                                  direction=Direction.SECOND
                              ),
-                             timestamp=ts,
                              properties={'field1': 'value1'},
                              protocol='_protocol'
                          ),

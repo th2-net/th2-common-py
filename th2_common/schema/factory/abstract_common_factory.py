@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 
+from th2_common.schema.box.configuration.box_configuration import BoxConfiguration
 from th2_common.schema.cradle.cradle_configuration import CradleConfiguration
 from th2_common.schema.event.event_batch_router import EventBatchRouter
 from th2_common.schema.grpc.configuration.grpc_configuration import GrpcConfiguration, GrpcConnectionConfiguration
@@ -38,12 +39,10 @@ import th2_common.schema.metrics.common_metrics as common_metrics
 from th2_common.schema.metrics.prometheus_configuration import PrometheusConfiguration
 from th2_common.schema.metrics.prometheus_server import PrometheusServer
 
-
 logger = logging.getLogger(__name__)
 
 
 class AbstractCommonFactory(ABC):
-
     LOGGING_CONFIG_FILENAME = 'log4py.conf'
     DEFAULT_LOGGING_CONFIG_OUTER_PATH = Path('/var/th2/config/') / LOGGING_CONFIG_FILENAME
     DEFAULT_LOGGING_CONFIG_INNER_PATH = Path(__file__).parent.parent / 'log' / 'log_config.json'
@@ -94,6 +93,8 @@ class AbstractCommonFactory(ABC):
 
         self._liveness_monitor = common_metrics.register_liveness('common_factory_liveness')
 
+        self.box_configuration = self._create_box_configuration()
+
         self.prometheus_config = self._create_prometheus_configuration()
         if self.prometheus_config.enabled:
             self.prometheus = PrometheusServer(self.prometheus_config.port, self.prometheus_config.host)
@@ -115,9 +116,11 @@ class AbstractCommonFactory(ABC):
         if self.message_router_configuration is None:
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_parsed_batch_router is None:
-            self._message_parsed_batch_router = self.message_parsed_batch_router_class(self._connection_manager,
-                                                                                       self.message_router_configuration
-                                                                                       )
+            self._message_parsed_batch_router = self.message_parsed_batch_router_class(
+                self._connection_manager,
+                self.message_router_configuration,
+                self.box_configuration
+            )
 
         return self._message_parsed_batch_router
 
@@ -137,7 +140,8 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_raw_batch_router is None:
             self._message_raw_batch_router = self.message_raw_batch_router_class(self._connection_manager,
-                                                                                 self.message_router_configuration)
+                                                                                 self.message_router_configuration,
+                                                                                 self.box_configuration)
         return self._message_raw_batch_router
 
     @property
@@ -156,7 +160,8 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = self._create_message_router_configuration()
         if self._message_group_batch_router is None:
             self._message_group_batch_router = self.message_group_batch_router_class(self._connection_manager,
-                                                                                     self.message_router_configuration)
+                                                                                     self.message_router_configuration,
+                                                                                     self.box_configuration)
 
         return self._message_group_batch_router
 
@@ -176,7 +181,8 @@ class AbstractCommonFactory(ABC):
             self.message_router_configuration = self._create_message_router_configuration()
         if self._event_batch_router is None:
             self._event_batch_router = self.event_batch_router_class(self._connection_manager,
-                                                                     self.message_router_configuration)
+                                                                     self.message_router_configuration,
+                                                                     self.box_configuration)
 
         return self._event_batch_router
 
@@ -252,6 +258,12 @@ class AbstractCommonFactory(ABC):
         else:
             return PrometheusConfiguration()
 
+    def _create_box_configuration(self) -> BoxConfiguration:
+        if self._path_to_box_configuration.exists():
+            return BoxConfiguration(**self.read_configuration(self._path_to_box_configuration))
+        else:
+            return BoxConfiguration()
+
     def create_custom_configuration(self) -> Any:
         return self.read_configuration(self._path_to_custom_configuration)
 
@@ -324,6 +336,11 @@ class AbstractCommonFactory(ABC):
     @property
     @abstractmethod
     def _path_to_custom_configuration(self) -> Path:
+        pass
+
+    @property
+    @abstractmethod
+    def _path_to_box_configuration(self) -> Path:
         pass
 
 
