@@ -95,6 +95,15 @@ class ConnectionManager:
     def close(self) -> None:
         """Closing consumer's and publisher's channel and connection."""
 
+        logger.info('Disabling metrics')
+        self.__metrics.disable()
+        logger.info('Disabled metrics')
+
+        logger.info('Closing pending tasks')
+        graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
+        graceful_shutdown.result()
+        logger.info('Closed pending tasks')
+
         try:
             logger.info('Closing Consumer')
             stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
@@ -111,15 +120,6 @@ class ConnectionManager:
             logger.exception(f'Error while stopping Publisher: {e}')
         finally:
             logger.info('Closed Publisher')
-
-        logger.info('Disabling metrics')
-        self.__metrics.disable()
-        logger.info('Disabled metrics')
-
-        logger.info('Closing pending tasks')
-        graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
-        graceful_shutdown.result()
-        logger.info('Closed pending tasks')
 
         logger.info('Joining consumer tread')
         self.publisher_consumer_thread.join()
