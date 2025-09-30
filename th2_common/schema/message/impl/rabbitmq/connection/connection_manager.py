@@ -1,4 +1,4 @@
-#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2025 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -101,27 +101,44 @@ class ConnectionManager:
             stopping_consumer.result()
         except Exception as e:
             logger.exception(f'Error while stopping Consumer: {e}')
+        finally:
+            logger.info('Closed Consumer')
         try:
             logger.info('Closing Publisher')
             stopping_publisher = asyncio.run_coroutine_threadsafe(self.publisher.stop(), self._loop)
             stopping_publisher.result()
         except Exception as e:
             logger.exception(f'Error while stopping Publisher: {e}')
+        finally:
+            logger.info('Closed Publisher')
 
+        logger.info('Disabling metrics')
         self.__metrics.disable()
+        logger.info('Disabled metrics')
 
+        logger.info('Closing pending tasks')
         graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
         graceful_shutdown.result()
+        logger.info('Closed pending tasks')
 
+        logger.info('Joining consumer tread')
         self.publisher_consumer_thread.join()
+        logger.info('Joined consumer tread')
 
     async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
 
-        for task in asyncio.all_tasks():
+        tasks = asyncio.all_tasks()
+        logger.info('Canceling pending tasks %d', len(tasks))
+        for task in tasks:
             if task is not asyncio.current_task():
+                logger.info('Canceling pending task %s', task.get_name())
                 task.cancel()
                 with suppress(asyncio.exceptions.CancelledError):
                     await task
+                logger.info('Canceled pending task %s', task.get_name())
+        logger.info('Canceled pending tasks %d', len(tasks))
 
+        logger.info('Stopping event loop of connection manager')
         self._loop.call_soon_threadsafe(self._loop.stop)
+        logger.info('Stopped event loop of connection manager')
