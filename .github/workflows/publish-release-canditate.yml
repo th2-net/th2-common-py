@@ -1,4 +1,4 @@
-name: check and publish release candidate Python tarball to PyPi
+name: build release candidat
 
 on: workflow_dispatch
 
