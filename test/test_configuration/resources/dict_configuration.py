@@ -17,7 +17,7 @@ rabbit_mq_configuration_dict = {
     'exchange_name': 'exchange',
     'host': '0.0.0.0',
     'password': 'password',
-    'port': '10',
+    'port': 10,
     'prefetch_count': 100,
     'subscriber_name': None,
     'username': 'name',
