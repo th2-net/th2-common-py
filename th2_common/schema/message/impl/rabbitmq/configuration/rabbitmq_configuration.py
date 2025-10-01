@@ -31,7 +31,7 @@ class RabbitMQConfiguration(AbstractConfiguration):
                  **kwargs: Any) -> None:
         self.host = host
         self.vhost = vHost
-        self.port = port
+        self.port = int(port)
         self.username = username
         self.password = password
         self.subscriber_name = subscriberName
