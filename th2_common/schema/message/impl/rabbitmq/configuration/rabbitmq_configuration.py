@@ -36,6 +36,6 @@ class RabbitMQConfiguration(AbstractConfiguration):
         self.password = password
         self.subscriber_name = subscriberName
         self.exchange_name = exchangeName
-        self.prefetch_count = prefetch_count
+        self.prefetch_count = int(prefetch_count)
 
         self.check_unexpected_args(kwargs)
