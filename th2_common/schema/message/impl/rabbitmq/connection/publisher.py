@@ -26,7 +26,6 @@ from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_exchange import RobustExchange
 
-
 logger = logging.getLogger(__name__)
 
 

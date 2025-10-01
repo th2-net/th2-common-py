@@ -27,7 +27,6 @@ from aio_pika.robust_queue import RobustQueue
 
 from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
 
-
 logger = logging.getLogger(__name__)
 
 
