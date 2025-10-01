@@ -61,11 +61,10 @@ class ConnectionManager:
             'virtualhost': configuration.vhost
         }
 
-        self.consumer = Consumer(connection_manager_configuration,
-                                 self.connection_parameters)
-        self.publisher = Publisher(self.connection_parameters)
-
         self._loop: AbstractEventLoop = asyncio.new_event_loop()
+        self.consumer = Consumer(connection_manager_configuration, self.connection_parameters, self._loop)
+        self.publisher = Publisher(self.connection_parameters, self._loop)
+
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 
