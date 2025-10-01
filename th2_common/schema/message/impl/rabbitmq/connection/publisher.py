@@ -14,10 +14,10 @@
 
 
 import asyncio
+from asyncio import AbstractEventLoop
 import logging
 import threading
 import time
-from asyncio import AbstractEventLoop
 from typing import Any, Dict, List, Optional, Tuple
 
 import aio_pika

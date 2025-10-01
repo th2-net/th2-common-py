@@ -13,10 +13,10 @@
 #   limitations under the License.
 
 import asyncio
+from asyncio import AbstractEventLoop
 import datetime
 import logging
 import time
-from asyncio import AbstractEventLoop
 from types import FunctionType
 from typing import Any, Dict, Optional, Tuple
 
