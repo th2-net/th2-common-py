@@ -94,18 +94,18 @@ class ConnectionManager:
     def close(self) -> None:
         """Closing consumer's and publisher's channel and connection."""
 
-        logger.info('Disabling metrics')
+        logger.debug('Disabling metrics')
         self.__metrics.disable()
-        logger.info('Disabled metrics')
+        logger.debug('Disabled metrics')
 
         try:
-            logger.info('Closing Consumer')
+            logger.debug('Closing Consumer')
             stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
             stopping_consumer.result()
         except Exception as e:
             logger.exception(f'Error while stopping Consumer: {e}')
         finally:
-            logger.info('Closed Consumer')
+            logger.debug('Closed Consumer')
         try:
             logger.info('Closing Publisher')
             stopping_publisher = asyncio.run_coroutine_threadsafe(self.publisher.stop(), self._loop)
@@ -113,31 +113,31 @@ class ConnectionManager:
         except Exception as e:
             logger.exception(f'Error while stopping Publisher: {e}')
         finally:
-            logger.info('Closed Publisher')
+            logger.debug('Closed Publisher')
 
-        logger.info('Closing pending tasks')
+        logger.debug('Closing pending tasks')
         graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
         graceful_shutdown.result()
-        logger.info('Closed pending tasks')
+        logger.debug('Closed pending tasks')
 
-        logger.info('Joining consumer tread')
+        logger.debug('Joining consumer tread')
         self.publisher_consumer_thread.join()
-        logger.info('Joined consumer tread')
+        logger.debug('Joined consumer tread')
 
     async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
 
         tasks = asyncio.all_tasks(self._loop)
-        logger.info('Canceling pending tasks %d', len(tasks))
+        logger.debug('Canceling pending tasks %d', len(tasks))
         for task in tasks:
             if task is not asyncio.current_task():
-                logger.info('Canceling pending task %s', task.get_name())
+                logger.debug('Canceling pending task %s', task.get_name())
                 task.cancel()
                 with suppress(asyncio.exceptions.CancelledError):
                     await task
                 logger.info('Canceled pending task %s', task.get_name())
-        logger.info('Canceled pending tasks %d', len(tasks))
+        logger.debug('Canceled pending tasks %d', len(tasks))
 
-        logger.info('Stopping event loop of connection manager')
+        logger.debug('Stopping event loop of connection manager')
         self._loop.call_soon_threadsafe(self._loop.stop)
-        logger.info('Stopped event loop of connection manager')
+        logger.debug('Stopped event loop of connection manager')
