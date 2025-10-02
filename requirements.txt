@@ -1,8 +1,8 @@
-aio_pika>=9.1.5
-nest_asyncio>=1.5.6
-kubernetes>=26.1
-prometheus_client>=0.14.1
-th2-grpc-common>=4.7.2
-th2-common-utils>=2.2.0
+aio_pika>=9.1.5,<10
+nest_asyncio>=1.5.6,<2
+kubernetes>=26.1,<27
+prometheus_client>=0.14.1,<1
+th2-grpc-common>=4.7.2,<5
+th2-common-utils>=2.2.0,<3
 
-urllib3>=2.5.0 # vulnerabilities: CVE-2025-50182 https://data.safetycli.com/v/77745/97c/ , CVE-2025-50181 https://data.safetycli.com/v/77744/97c/
+# urllib3>=2.5.0 # vulnerabilities: CVE-2025-50182 https://data.safetycli.com/v/77745/97c/ , CVE-2025-50181 https://data.safetycli.com/v/77744/97c/
