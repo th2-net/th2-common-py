@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
 ARG pypi_repository_url
 ARG pypi_user
 ARG pypi_password

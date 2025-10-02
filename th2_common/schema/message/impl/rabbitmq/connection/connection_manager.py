@@ -1,4 +1,4 @@
-#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2025 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -61,11 +61,10 @@ class ConnectionManager:
             'virtualhost': configuration.vhost
         }
 
-        self.consumer = Consumer(connection_manager_configuration,
-                                 self.connection_parameters)
-        self.publisher = Publisher(self.connection_parameters)
+        self._loop: AbstractEventLoop = asyncio.new_event_loop()
+        self.consumer = Consumer(connection_manager_configuration, self.connection_parameters, self._loop)
+        self.publisher = Publisher(self.connection_parameters, self._loop)
 
-        self._loop: AbstractEventLoop = asyncio.get_event_loop()
         self.publisher_consumer_thread = Thread(target=self._start_background_loop)
         self.publisher_consumer_thread.start()
 
@@ -95,33 +94,50 @@ class ConnectionManager:
     def close(self) -> None:
         """Closing consumer's and publisher's channel and connection."""
 
+        logger.debug('Disabling metrics')
+        self.__metrics.disable()
+        logger.debug('Disabled metrics')
+
         try:
-            logger.info('Closing Consumer')
+            logger.debug('Closing Consumer')
             stopping_consumer = asyncio.run_coroutine_threadsafe(self.consumer.stop(), self._loop)
             stopping_consumer.result()
         except Exception as e:
             logger.exception(f'Error while stopping Consumer: {e}')
+        finally:
+            logger.debug('Closed Consumer')
         try:
             logger.info('Closing Publisher')
             stopping_publisher = asyncio.run_coroutine_threadsafe(self.publisher.stop(), self._loop)
             stopping_publisher.result()
         except Exception as e:
             logger.exception(f'Error while stopping Publisher: {e}')
+        finally:
+            logger.debug('Closed Publisher')
 
-        self.__metrics.disable()
-
+        logger.debug('Closing pending tasks')
         graceful_shutdown = asyncio.run_coroutine_threadsafe(self._cancel_pending_tasks(), self._loop)
         graceful_shutdown.result()
+        logger.debug('Closed pending tasks')
 
+        logger.debug('Joining consumer tread')
         self.publisher_consumer_thread.join()
+        logger.debug('Joined consumer tread')
 
     async def _cancel_pending_tasks(self) -> None:
         """Coroutine that ensures graceful shutdown of event loop"""
 
-        for task in asyncio.all_tasks():
+        tasks = asyncio.all_tasks(self._loop)
+        logger.debug('Canceling pending tasks %d', len(tasks))
+        for task in tasks:
             if task is not asyncio.current_task():
+                logger.debug('Canceling pending task %s', task.get_name())
                 task.cancel()
                 with suppress(asyncio.exceptions.CancelledError):
                     await task
+                logger.info('Canceled pending task %s', task.get_name())
+        logger.debug('Canceled pending tasks %d', len(tasks))
 
+        logger.debug('Stopping event loop of connection manager')
         self._loop.call_soon_threadsafe(self._loop.stop)
+        logger.debug('Stopped event loop of connection manager')

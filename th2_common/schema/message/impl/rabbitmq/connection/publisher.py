@@ -1,4 +1,4 @@
-#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2025 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 
 import asyncio
+from asyncio import AbstractEventLoop
 import logging
 import threading
 import time
@@ -24,7 +25,6 @@ from aio_pika import Message
 from aio_pika.robust_channel import RobustChannel
 from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_exchange import RobustExchange
-
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class Publisher:
     DELAY_FOR_RECONNECTION = 5
     PUBLISHING_COROUTINE_NAME = '_publish_message'
 
-    def __init__(self, connection_parameters: Dict[str, Any]) -> None:
+    def __init__(self, connection_parameters: Dict[str, Any], loop: AbstractEventLoop) -> None:
         self._connection_parameters: Dict[str, Any] = connection_parameters
         self._connection: Optional[RobustConnection] = None
         self._channel: Optional[RobustChannel] = None
@@ -60,15 +60,14 @@ class Publisher:
         self._connection_exceptions: List[Exception] = []
         self._message_number: int = 0
         self._republishing: bool = False
+        self._loop: AbstractEventLoop = loop
 
     async def connect(self) -> None:
         """Coroutine that creates connection and channel for publisher"""
 
-        loop = asyncio.get_event_loop()
-
         while not self._connection:
             try:
-                self._connection = await aio_pika.connect_robust(loop=loop, **self._connection_parameters)
+                self._connection = await aio_pika.connect_robust(loop=self._loop, **self._connection_parameters)
             except Exception as e:
                 logger.error(f'Exception was raised while connecting Publisher: {e}')
                 time.sleep(Publisher.DELAY_FOR_RECONNECTION)

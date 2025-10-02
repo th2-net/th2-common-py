@@ -1,4 +1,4 @@
-#   Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
+#   Copyright 2020-2025 Exactpro (Exactpro Systems Limited)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import asyncio
+from asyncio import AbstractEventLoop
 import datetime
 import logging
 import time
@@ -25,7 +26,6 @@ from aio_pika.robust_connection import RobustConnection
 from aio_pika.robust_queue import RobustQueue
 
 from th2_common.schema.message.configuration.message_configuration import MqConnectionConfiguration
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,8 @@ class Consumer:
 
     def __init__(self,
                  connection_manager_configuration: MqConnectionConfiguration,
-                 connection_parameters: dict) -> None:
+                 connection_parameters: dict,
+                 loop: AbstractEventLoop) -> None:
 
         self._subscriber_name: Optional[str] = connection_manager_configuration.subscriber_name
         self._prefetch_count: int = connection_manager_configuration.prefetch_count
@@ -54,14 +55,14 @@ class Consumer:
         self._connection: Optional[RobustConnection] = None
         self._channel: Optional[RobustChannel] = None
         self.__consumer_tag_id: int = -1
+        self._loop: AbstractEventLoop = loop
 
     async def connect(self) -> None:
         """Coroutine that creates connection, channel for publisher and sets QOS"""
 
-        loop = asyncio.get_running_loop()
         while self._connection is None:
             try:
-                self._connection = await aio_pika.connect_robust(loop=loop, **self._connection_parameters)
+                self._connection = await aio_pika.connect_robust(loop=self._loop, **self._connection_parameters)
             except Exception as e:
                 logger.error(f'Exception was raised while connecting Consumer: {e}')
                 time.sleep(Consumer.DELAY_FOR_RECONNECTION)
