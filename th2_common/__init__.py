@@ -13,7 +13,9 @@
 #   limitations under the License.
 
 from importlib.metadata import PackageNotFoundError, version
+
 from th2_common_utils.message_fields_access import *
+
 
 try:
     print(f"Using th2-common=={version('th2_common')}")
