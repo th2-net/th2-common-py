@@ -1,4 +1,4 @@
-aio_pika>=9.1.5
+aio_pika>=9.5.6
 nest_asyncio>=1.5.6
 kubernetes>=26.1
 prometheus_client>=0.14.1
